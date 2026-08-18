@@ -56,10 +56,7 @@ function daySummary(day) {
 function dateLabel(iso) {
   const d = new Date(`${iso}T00:00:00+09:00`);
   const weekdays = ['日','月','火','水','木','金','土'];
-  return {
-    main: `${d.getMonth()+1}月${d.getDate()}日`,
-    sub: `${d.getFullYear()}年（${weekdays[d.getDay()]}）`
-  };
+  return `${iso}（${weekdays[d.getDay()]}）`;
 }
 
 function renderDay(day) {
@@ -82,7 +79,7 @@ function renderDay(day) {
 
   return `<section class="day-card">
     <div class="day-top">
-      <div class="date-wrap"><span class="date-main">${dl.main}</span><span class="date-sub">${dl.sub}</span></div>
+      <div class="date-wrap"><span class="date-label">${dl}</span></div>
       <div class="summary">
         <div class="summary-item"><span class="summary-label">的中数</span><span class="summary-value">${summary.hits} / ${races.length}</span></div>
         <div class="summary-item"><span class="summary-label">払戻総額</span><span class="summary-value">${yen(summary.payout)}</span></div>

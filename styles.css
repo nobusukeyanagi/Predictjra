@@ -20,20 +20,17 @@ body {
   font-variant-numeric: tabular-nums;
 }
 .page-shell { width: min(1280px, calc(100% - 32px)); margin: 0 auto; padding: 30px 0 56px; }
-.site-header { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:22px; }
-.eyebrow { margin:0 0 5px; font-size:11px; letter-spacing:.14em; color:var(--green-2); font-weight:800; }
+.site-header { margin-bottom:16px; }
 h1 { margin:0; font-size:clamp(24px,3vw,34px); letter-spacing:.01em; }
-.bet-rule { color:var(--muted); font-size:13px; font-weight:700; white-space:nowrap; }
 .day-card { background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); overflow:hidden; margin:0 0 24px; }
-.day-top { display:flex; justify-content:space-between; gap:22px; align-items:center; padding:16px 18px; border-bottom:1px solid var(--line); }
-.date-wrap { display:flex; align-items:baseline; gap:9px; white-space:nowrap; }
-.date-main { font-size:21px; font-weight:850; letter-spacing:.02em; }
-.date-sub { color:var(--muted); font-size:12px; font-weight:700; }
-.summary { display:grid; grid-template-columns:repeat(3,minmax(100px,1fr)); min-width:390px; border:1px solid #d6e0da; border-radius:10px; overflow:hidden; }
-.summary-item { padding:8px 13px; text-align:right; background:#f8faf9; border-left:1px solid #d6e0da; }
+.day-top { display:flex; justify-content:space-between; gap:18px; align-items:center; padding:8px 14px; border-bottom:1px solid var(--line); }
+.date-wrap { display:flex; align-items:center; white-space:nowrap; }
+.date-label { font-size:15px; font-weight:850; letter-spacing:.01em; }
+.summary { display:flex; align-items:center; min-width:0; border:1px solid #d6e0da; border-radius:8px; overflow:hidden; }
+.summary-item { display:flex; align-items:center; gap:6px; padding:5px 10px; white-space:nowrap; background:#f8faf9; border-left:1px solid #d6e0da; }
 .summary-item:first-child { border-left:0; }
-.summary-label { display:block; color:var(--muted); font-size:10px; font-weight:700; margin-bottom:2px; }
-.summary-value { display:block; font-size:17px; font-weight:850; }
+.summary-label { color:var(--muted); font-size:11px; font-weight:700; }
+.summary-value { font-size:13px; font-weight:850; }
 .table-scroll { overflow-x:auto; overscroll-behavior-inline:contain; }
 .race-table { width:100%; min-width:900px; border-collapse:collapse; table-layout:fixed; }
 .race-table thead th { color:#fff; background:var(--green); padding:9px 8px; font-size:12px; font-weight:800; border-right:1px solid rgba(255,255,255,.13); }
@@ -69,15 +66,14 @@ h1 { margin:0; font-size:clamp(24px,3vw,34px); letter-spacing:.01em; }
 .empty { padding:50px 20px; text-align:center; color:var(--muted); background:#fff; border:1px solid var(--line); border-radius:14px; }
 .loading { padding:40px; text-align:center; color:var(--muted); }
 .error { padding:18px; border:1px solid #efc7c4; background:#fff6f5; color:#8f221c; border-radius:10px; }
-.site-footer { color:var(--muted); font-size:11px; line-height:1.6; }
 @media (max-width: 760px) {
   .page-shell { width:100%; padding:18px 0 42px; }
-  .site-header { padding:0 14px; display:block; }
-  .bet-rule { margin-top:7px; white-space:normal; }
+  .site-header { padding:0 14px; }
   .day-card { border-left:0; border-right:0; border-radius:0; margin-bottom:18px; }
-  .day-top { display:block; padding:13px 14px; }
-  .summary { min-width:0; width:100%; margin-top:10px; grid-template-columns:repeat(3,1fr); }
-  .summary-item { padding:7px 8px; }
-  .summary-value { font-size:15px; }
-  .site-footer { padding:0 14px; }
+  .day-top { display:block; padding:7px 10px; }
+  .date-label { font-size:14px; }
+  .summary { width:100%; margin-top:6px; }
+  .summary-item { flex:1 1 0; justify-content:center; gap:4px; padding:4px 5px; }
+  .summary-label { font-size:10px; }
+  .summary-value { font-size:12px; }
 }
