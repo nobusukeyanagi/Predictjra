@@ -2,7 +2,7 @@
 """Fetch JRA race cards/results from netkeiba and update data/races.json.
 
 prepare: previous-day 15:00 JST run; targets tomorrow, creates predictions once.
-result: race-day 18:00 JST run; targets today, records results, official trifecta payout, and prediction return.
+result: race-day 18:00 JST run; targets today, records results and trifecta payout.
 
 The scraper deliberately uses conservative delays and has several selector fallbacks,
 because netkeiba markup can change over time.
@@ -264,8 +264,13 @@ def default_data() -> dict:
     return {
         "updatedAt": datetime.now(JST).isoformat(timespec="seconds"),
         "bet": {
-            "type": "3連単2頭軸マルチ", "axes": 2, "opponents": 5,
-            "unitYen": 100, "combinations": 30, "stakePerRace": 3000,
+            "type": "3連単2頭軸マルチ",
+            "axes": 2,
+            "selectionRule": "min(ceil(horseCount/2), 7)",
+            "maxOpponents": 5,
+            "unitYen": 100,
+            "maxCombinations": 30,
+            "maxStakePerRace": 3000,
         },
         "days": [],
     }
@@ -305,11 +310,30 @@ def race_meta(race_id: str) -> tuple[str, int]:
     return TRACKS.get(race_id[4:6], race_id[4:6]), int(race_id[-2:])
 
 
+def prediction_target_count(horse_count: int) -> int:
+    """Number of horses to include in the prediction.
+
+    Rule: half the field rounded up, capped at 7.
+    5-6 starters -> 3 picks (2 axes + 1 opponent)
+    7-8 -> 4 picks
+    9-10 -> 5 picks
+    11-12 -> 6 picks
+    13+ -> 7 picks
+    """
+    if horse_count < 5:
+        raise ValueError(f"Need at least 5 starters, got {horse_count}")
+    return min((horse_count + 1) // 2, 7)
+
+
 def create_prediction(horses: list[int]) -> dict:
-    if len(horses) < 7:
-        raise ValueError(f"Need at least 7 starters, got {len(horses)}")
-    picks = random.SystemRandom().sample(horses, 7)
+    pick_count = prediction_target_count(len(horses))
+    picks = random.SystemRandom().sample(horses, pick_count)
     return {"axes": picks[:2], "opponents": picks[2:]}
+
+
+def stake_for_prediction(prediction: dict, unit_yen: int = 100) -> int:
+    # 3連単2頭軸マルチは相手1頭につき6通り。
+    return len(prediction.get("opponents", [])) * 6 * unit_yen
 
 
 def combo_is_covered(prediction: dict, combo: Iterable[int]) -> bool:
@@ -335,25 +359,26 @@ def prepare_day(data: dict, target: date) -> int:
         try:
             entries = fetch_entries(race_id)
             horses = [e["horse"] for e in entries]
-            if len(horses) < 7:
+            if len(horses) < 5:
                 print(f"SKIP {race_id}: only {len(horses)} horse numbers parsed")
                 continue
             frames = {str(e["horse"]): e["frame"] for e in entries if e.get("frame")}
             race = existing.get(race_id, {})
+            prediction = race.get("prediction") or create_prediction(horses)
             race.update({
                 "raceId": race_id,
                 "venue": venue,
                 "raceNo": race_no,
                 "horseCount": len(horses),
                 "horseFrames": frames,
-                "prediction": race.get("prediction") or create_prediction(horses),
+                "prediction": prediction,
                 "result": race.get("result"),
                 "status": race.get("status", "pending"),
                 # payout = return from this prediction (0 when missed).
                 "payout": int(race.get("payout", 0)),
                 # trifectaPayouts = official 3連単 payout(s), regardless of hit/miss.
                 "trifectaPayouts": race.get("trifectaPayouts", []),
-                "stake": 3000,
+                "stake": stake_for_prediction(prediction),
             })
             if race_id not in existing:
                 day["races"].append(race)
@@ -391,7 +416,7 @@ def result_day(data: dict, target: date) -> int:
             # This lets the page show the real 3連単 payout even when the prediction missed.
             race["payout"] = payout
             race["trifectaPayouts"] = [int(t["payout"]) for t in result["trifectas"]]
-            race["stake"] = 3000
+            race["stake"] = stake_for_prediction(prediction)
             changed += 1
             print(f"RESULT {race_id}: {race['status']} payout={payout}")
         except Exception as exc:  # noqa: BLE001
