@@ -105,8 +105,18 @@ body {
   .site-header { margin: 0 -6px 8px; padding: 0 6px; }
   .site-title { font-size: clamp(24px, 7vw, 34px); line-height: 1; }
   .day-card { border-radius: 12px; margin-bottom: 16px; }
-  .day-top { padding: 6px 10px; gap: 10px; }
-  .day-summary { gap: 10px; }
+  .day-top {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 6px 10px;
+    gap: 4px;
+  }
+  .day-summary {
+    justify-content: flex-start;
+    gap: 10px;
+    flex-wrap: nowrap;
+  }
   .summary-item { gap: 3px; }
   .date-label { font-size: 15px; }
 }
