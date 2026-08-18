@@ -110,6 +110,7 @@ body {
 .race-name { font-weight: 800; white-space: nowrap; }
 .venue { color: #000; }
 .horses { display: flex; justify-content: center; align-items: center; flex-wrap: nowrap; gap: 2px; }
+.race-table tbody td:nth-child(4) .horses { justify-content: flex-start; }
 .horse-box { display: inline-flex; align-items: center; justify-content: center; width: 27px; height: 27px; border-radius: 6px; border: 1px solid rgba(0,0,0,.18); font-size: 15px; line-height: 1; font-weight: 850; box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); }
 .frame-1 { background: #fff; color: #111; border-color: #aeb7b2; }
 .frame-2 { background: #202322; color: #fff; }
