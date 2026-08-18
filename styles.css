@@ -59,6 +59,16 @@ body {
 .race-table th,
 .race-table td { white-space: nowrap; }
 .race-table thead th { color: #fff; background: var(--green); padding: 5px 10px; font-size: 15px; font-weight: 800; border-right: 1px solid rgba(255,255,255,.13); }
+.race-table thead .column-row th:nth-child(2),
+.race-table thead .column-row th:nth-child(3),
+.race-table thead .column-row th:nth-child(4) {
+  color: var(--green);
+  background: #e8f5e9;
+}
+.race-table thead .column-row th:nth-child(4),
+.race-table tbody td:nth-child(4) {
+  border-right: 2px solid #b8c9bf;
+}
 .day-summary { display: flex; align-items: center; justify-content: flex-end; gap: 20px; white-space: nowrap; }
 .summary-item { display: flex; align-items: baseline; gap: 5px; line-height: 1; }
 .summary-label { color: var(--muted); font-size: 10px; font-weight: 700; }
