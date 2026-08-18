@@ -23,19 +23,18 @@ body {
 .site-header { margin-bottom: 14px; text-align: center; }
 h1 { margin: 0; font-size: clamp(24px, 3vw, 34px); letter-spacing: .01em; text-align: center; }
 .day-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin: 0 auto 20px; width: fit-content; max-width: 100%; }
-.day-top { padding: 5px 4px; border-bottom: 1px solid var(--line); }
-.date-wrap { display: flex; align-items: center; white-space: nowrap; }
+.day-top { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: #fff; }
+.date-wrap { display: flex; align-items: center; white-space: nowrap; flex: 0 0 auto; }
 .date-label { font-size: 15px; font-weight: 850; letter-spacing: .01em; }
 .table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; max-width: 100%; }
 .race-table { width: max-content; min-width: 0; margin: 0 auto; border-collapse: collapse; table-layout: auto; }
 .race-table th,
 .race-table td { white-space: nowrap; }
-.race-table thead th { color: #fff; background: var(--green); padding: 5px 2px; font-size: 15px; font-weight: 800; border-right: 1px solid rgba(255,255,255,.13); }
-.race-table thead .summary-row th { padding: 2px 1px; height: 29px; border-bottom: 1px solid rgba(255,255,255,.18); }
-.race-table thead .summary-spacer { background: var(--surface); border-right: 1px solid var(--line); }
-.summary-cell { text-align: center; line-height: 1.05; }
-.summary-cell .summary-label { display: block; color: rgba(255,255,255,.82); font-size: 10px; font-weight: 700; line-height: 1; margin-bottom: 2px; }
-.summary-cell .summary-value { display: block; color: #fff; font-size: 15px; font-weight: 850; line-height: 1; }
+.race-table thead th { color: #fff; background: var(--green); padding: 5px 10px; font-size: 15px; font-weight: 800; border-right: 1px solid rgba(255,255,255,.13); }
+.day-summary { display: flex; align-items: center; justify-content: flex-end; gap: 20px; white-space: nowrap; }
+.summary-item { display: flex; align-items: baseline; gap: 5px; line-height: 1; }
+.summary-label { color: var(--muted); font-size: 10px; font-weight: 700; }
+.summary-value { color: var(--ink); font-size: 15px; font-weight: 850; }
 .race-table thead .column-row th:first-child { min-width: 70px; }
 .race-table thead .column-row th:nth-child(2),
 .race-table thead .column-row th:nth-child(3) { min-width: 31px; }
@@ -44,7 +43,7 @@ h1 { margin: 0; font-size: clamp(24px, 3vw, 34px); letter-spacing: .01em; text-a
 .race-table thead .column-row th:nth-child(6) { min-width: 52px; }
 .race-table thead .column-row th:nth-child(7) { min-width: 9.5ch; }
 .race-table thead .column-row th:nth-child(8) { min-width: 9.5ch; }
-.race-table tbody td { padding: 5px 1px; border-bottom: 1px solid var(--line); text-align: center; font-size: 15px; height: 39px; }
+.race-table tbody td { padding: 5px 10px; border-bottom: 1px solid var(--line); text-align: center; font-size: 15px; height: 39px; }
 .race-table tbody tr:last-child td { border-bottom: 0; }
 .race-table tbody tr:hover { background: #fbfcfb; }
 .race-table tbody tr.hit-row { background: #fff8d6; }
@@ -68,7 +67,7 @@ h1 { margin: 0; font-size: clamp(24px, 3vw, 34px); letter-spacing: .01em; text-a
 .judgement.hit { color: #fff; background: var(--hit); }
 .judgement.miss { color: #fff; background: var(--miss); }
 .judgement.pending { color: #57615c; background: #e9eeeb; }
-.money, .rate { text-align: right !important; font-weight: 800; white-space: nowrap; padding-left: 2px !important; padding-right: 2px !important; }
+.money, .rate { text-align: right !important; font-weight: 800; white-space: nowrap; padding-left: 10px !important; padding-right: 10px !important; }
 .hit-row .money, .hit-row .rate { color: var(--hit); }
 .empty { padding: 50px 20px; text-align: center; color: var(--muted); background: #fff; border: 1px solid var(--line); border-radius: 14px; font-size: 15px; }
 .loading { padding: 40px; text-align: center; color: var(--muted); font-size: 15px; }
@@ -77,6 +76,8 @@ h1 { margin: 0; font-size: clamp(24px, 3vw, 34px); letter-spacing: .01em; text-a
   .page-shell { width: 100%; padding: 16px 0 40px; }
   .site-header { padding: 0 6px; }
   .day-card { border-left: 0; border-right: 0; border-radius: 0; margin-bottom: 16px; }
-  .day-top { padding: 4px 2px; }
+  .day-top { padding: 6px 10px; gap: 10px; }
+  .day-summary { gap: 10px; }
+  .summary-item { gap: 3px; }
   .date-label { font-size: 15px; }
 }

@@ -88,16 +88,15 @@ function renderDay(day) {
   return `<section class="day-card">
     <div class="day-top">
       <div class="date-wrap"><span class="date-label">${dl}</span></div>
+      <div class="day-summary">
+        <div class="summary-item"><span class="summary-label">的中数</span><span class="summary-value">${summary.hits} / ${races.length}</span></div>
+        <div class="summary-item"><span class="summary-label">払戻総額</span><span class="summary-value">${yen(summary.payout)}</span></div>
+        <div class="summary-item"><span class="summary-label">総回収率</span><span class="summary-value">${percent(summary.recovery)}</span></div>
+      </div>
     </div>
     <div class="table-scroll">
       <table class="race-table">
         <thead>
-          <tr class="summary-row">
-            <th class="summary-spacer" colspan="5"></th>
-            <th class="summary-cell"><span class="summary-label">的中数</span><span class="summary-value">${summary.hits} / ${races.length}</span></th>
-            <th class="summary-cell"><span class="summary-label">払戻総額</span><span class="summary-value">${yen(summary.payout)}</span></th>
-            <th class="summary-cell"><span class="summary-label">総回収率</span><span class="summary-value">${percent(summary.recovery)}</span></th>
-          </tr>
           <tr class="column-row"><th>レース</th><th>軸1</th><th>軸2</th><th>相手</th><th>結果</th><th>判定</th><th>払戻金</th><th>回収率</th></tr>
         </thead>
         <tbody>${rows}</tbody>
