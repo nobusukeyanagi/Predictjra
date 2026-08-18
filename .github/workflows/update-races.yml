@@ -1,0 +1,82 @@
+name: Update race data
+
+on:
+  schedule:
+    - cron: '0 15 * * *'
+      timezone: 'Asia/Tokyo'
+    - cron: '0 18 * * *'
+      timezone: 'Asia/Tokyo'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'prepare = 出馬表/予想, result = 結果/判定'
+        required: true
+        type: choice
+        options:
+          - prepare
+          - result
+        default: prepare
+      target_date:
+        description: '対象日 YYYY-MM-DD（空欄なら自動）'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-race-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Resolve mode and date
+        id: args
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "mode=${{ inputs.mode }}" >> "$GITHUB_OUTPUT"
+            echo "date=${{ inputs.target_date }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event.schedule }}" == "0 15 * * *" ]]; then
+            echo "mode=prepare" >> "$GITHUB_OUTPUT"
+            echo "date=" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=result" >> "$GITHUB_OUTPUT"
+            echo "date=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fetch and update
+        shell: bash
+        run: |
+          ARGS=(--mode "${{ steps.args.outputs.mode }}")
+          if [[ -n "${{ steps.args.outputs.date }}" ]]; then
+            ARGS+=(--date "${{ steps.args.outputs.date }}")
+          fi
+          python scripts/update_races.py "${ARGS[@]}"
+
+      - name: Commit updated data
+        shell: bash
+        run: |
+          if git diff --quiet -- data/races.json; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/races.json
+          git commit -m "Update JRA race data"
+          git push

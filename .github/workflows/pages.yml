@@ -1,16 +1,9 @@
 name: Deploy GitHub Pages
 
 on:
-  # GitHub上で差分ファイルをmainへアップロード／コミットしたら即時反映
   push:
     branches: ['main']
-
-  # 手動再公開も可能
   workflow_dispatch:
-
-  # 前日15時・当日18時の自動データ更新完了後にも再公開
-  # GITHUB_TOKENによる自動commitは通常push workflowを連鎖起動しないため、
-  # workflow_runでUpdate race dataの完了を直接受ける。
   workflow_run:
     workflows: ['Update race data']
     types: [completed]
@@ -27,35 +20,18 @@ concurrency:
 
 jobs:
   build:
-    # データ更新に失敗した場合だけは公開しない。
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout latest main
+      - name: Checkout
         uses: actions/checkout@v7
-        with:
-          ref: main
-
       - name: Configure Pages
-        uses: actions/configure-pages@v6
-
+        uses: actions/configure-pages@v5
       - name: Build static artifact
-        shell: bash
         run: |
-          rm -rf _site
-          mkdir -p _site
-
-          # 公開用ファイルをまとめてコピーする。
-          # 今後画像・JSON・JS等のファイルを差分追加しても、個別にpages.ymlを
-          # 書き換えなくても自動でGitHub Pagesへ含まれる。
-          rsync -a ./ _site/ \
-            --exclude '.git/' \
-            --exclude '.github/' \
-            --exclude '_site/' \
-            --exclude 'scripts/' \
-            --exclude 'requirements.txt' \
-            --exclude 'README.md'
-
+          mkdir -p _site/data
+          cp index.html styles.css app.js .nojekyll _site/
+          cp data/races.json _site/data/
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
@@ -70,4 +46,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v4
