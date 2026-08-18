@@ -22,8 +22,18 @@ GitHub Pages + GitHub Actions で、netkeiba のJRA出馬表を取得し、予�
 
 1. このフォルダの中身をGitHubリポジトリのルートへアップロードします。
 2. GitHubの **Settings → Pages → Build and deployment → Source** を **GitHub Actions** にします。
-3. `main` ブランチへ反映すると `Deploy GitHub Pages` が動き、サイトが公開されます。`Update race data` の完了後にも再デプロイされるため、自動取得したデータが公開ページへ反映されます。
-4. Actionsが `data/races.json` を自動コミットするため、リポジトリ/組織の設定でGitHub Actionsによる書き込みが禁止されている場合は、**Settings → Actions → General → Workflow permissions** も確認してください。
+3. 以後、`main` ブランチへ差分ファイルをアップロード／コミットするだけで `Deploy GitHub Pages` が自動実行され、ページへ反映されます。
+4. 前日15:00・当日18:00の `Update race data` が正常終了した場合も `Deploy GitHub Pages` が自動実行され、更新された `data/races.json` が公開ページへ反映されます。
+5. 公開対象はHTML/CSS/JavaScript/JSONだけに限定せず、今後追加する画像などの静的ファイルも自動でPages成果物へ含めます。`.github/`、`scripts/`、`requirements.txt`、`README.md` は公開対象から除外します。
+6. Actionsが `data/races.json` を自動コミットするため、リポジトリ/組織の設定でGitHub Actionsによる書き込みが禁止されている場合は、**Settings → Actions → General → Workflow permissions** も確認してください。
+
+### 自動反映の流れ
+
+- **手動の差分アップロード** → `main` へcommit → Pages自動再公開
+- **前日15:00の出馬表・予想更新** → `data/races.json` 自動commit → 更新Workflow正常終了 → Pages自動再公開
+- **当日18:00の結果・的中判定更新** → `data/races.json` 自動commit → 更新Workflow正常終了 → Pages自動再公開
+
+通常運用では、GitHub上で別途「Deploy」操作を行う必要はありません。
 
 ## 手動実行
 
