@@ -1,0 +1,83 @@
+:root {
+  --bg: #f4f6f5;
+  --surface: #ffffff;
+  --ink: #18201c;
+  --muted: #65716a;
+  --line: #dce3df;
+  --green: #174c35;
+  --green-2: #286448;
+  --hit: #b3261e;
+  --miss: #6b746f;
+  --shadow: 0 8px 28px rgba(17, 54, 37, .08);
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.page-shell { width: min(1280px, calc(100% - 32px)); margin: 0 auto; padding: 30px 0 56px; }
+.site-header { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:22px; }
+.eyebrow { margin:0 0 5px; font-size:11px; letter-spacing:.14em; color:var(--green-2); font-weight:800; }
+h1 { margin:0; font-size:clamp(24px,3vw,34px); letter-spacing:.01em; }
+.bet-rule { color:var(--muted); font-size:13px; font-weight:700; white-space:nowrap; }
+.day-card { background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); overflow:hidden; margin:0 0 24px; }
+.day-top { display:flex; justify-content:space-between; gap:22px; align-items:center; padding:16px 18px; border-bottom:1px solid var(--line); }
+.date-wrap { display:flex; align-items:baseline; gap:9px; white-space:nowrap; }
+.date-main { font-size:21px; font-weight:850; letter-spacing:.02em; }
+.date-sub { color:var(--muted); font-size:12px; font-weight:700; }
+.summary { display:grid; grid-template-columns:repeat(3,minmax(100px,1fr)); min-width:390px; border:1px solid #d6e0da; border-radius:10px; overflow:hidden; }
+.summary-item { padding:8px 13px; text-align:right; background:#f8faf9; border-left:1px solid #d6e0da; }
+.summary-item:first-child { border-left:0; }
+.summary-label { display:block; color:var(--muted); font-size:10px; font-weight:700; margin-bottom:2px; }
+.summary-value { display:block; font-size:17px; font-weight:850; }
+.table-scroll { overflow-x:auto; overscroll-behavior-inline:contain; }
+.race-table { width:100%; min-width:900px; border-collapse:collapse; table-layout:fixed; }
+.race-table thead th { color:#fff; background:var(--green); padding:9px 8px; font-size:12px; font-weight:800; border-right:1px solid rgba(255,255,255,.13); }
+.race-table thead th:first-child { width:92px; }
+.race-table thead th:nth-child(2), .race-table thead th:nth-child(3) { width:74px; }
+.race-table thead th:nth-child(4) { width:245px; }
+.race-table thead th:nth-child(5) { width:180px; }
+.race-table thead th:nth-child(6) { width:76px; }
+.race-table thead th:nth-child(7) { width:102px; }
+.race-table thead th:nth-child(8) { width:92px; }
+.race-table tbody td { padding:8px 8px; border-bottom:1px solid var(--line); text-align:center; font-size:13px; height:45px; }
+.race-table tbody tr:last-child td { border-bottom:0; }
+.race-table tbody tr:hover { background:#fbfcfb; }
+.race-name { font-weight:800; white-space:nowrap; }
+.venue { color:var(--green); }
+.horses { display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:5px; }
+.horse-box { display:inline-flex; align-items:center; justify-content:center; width:27px; height:27px; border-radius:7px; border:1px solid rgba(0,0,0,.18); font-size:13px; line-height:1; font-weight:850; box-shadow:inset 0 0 0 1px rgba(255,255,255,.12); }
+.frame-1 { background:#fff; color:#111; border-color:#aeb7b2; }
+.frame-2 { background:#202322; color:#fff; }
+.frame-3 { background:#d83939; color:#fff; }
+.frame-4 { background:#2867b2; color:#fff; }
+.frame-5 { background:#f0c928; color:#171717; }
+.frame-6 { background:#2f9253; color:#fff; }
+.frame-7 { background:#e88627; color:#fff; }
+.frame-8 { background:#e78aa0; color:#111; }
+.place-sep { color:#8a948f; font-size:11px; font-weight:800; margin:0 1px; }
+.judgement { display:inline-flex; align-items:center; justify-content:center; min-width:46px; height:26px; border-radius:999px; font-weight:850; font-size:12px; }
+.judgement.hit { color:#fff; background:var(--hit); }
+.judgement.miss { color:#fff; background:var(--miss); }
+.judgement.pending { color:#57615c; background:#e9eeeb; }
+.money, .rate { text-align:right !important; font-weight:800; white-space:nowrap; }
+.hit-row .money, .hit-row .rate { color:var(--hit); }
+.empty { padding:50px 20px; text-align:center; color:var(--muted); background:#fff; border:1px solid var(--line); border-radius:14px; }
+.loading { padding:40px; text-align:center; color:var(--muted); }
+.error { padding:18px; border:1px solid #efc7c4; background:#fff6f5; color:#8f221c; border-radius:10px; }
+.site-footer { color:var(--muted); font-size:11px; line-height:1.6; }
+@media (max-width: 760px) {
+  .page-shell { width:100%; padding:18px 0 42px; }
+  .site-header { padding:0 14px; display:block; }
+  .bet-rule { margin-top:7px; white-space:normal; }
+  .day-card { border-left:0; border-right:0; border-radius:0; margin-bottom:18px; }
+  .day-top { display:block; padding:13px 14px; }
+  .summary { min-width:0; width:100%; margin-top:10px; grid-template-columns:repeat(3,1fr); }
+  .summary-item { padding:7px 8px; }
+  .summary-value { font-size:15px; }
+  .site-footer { padding:0 14px; }
+}

@@ -1,0 +1,3341 @@
+{
+  "updatedAt": "2026-08-18T15:05:00+09:00",
+  "bet": {
+    "type": "3連単2頭軸マルチ",
+    "axes": 2,
+    "opponents": 5,
+    "unitYen": 100,
+    "combinations": 30,
+    "stakePerRace": 3000
+  },
+  "days": [
+    {
+      "date": "2026-08-16",
+      "races": [
+        {
+          "raceId": "202601010801",
+          "venue": "札幌",
+          "raceNo": 1,
+          "horseCount": 14,
+          "prediction": {
+            "axes": [
+              11,
+              8
+            ],
+            "opponents": [
+              4,
+              2,
+              14,
+              3,
+              6
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                10
+              ],
+              [
+                3
+              ],
+              [
+                14
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  10,
+                  3,
+                  14
+                ],
+                "payout": 78370
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010802",
+          "venue": "札幌",
+          "raceNo": 2,
+          "horseCount": 7,
+          "prediction": {
+            "axes": [
+              4,
+              7
+            ],
+            "opponents": [
+              6,
+              3,
+              1,
+              2,
+              5
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                3
+              ],
+              [
+                7
+              ],
+              [
+                2
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  3,
+                  7,
+                  2
+                ],
+                "payout": 44150
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010803",
+          "venue": "札幌",
+          "raceNo": 3,
+          "horseCount": 11,
+          "prediction": {
+            "axes": [
+              2,
+              5
+            ],
+            "opponents": [
+              7,
+              6,
+              9,
+              8,
+              10
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                5
+              ],
+              [
+                11
+              ],
+              [
+                10
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  5,
+                  11,
+                  10
+                ],
+                "payout": 12940
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010804",
+          "venue": "札幌",
+          "raceNo": 4,
+          "horseCount": 13,
+          "prediction": {
+            "axes": [
+              11,
+              1
+            ],
+            "opponents": [
+              10,
+              8,
+              3,
+              5,
+              12
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                8
+              ],
+              [
+                13
+              ],
+              [
+                12
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  8,
+                  13,
+                  12
+                ],
+                "payout": 11790
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010805",
+          "venue": "札幌",
+          "raceNo": 5,
+          "horseCount": 12,
+          "prediction": {
+            "axes": [
+              12,
+              10
+            ],
+            "opponents": [
+              9,
+              5,
+              6,
+              7,
+              8
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                12
+              ],
+              [
+                11
+              ],
+              [
+                9
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  12,
+                  11,
+                  9
+                ],
+                "payout": 12490
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010806",
+          "venue": "札幌",
+          "raceNo": 6,
+          "horseCount": 11,
+          "prediction": {
+            "axes": [
+              1,
+              3
+            ],
+            "opponents": [
+              8,
+              4,
+              7,
+              9,
+              2
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                11
+              ],
+              [
+                4
+              ],
+              [
+                10
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  11,
+                  4,
+                  10
+                ],
+                "payout": 16660
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010807",
+          "venue": "札幌",
+          "raceNo": 7,
+          "horseCount": 14,
+          "prediction": {
+            "axes": [
+              7,
+              6
+            ],
+            "opponents": [
+              8,
+              2,
+              10,
+              4,
+              13
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                14
+              ],
+              [
+                5
+              ],
+              [
+                9
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  14,
+                  5,
+                  9
+                ],
+                "payout": 112140
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010808",
+          "venue": "札幌",
+          "raceNo": 8,
+          "horseCount": 7,
+          "prediction": {
+            "axes": [
+              4,
+              1
+            ],
+            "opponents": [
+              2,
+              6,
+              5,
+              3,
+              7
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                7
+              ],
+              [
+                4
+              ],
+              [
+                5
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  7,
+                  4,
+                  5
+                ],
+                "payout": 6940
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010809",
+          "venue": "札幌",
+          "raceNo": 9,
+          "horseCount": 16,
+          "prediction": {
+            "axes": [
+              15,
+              6
+            ],
+            "opponents": [
+              10,
+              7,
+              9,
+              14,
+              12
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                16
+              ],
+              [
+                13
+              ],
+              [
+                12
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  16,
+                  13,
+                  12
+                ],
+                "payout": 102060
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010810",
+          "venue": "札幌",
+          "raceNo": 10,
+          "horseCount": 12,
+          "prediction": {
+            "axes": [
+              1,
+              5
+            ],
+            "opponents": [
+              12,
+              10,
+              4,
+              3,
+              6
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                12
+              ],
+              [
+                10
+              ],
+              [
+                2
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  12,
+                  10,
+                  2
+                ],
+                "payout": 104850
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010811",
+          "venue": "札幌",
+          "raceNo": 11,
+          "horseCount": 15,
+          "prediction": {
+            "axes": [
+              8,
+              2
+            ],
+            "opponents": [
+              12,
+              3,
+              6,
+              13,
+              5
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                15
+              ],
+              [
+                8
+              ],
+              [
+                14
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  15,
+                  8,
+                  14
+                ],
+                "payout": 197490
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010812",
+          "venue": "札幌",
+          "raceNo": 12,
+          "horseCount": 13,
+          "prediction": {
+            "axes": [
+              10,
+              2
+            ],
+            "opponents": [
+              7,
+              8,
+              1,
+              13,
+              3
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                2
+              ],
+              [
+                12
+              ],
+              [
+                13
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  2,
+                  12,
+                  13
+                ],
+                "payout": 2610
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020801",
+          "venue": "新潟",
+          "raceNo": 1,
+          "horseCount": 8,
+          "prediction": {
+            "axes": [
+              8,
+              6
+            ],
+            "opponents": [
+              7,
+              5,
+              1,
+              3,
+              2
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                1
+              ],
+              [
+                4
+              ],
+              [
+                8
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  1,
+                  4,
+                  8
+                ],
+                "payout": 13450
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020802",
+          "venue": "新潟",
+          "raceNo": 2,
+          "horseCount": 15,
+          "prediction": {
+            "axes": [
+              13,
+              9
+            ],
+            "opponents": [
+              14,
+              7,
+              1,
+              6,
+              2
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                5
+              ],
+              [
+                15
+              ],
+              [
+                3
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  5,
+                  15,
+                  3
+                ],
+                "payout": 19930
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020803",
+          "venue": "新潟",
+          "raceNo": 3,
+          "horseCount": 10,
+          "prediction": {
+            "axes": [
+              7,
+              5
+            ],
+            "opponents": [
+              10,
+              6,
+              8,
+              1,
+              2
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                3
+              ],
+              [
+                8
+              ],
+              [
+                10
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  3,
+                  8,
+                  10
+                ],
+                "payout": 22470
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020804",
+          "venue": "新潟",
+          "raceNo": 4,
+          "horseCount": 9,
+          "prediction": {
+            "axes": [
+              4,
+              8
+            ],
+            "opponents": [
+              1,
+              3,
+              5,
+              6,
+              7
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                9
+              ],
+              [
+                4
+              ],
+              [
+                5
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  9,
+                  4,
+                  5
+                ],
+                "payout": 37030
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020805",
+          "venue": "新潟",
+          "raceNo": 5,
+          "horseCount": 12,
+          "prediction": {
+            "axes": [
+              7,
+              3
+            ],
+            "opponents": [
+              10,
+              9,
+              2,
+              11,
+              1
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                10
+              ],
+              [
+                12
+              ],
+              [
+                4
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  10,
+                  12,
+                  4
+                ],
+                "payout": 25060
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020806",
+          "venue": "新潟",
+          "raceNo": 6,
+          "horseCount": 11,
+          "prediction": {
+            "axes": [
+              2,
+              11
+            ],
+            "opponents": [
+              3,
+              4,
+              9,
+              10,
+              1
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                8
+              ],
+              [
+                9
+              ],
+              [
+                11
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  8,
+                  9,
+                  11
+                ],
+                "payout": 9640
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020807",
+          "venue": "新潟",
+          "raceNo": 7,
+          "horseCount": 11,
+          "prediction": {
+            "axes": [
+              7,
+              8
+            ],
+            "opponents": [
+              2,
+              3,
+              6,
+              11,
+              10
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                11
+              ],
+              [
+                6
+              ],
+              [
+                10
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  11,
+                  6,
+                  10
+                ],
+                "payout": 148420
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020808",
+          "venue": "新潟",
+          "raceNo": 8,
+          "horseCount": 10,
+          "prediction": {
+            "axes": [
+              9,
+              7
+            ],
+            "opponents": [
+              8,
+              2,
+              5,
+              1,
+              4
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                8
+              ],
+              [
+                10
+              ],
+              [
+                6
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  8,
+                  10,
+                  6
+                ],
+                "payout": 1411780
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020809",
+          "venue": "新潟",
+          "raceNo": 9,
+          "horseCount": 12,
+          "prediction": {
+            "axes": [
+              2,
+              1
+            ],
+            "opponents": [
+              11,
+              6,
+              5,
+              4,
+              7
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                5
+              ],
+              [
+                4
+              ],
+              [
+                12
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  5,
+                  4,
+                  12
+                ],
+                "payout": 109320
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020810",
+          "venue": "新潟",
+          "raceNo": 10,
+          "horseCount": 13,
+          "prediction": {
+            "axes": [
+              13,
+              5
+            ],
+            "opponents": [
+              11,
+              3,
+              7,
+              9,
+              4
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                4
+              ],
+              [
+                10
+              ],
+              [
+                13
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  4,
+                  10,
+                  13
+                ],
+                "payout": 37480
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020811",
+          "venue": "新潟",
+          "raceNo": 11,
+          "horseCount": 9,
+          "prediction": {
+            "axes": [
+              3,
+              1
+            ],
+            "opponents": [
+              7,
+              2,
+              4,
+              6,
+              9
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                5
+              ],
+              [
+                9
+              ],
+              [
+                8
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  5,
+                  9,
+                  8
+                ],
+                "payout": 200320
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020812",
+          "venue": "新潟",
+          "raceNo": 12,
+          "horseCount": 15,
+          "prediction": {
+            "axes": [
+              15,
+              11
+            ],
+            "opponents": [
+              9,
+              2,
+              4,
+              14,
+              3
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                13
+              ],
+              [
+                11
+              ],
+              [
+                15
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  13,
+                  11,
+                  15
+                ],
+                "payout": 25290
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020801",
+          "venue": "中京",
+          "raceNo": 1,
+          "horseCount": 8,
+          "prediction": {
+            "axes": [
+              5,
+              8
+            ],
+            "opponents": [
+              3,
+              7,
+              4,
+              6,
+              2
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                6
+              ],
+              [
+                5
+              ],
+              [
+                8
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  6,
+                  5,
+                  8
+                ],
+                "payout": 11440
+              }
+            ]
+          },
+          "status": "hit",
+          "payout": 11440,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020802",
+          "venue": "中京",
+          "raceNo": 2,
+          "horseCount": 12,
+          "prediction": {
+            "axes": [
+              1,
+              4
+            ],
+            "opponents": [
+              8,
+              10,
+              7,
+              11,
+              5
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                12
+              ],
+              [
+                4
+              ],
+              [
+                10
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  12,
+                  4,
+                  10
+                ],
+                "payout": 123380
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020803",
+          "venue": "中京",
+          "raceNo": 3,
+          "horseCount": 8,
+          "prediction": {
+            "axes": [
+              7,
+              6
+            ],
+            "opponents": [
+              4,
+              5,
+              8,
+              2,
+              3
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                8
+              ],
+              [
+                5
+              ],
+              [
+                7
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  8,
+                  5,
+                  7
+                ],
+                "payout": 13670
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020804",
+          "venue": "中京",
+          "raceNo": 4,
+          "horseCount": 7,
+          "prediction": {
+            "axes": [
+              5,
+              1
+            ],
+            "opponents": [
+              6,
+              4,
+              3,
+              2,
+              7
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                4
+              ],
+              [
+                7
+              ],
+              [
+                3
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  4,
+                  7,
+                  3
+                ],
+                "payout": 62290
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020805",
+          "venue": "中京",
+          "raceNo": 5,
+          "horseCount": 11,
+          "prediction": {
+            "axes": [
+              4,
+              2
+            ],
+            "opponents": [
+              1,
+              9,
+              3,
+              10,
+              8
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                8
+              ],
+              [
+                2
+              ],
+              [
+                11
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  8,
+                  2,
+                  11
+                ],
+                "payout": 203870
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020806",
+          "venue": "中京",
+          "raceNo": 6,
+          "horseCount": 7,
+          "prediction": {
+            "axes": [
+              1,
+              6
+            ],
+            "opponents": [
+              7,
+              3,
+              2,
+              5,
+              4
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                6
+              ],
+              [
+                1
+              ],
+              [
+                3
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  6,
+                  1,
+                  3
+                ],
+                "payout": 14630
+              }
+            ]
+          },
+          "status": "hit",
+          "payout": 14630,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020807",
+          "venue": "中京",
+          "raceNo": 7,
+          "horseCount": 12,
+          "prediction": {
+            "axes": [
+              7,
+              1
+            ],
+            "opponents": [
+              4,
+              11,
+              5,
+              3,
+              8
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                3
+              ],
+              [
+                5
+              ],
+              [
+                12
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  3,
+                  5,
+                  12
+                ],
+                "payout": 19590
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020808",
+          "venue": "中京",
+          "raceNo": 8,
+          "horseCount": 15,
+          "prediction": {
+            "axes": [
+              4,
+              2
+            ],
+            "opponents": [
+              5,
+              6,
+              10,
+              12,
+              13
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                15
+              ],
+              [
+                6
+              ],
+              [
+                10
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  15,
+                  6,
+                  10
+                ],
+                "payout": 51960
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020809",
+          "venue": "中京",
+          "raceNo": 9,
+          "horseCount": 12,
+          "prediction": {
+            "axes": [
+              10,
+              12
+            ],
+            "opponents": [
+              9,
+              11,
+              3,
+              6,
+              2
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                3
+              ],
+              [
+                12
+              ],
+              [
+                9
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  3,
+                  12,
+                  9
+                ],
+                "payout": 72740
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020810",
+          "venue": "中京",
+          "raceNo": 10,
+          "horseCount": 11,
+          "prediction": {
+            "axes": [
+              8,
+              7
+            ],
+            "opponents": [
+              6,
+              11,
+              5,
+              1,
+              2
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                10
+              ],
+              [
+                11
+              ],
+              [
+                7
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  10,
+                  11,
+                  7
+                ],
+                "payout": 454970
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020811",
+          "venue": "中京",
+          "raceNo": 11,
+          "horseCount": 15,
+          "prediction": {
+            "axes": [
+              1,
+              6
+            ],
+            "opponents": [
+              12,
+              10,
+              11,
+              9,
+              5
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                5,
+                15
+              ],
+              [
+                12
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  5,
+                  15,
+                  12
+                ],
+                "payout": 867600
+              },
+              {
+                "horses": [
+                  15,
+                  5,
+                  12
+                ],
+                "payout": 943870
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020812",
+          "venue": "中京",
+          "raceNo": 12,
+          "horseCount": 13,
+          "prediction": {
+            "axes": [
+              13,
+              4
+            ],
+            "opponents": [
+              7,
+              8,
+              10,
+              6,
+              3
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                13
+              ],
+              [
+                5
+              ],
+              [
+                11
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  13,
+                  5,
+                  11
+                ],
+                "payout": 43150
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        }
+      ]
+    },
+    {
+      "date": "2026-08-15",
+      "races": [
+        {
+          "raceId": "202601010701",
+          "venue": "札幌",
+          "raceNo": 1,
+          "horseCount": 12,
+          "prediction": {
+            "axes": [
+              12,
+              10
+            ],
+            "opponents": [
+              5,
+              11,
+              4,
+              6,
+              3
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                3
+              ],
+              [
+                12
+              ],
+              [
+                1
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  3,
+                  12,
+                  1
+                ],
+                "payout": 47140
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010702",
+          "venue": "札幌",
+          "raceNo": 2,
+          "horseCount": 9,
+          "prediction": {
+            "axes": [
+              6,
+              7
+            ],
+            "opponents": [
+              5,
+              9,
+              3,
+              1,
+              8
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                9
+              ],
+              [
+                2
+              ],
+              [
+                8
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  9,
+                  2,
+                  8
+                ],
+                "payout": 3510
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010703",
+          "venue": "札幌",
+          "raceNo": 3,
+          "horseCount": 11,
+          "prediction": {
+            "axes": [
+              1,
+              2
+            ],
+            "opponents": [
+              5,
+              6,
+              11,
+              7,
+              8
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                11
+              ],
+              [
+                1
+              ],
+              [
+                10
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  11,
+                  1,
+                  10
+                ],
+                "payout": 36470
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010704",
+          "venue": "札幌",
+          "raceNo": 4,
+          "horseCount": 12,
+          "prediction": {
+            "axes": [
+              9,
+              7
+            ],
+            "opponents": [
+              5,
+              8,
+              1,
+              12,
+              3
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                12
+              ],
+              [
+                3
+              ],
+              [
+                7
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  12,
+                  3,
+                  7
+                ],
+                "payout": 43000
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010705",
+          "venue": "札幌",
+          "raceNo": 5,
+          "horseCount": 7,
+          "prediction": {
+            "axes": [
+              5,
+              1
+            ],
+            "opponents": [
+              7,
+              2,
+              3,
+              6,
+              4
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                5
+              ],
+              [
+                1
+              ],
+              [
+                2
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  5,
+                  1,
+                  2
+                ],
+                "payout": 6060
+              }
+            ]
+          },
+          "status": "hit",
+          "payout": 6060,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010706",
+          "venue": "札幌",
+          "raceNo": 6,
+          "horseCount": 11,
+          "prediction": {
+            "axes": [
+              10,
+              8
+            ],
+            "opponents": [
+              3,
+              11,
+              9,
+              4,
+              6
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                7
+              ],
+              [
+                11
+              ],
+              [
+                8
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  7,
+                  11,
+                  8
+                ],
+                "payout": 31160
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010707",
+          "venue": "札幌",
+          "raceNo": 7,
+          "horseCount": 9,
+          "prediction": {
+            "axes": [
+              2,
+              7
+            ],
+            "opponents": [
+              9,
+              4,
+              5,
+              8,
+              1
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                4
+              ],
+              [
+                5
+              ],
+              [
+                9
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  4,
+                  5,
+                  9
+                ],
+                "payout": 169780
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010708",
+          "venue": "札幌",
+          "raceNo": 8,
+          "horseCount": 10,
+          "prediction": {
+            "axes": [
+              7,
+              4
+            ],
+            "opponents": [
+              6,
+              8,
+              10,
+              3,
+              2
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                9
+              ],
+              [
+                8
+              ],
+              [
+                10
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  9,
+                  8,
+                  10
+                ],
+                "payout": 15970
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010709",
+          "venue": "札幌",
+          "raceNo": 9,
+          "horseCount": 8,
+          "prediction": {
+            "axes": [
+              8,
+              6
+            ],
+            "opponents": [
+              1,
+              2,
+              7,
+              4,
+              3
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                8
+              ],
+              [
+                6
+              ],
+              [
+                1
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  8,
+                  6,
+                  1
+                ],
+                "payout": 4210
+              }
+            ]
+          },
+          "status": "hit",
+          "payout": 4210,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010710",
+          "venue": "札幌",
+          "raceNo": 10,
+          "horseCount": 14,
+          "prediction": {
+            "axes": [
+              13,
+              4
+            ],
+            "opponents": [
+              10,
+              2,
+              3,
+              12,
+              14
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                12
+              ],
+              [
+                2
+              ],
+              [
+                14
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  12,
+                  2,
+                  14
+                ],
+                "payout": 9590
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010711",
+          "venue": "札幌",
+          "raceNo": 11,
+          "horseCount": 11,
+          "prediction": {
+            "axes": [
+              4,
+              1
+            ],
+            "opponents": [
+              6,
+              2,
+              10,
+              11,
+              8
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                11
+              ],
+              [
+                5
+              ],
+              [
+                7
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  11,
+                  5,
+                  7
+                ],
+                "payout": 21390
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202601010712",
+          "venue": "札幌",
+          "raceNo": 12,
+          "horseCount": 12,
+          "prediction": {
+            "axes": [
+              2,
+              5
+            ],
+            "opponents": [
+              3,
+              10,
+              1,
+              6,
+              7
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                9
+              ],
+              [
+                12
+              ],
+              [
+                5
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  9,
+                  12,
+                  5
+                ],
+                "payout": 1800
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020701",
+          "venue": "新潟",
+          "raceNo": 1,
+          "horseCount": 7,
+          "prediction": {
+            "axes": [
+              6,
+              4
+            ],
+            "opponents": [
+              3,
+              7,
+              1,
+              2,
+              5
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                3
+              ],
+              [
+                6
+              ],
+              [
+                5
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  3,
+                  6,
+                  5
+                ],
+                "payout": 20050
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020702",
+          "venue": "新潟",
+          "raceNo": 2,
+          "horseCount": 10,
+          "prediction": {
+            "axes": [
+              5,
+              10
+            ],
+            "opponents": [
+              4,
+              8,
+              3,
+              7,
+              2
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                1
+              ],
+              [
+                3
+              ],
+              [
+                10
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  1,
+                  3,
+                  10
+                ],
+                "payout": 171420
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020703",
+          "venue": "新潟",
+          "raceNo": 3,
+          "horseCount": 10,
+          "prediction": {
+            "axes": [
+              6,
+              9
+            ],
+            "opponents": [
+              2,
+              8,
+              7,
+              4,
+              3
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                10
+              ],
+              [
+                9
+              ],
+              [
+                8
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  10,
+                  9,
+                  8
+                ],
+                "payout": 75130
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020704",
+          "venue": "新潟",
+          "raceNo": 4,
+          "horseCount": 15,
+          "prediction": {
+            "axes": [
+              15,
+              8
+            ],
+            "opponents": [
+              12,
+              7,
+              5,
+              6,
+              3
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                12
+              ],
+              [
+                9
+              ],
+              [
+                15
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  12,
+                  9,
+                  15
+                ],
+                "payout": 3770
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020705",
+          "venue": "新潟",
+          "raceNo": 5,
+          "horseCount": 15,
+          "prediction": {
+            "axes": [
+              6,
+              2
+            ],
+            "opponents": [
+              10,
+              11,
+              1,
+              13,
+              4
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                4
+              ],
+              [
+                15
+              ],
+              [
+                7
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  4,
+                  15,
+                  7
+                ],
+                "payout": 22330
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020706",
+          "venue": "新潟",
+          "raceNo": 6,
+          "horseCount": 12,
+          "prediction": {
+            "axes": [
+              3,
+              10
+            ],
+            "opponents": [
+              6,
+              1,
+              2,
+              7,
+              4
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                5
+              ],
+              [
+                12
+              ],
+              [
+                11
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  5,
+                  12,
+                  11
+                ],
+                "payout": 10860
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020707",
+          "venue": "新潟",
+          "raceNo": 7,
+          "horseCount": 10,
+          "prediction": {
+            "axes": [
+              5,
+              1
+            ],
+            "opponents": [
+              7,
+              3,
+              9,
+              10,
+              8
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                7
+              ],
+              [
+                9
+              ],
+              [
+                10
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  7,
+                  9,
+                  10
+                ],
+                "payout": 1193640
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020708",
+          "venue": "新潟",
+          "raceNo": 8,
+          "horseCount": 9,
+          "prediction": {
+            "axes": [
+              5,
+              1
+            ],
+            "opponents": [
+              4,
+              8,
+              9,
+              2,
+              3
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                9
+              ],
+              [
+                3
+              ],
+              [
+                5
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  9,
+                  3,
+                  5
+                ],
+                "payout": 10790
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020709",
+          "venue": "新潟",
+          "raceNo": 9,
+          "horseCount": 11,
+          "prediction": {
+            "axes": [
+              10,
+              2
+            ],
+            "opponents": [
+              4,
+              1,
+              5,
+              7,
+              6
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                8
+              ],
+              [
+                11
+              ],
+              [
+                6
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  8,
+                  11,
+                  6
+                ],
+                "payout": 15810
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020710",
+          "venue": "新潟",
+          "raceNo": 10,
+          "horseCount": 15,
+          "prediction": {
+            "axes": [
+              8,
+              9
+            ],
+            "opponents": [
+              2,
+              1,
+              4,
+              5,
+              11
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                9
+              ],
+              [
+                12
+              ],
+              [
+                15
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  9,
+                  12,
+                  15
+                ],
+                "payout": 15690
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020711",
+          "venue": "新潟",
+          "raceNo": 11,
+          "horseCount": 18,
+          "prediction": {
+            "axes": [
+              2,
+              17
+            ],
+            "opponents": [
+              13,
+              11,
+              14,
+              8,
+              12
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                9
+              ],
+              [
+                10
+              ],
+              [
+                18
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  9,
+                  10,
+                  18
+                ],
+                "payout": 83960
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202604020712",
+          "venue": "新潟",
+          "raceNo": 12,
+          "horseCount": 13,
+          "prediction": {
+            "axes": [
+              8,
+              6
+            ],
+            "opponents": [
+              9,
+              3,
+              10,
+              1,
+              4
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                4
+              ],
+              [
+                13
+              ],
+              [
+                5
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  4,
+                  13,
+                  5
+                ],
+                "payout": 93620
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020701",
+          "venue": "中京",
+          "raceNo": 1,
+          "horseCount": 16,
+          "prediction": {
+            "axes": [
+              5,
+              16
+            ],
+            "opponents": [
+              9,
+              7,
+              3,
+              10,
+              11
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                16
+              ],
+              [
+                6
+              ],
+              [
+                11
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  16,
+                  6,
+                  11
+                ],
+                "payout": 8783430
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020702",
+          "venue": "中京",
+          "raceNo": 2,
+          "horseCount": 9,
+          "prediction": {
+            "axes": [
+              7,
+              5
+            ],
+            "opponents": [
+              3,
+              6,
+              4,
+              8,
+              9
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                7
+              ],
+              [
+                6
+              ],
+              [
+                9
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  7,
+                  6,
+                  9
+                ],
+                "payout": 8740
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020703",
+          "venue": "中京",
+          "raceNo": 3,
+          "horseCount": 7,
+          "prediction": {
+            "axes": [
+              5,
+              4
+            ],
+            "opponents": [
+              1,
+              2,
+              3,
+              6,
+              7
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                3
+              ],
+              [
+                6
+              ],
+              [
+                2
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  3,
+                  6,
+                  2
+                ],
+                "payout": 8780
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020704",
+          "venue": "中京",
+          "raceNo": 4,
+          "horseCount": 14,
+          "prediction": {
+            "axes": [
+              4,
+              8
+            ],
+            "opponents": [
+              2,
+              6,
+              5,
+              9,
+              13
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                14
+              ],
+              [
+                4
+              ],
+              [
+                12
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  14,
+                  4,
+                  12
+                ],
+                "payout": 2910
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020705",
+          "venue": "中京",
+          "raceNo": 5,
+          "horseCount": 7,
+          "prediction": {
+            "axes": [
+              4,
+              2
+            ],
+            "opponents": [
+              1,
+              7,
+              3,
+              6,
+              5
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                6
+              ],
+              [
+                7
+              ],
+              [
+                3
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  6,
+                  7,
+                  3
+                ],
+                "payout": 7440
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020706",
+          "venue": "中京",
+          "raceNo": 6,
+          "horseCount": 10,
+          "prediction": {
+            "axes": [
+              6,
+              5
+            ],
+            "opponents": [
+              1,
+              10,
+              2,
+              4,
+              3
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                10
+              ],
+              [
+                7
+              ],
+              [
+                8
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  10,
+                  7,
+                  8
+                ],
+                "payout": 42020
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020707",
+          "venue": "中京",
+          "raceNo": 7,
+          "horseCount": 7,
+          "prediction": {
+            "axes": [
+              6,
+              4
+            ],
+            "opponents": [
+              2,
+              7,
+              3,
+              5,
+              1
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                5
+              ],
+              [
+                3
+              ],
+              [
+                1
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  5,
+                  3,
+                  1
+                ],
+                "payout": 46020
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020708",
+          "venue": "中京",
+          "raceNo": 8,
+          "horseCount": 8,
+          "prediction": {
+            "axes": [
+              5,
+              2
+            ],
+            "opponents": [
+              7,
+              3,
+              1,
+              4,
+              6
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                8
+              ],
+              [
+                1
+              ],
+              [
+                6
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  8,
+                  1,
+                  6
+                ],
+                "payout": 2390
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020709",
+          "venue": "中京",
+          "raceNo": 9,
+          "horseCount": 16,
+          "prediction": {
+            "axes": [
+              4,
+              14
+            ],
+            "opponents": [
+              1,
+              13,
+              5,
+              10,
+              9
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                15
+              ],
+              [
+                16
+              ],
+              [
+                12
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  15,
+                  16,
+                  12
+                ],
+                "payout": 619590
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020710",
+          "venue": "中京",
+          "raceNo": 10,
+          "horseCount": 14,
+          "prediction": {
+            "axes": [
+              9,
+              12
+            ],
+            "opponents": [
+              13,
+              11,
+              14,
+              2,
+              8
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                9
+              ],
+              [
+                2
+              ],
+              [
+                14
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  9,
+                  2,
+                  14
+                ],
+                "payout": 1890590
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020711",
+          "venue": "中京",
+          "raceNo": 11,
+          "horseCount": 11,
+          "prediction": {
+            "axes": [
+              9,
+              3
+            ],
+            "opponents": [
+              7,
+              4,
+              11,
+              1,
+              6
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                4
+              ],
+              [
+                3
+              ],
+              [
+                11
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  4,
+                  3,
+                  11
+                ],
+                "payout": 89830
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        },
+        {
+          "raceId": "202607020712",
+          "venue": "中京",
+          "raceNo": 12,
+          "horseCount": 15,
+          "prediction": {
+            "axes": [
+              10,
+              2
+            ],
+            "opponents": [
+              14,
+              9,
+              8,
+              5,
+              15
+            ]
+          },
+          "result": {
+            "places": [
+              [
+                15
+              ],
+              [
+                5
+              ],
+              [
+                7
+              ]
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  15,
+                  5,
+                  7
+                ],
+                "payout": 3100
+              }
+            ]
+          },
+          "status": "miss",
+          "payout": 0,
+          "stake": 3000,
+          "seedNote": "初期デザイン確認用予想。実出馬表取得前のため、結果馬番範囲から固定乱数で生成。"
+        }
+      ]
+    }
+  ]
+}
