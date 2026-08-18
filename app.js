@@ -105,6 +105,53 @@ function renderDay(day) {
   </section>`;
 }
 
+/*
+ * SPで横方向に「引っ張る」操作が端を越えないようにする。
+ * - 表の途中では通常どおり横スクロール可能
+ * - 左端/右端では、それ以上外側へのドラッグを抑止
+ * - 表以外では横方向のドラッグを抑止
+ * - 縦スクロールは維持
+ */
+function lockHorizontalPull() {
+  let startX = 0;
+  let startY = 0;
+  let scroller = null;
+
+  document.addEventListener('touchstart', event => {
+    if (event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+    scroller = event.target instanceof Element ? event.target.closest('.table-scroll') : null;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', event => {
+    if (event.touches.length !== 1) return;
+
+    const touch = event.touches[0];
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+
+    // 縦方向の操作は通常どおり許可する。
+    if (Math.abs(dx) <= Math.abs(dy)) return;
+
+    // 表以外ではページ全体を横へ引っ張らせない。
+    if (!scroller) {
+      event.preventDefault();
+      return;
+    }
+
+    const maxScrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+    const atLeftEdge = scroller.scrollLeft <= 0.5;
+    const atRightEdge = scroller.scrollLeft >= maxScrollLeft - 0.5;
+
+    // 左端から右へ、または右端から左へ引っ張る操作だけ止める。
+    if ((atLeftEdge && dx > 0) || (atRightEdge && dx < 0)) {
+      event.preventDefault();
+    }
+  }, { passive: false });
+}
+
 async function boot() {
   const app = document.getElementById('app');
   try {
@@ -124,5 +171,6 @@ document.addEventListener('DOMContentLoaded', () => {
   backToTop?.addEventListener('click', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
+  lockHorizontalPull();
   boot();
 });
