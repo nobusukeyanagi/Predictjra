@@ -130,3 +130,33 @@ body {
   .summary-item { gap: 3px; }
   .date-label { font-size: 15px; }
 }
+
+@media (max-width: 760px) {
+  .race-table thead .column-row th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 4;
+    background: var(--green);
+    border-right: 2px solid #b8c9bf;
+  }
+
+  .race-table tbody td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: var(--surface);
+    border-right: 2px solid #b8c9bf;
+  }
+
+  .race-table tbody tr:hover td:first-child {
+    background: #fbfcfb;
+  }
+
+  .race-table tbody tr.hit-row td:first-child {
+    background: #fff8d6;
+  }
+
+  .race-table tbody tr.hit-row:hover td:first-child {
+    background: #fff4bd;
+  }
+}
