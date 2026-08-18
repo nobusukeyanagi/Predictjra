@@ -56,13 +56,10 @@ function daySummary(day) {
 function dateLabel(iso) {
   const d = new Date(`${iso}T00:00:00+09:00`);
   const weekdays = ['日','月','火','水','木','金','土'];
-  return `${iso}（${weekdays[d.getDay()]}）`;
-}
-
-function actualTrifectaPayout(race) {
-  const trifectas = race?.result?.trifectas || [];
-  if (!trifectas.length) return null;
-  return trifectas.reduce((sum, item) => sum + Number(item.payout || 0), 0);
+  return {
+    main: `${d.getMonth()+1}月${d.getDate()}日`,
+    sub: `${d.getFullYear()}年（${weekdays[d.getDay()]}）`
+  };
 }
 
 function renderDay(day) {
@@ -70,25 +67,23 @@ function renderDay(day) {
   const dl = dateLabel(day.date);
   const races = [...day.races].sort((a,b) => (VENUE_ORDER[a.venue] ?? 99) - (VENUE_ORDER[b.venue] ?? 99) || a.raceNo - b.raceNo);
   const rows = races.map(r => {
-    const wonPayout = Number(r.payout || 0);
-    const actualPayout = actualTrifectaPayout(r);
-    const rate = (r.status === 'hit' || r.status === 'miss') ? (wonPayout / Number(r.stake || STAKE_PER_RACE) * 100) : null;
-    return `<tr class="${r.status === 'hit' ? 'hit-row' : r.status === 'miss' ? 'miss-row' : ''}">
+    const rate = (r.status === 'hit' || r.status === 'miss') ? (Number(r.payout || 0) / Number(r.stake || STAKE_PER_RACE) * 100) : null;
+    return `<tr class="${r.status === 'hit' ? 'hit-row' : ''}">
       <td class="race-name"><span class="venue">${r.venue}</span> ${r.raceNo}R</td>
       <td>${predictionBoxes(r.prediction?.axes?.slice(0,1) || [], r)}</td>
       <td>${predictionBoxes(r.prediction?.axes?.slice(1,2) || [], r)}</td>
       <td>${predictionBoxes(r.prediction?.opponents || [], r)}</td>
       <td>${resultBoxes(r.result, r)}</td>
       <td>${judgement(r.status)}</td>
-      <td class="money">${actualPayout == null ? '—' : yen(actualPayout)}</td>
+      <td class="money">${r.status === 'pending' ? '—' : yen(r.payout)}</td>
       <td class="rate">${rate == null ? '—' : percent(rate)}</td>
     </tr>`;
   }).join('');
 
   return `<section class="day-card">
     <div class="day-top">
-      <div class="date-wrap"><span class="date-label">${dl}</span></div>
-      <div class="day-summary">
+      <div class="date-wrap"><span class="date-main">${dl.main}</span><span class="date-sub">${dl.sub}</span></div>
+      <div class="summary">
         <div class="summary-item"><span class="summary-label">的中数</span><span class="summary-value">${summary.hits} / ${races.length}</span></div>
         <div class="summary-item"><span class="summary-label">払戻総額</span><span class="summary-value">${yen(summary.payout)}</span></div>
         <div class="summary-item"><span class="summary-label">総回収率</span><span class="summary-value">${percent(summary.recovery)}</span></div>
@@ -96,9 +91,7 @@ function renderDay(day) {
     </div>
     <div class="table-scroll">
       <table class="race-table">
-        <thead>
-          <tr class="column-row"><th>レース</th><th>軸1</th><th>軸2</th><th>相手</th><th>結果</th><th>判定</th><th>三連単</th><th>回収率</th></tr>
-        </thead>
+        <thead><tr><th>レース</th><th>軸1</th><th>軸2</th><th>相手</th><th>結果</th><th>判定</th><th>払戻金</th><th>回収率</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>

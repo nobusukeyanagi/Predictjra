@@ -22,18 +22,8 @@ GitHub Pages + GitHub Actions で、netkeiba のJRA出馬表を取得し、予�
 
 1. このフォルダの中身をGitHubリポジトリのルートへアップロードします。
 2. GitHubの **Settings → Pages → Build and deployment → Source** を **GitHub Actions** にします。
-3. 以後、`main` ブランチへ差分ファイルをアップロード／コミットするだけで `Deploy GitHub Pages` が自動実行され、ページへ反映されます。
-4. 前日15:00・当日18:00の `Update race data` が正常終了した場合も `Deploy GitHub Pages` が自動実行され、更新された `data/races.json` が公開ページへ反映されます。
-5. 公開対象はHTML/CSS/JavaScript/JSONだけに限定せず、今後追加する画像などの静的ファイルも自動でPages成果物へ含めます。`.github/`、`scripts/`、`requirements.txt`、`README.md` は公開対象から除外します。
-6. Actionsが `data/races.json` を自動コミットするため、リポジトリ/組織の設定でGitHub Actionsによる書き込みが禁止されている場合は、**Settings → Actions → General → Workflow permissions** も確認してください。
-
-### 自動反映の流れ
-
-- **手動の差分アップロード** → `main` へcommit → Pages自動再公開
-- **前日15:00の出馬表・予想更新** → `data/races.json` 自動commit → 更新Workflow正常終了 → Pages自動再公開
-- **当日18:00の結果・的中判定更新** → `data/races.json` 自動commit → 更新Workflow正常終了 → Pages自動再公開
-
-通常運用では、GitHub上で別途「Deploy」操作を行う必要はありません。
+3. `main` ブランチへ反映すると `Deploy GitHub Pages` が動き、サイトが公開されます。`Update race data` の完了後にも再デプロイされるため、自動取得したデータが公開ページへ反映されます。
+4. Actionsが `data/races.json` を自動コミットするため、リポジトリ/組織の設定でGitHub Actionsによる書き込みが禁止されている場合は、**Settings → Actions → General → Workflow permissions** も確認してください。
 
 ## 手動実行
 
@@ -64,19 +54,3 @@ GitHub Pages + GitHub Actions で、netkeiba のJRA出馬表を取得し、予�
 ## 補足
 
 netkeiba 側のHTML構造が変更された場合は `scripts/update_races.py` のセレクタ修正が必要です。レース一覧はJavaScript描画に備えて、通常HTTPでrace_idが見つからない場合のみSelenium/Chromeへフォールバックします。
-
-## Discord通知
-
-レースデータ更新後、GitHub Pagesへの公開が成功した時点でDiscord Webhookへ通知します。
-
-GitHubリポジトリで `Settings` → `Secrets and variables` → `Actions` → `New repository secret` を開き、以下を登録してください。
-
-- Name: `DISCORD_WEBHOOK_URL`
-- Secret: 通知先DiscordチャンネルのWebhook URL
-
-通知タイミング:
-
-- `prepare`（前日15:00）: 予想公開通知
-- `result`（当日18:00）: 的中数・払戻総額・総回収率を含む結果通知
-
-通常のHTML/CSS/JS等の差分アップロードによるPages再公開ではDiscord通知を送りません。
