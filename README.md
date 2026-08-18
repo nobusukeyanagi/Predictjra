@@ -64,3 +64,19 @@ GitHub Pages + GitHub Actions で、netkeiba のJRA出馬表を取得し、予�
 ## 補足
 
 netkeiba 側のHTML構造が変更された場合は `scripts/update_races.py` のセレクタ修正が必要です。レース一覧はJavaScript描画に備えて、通常HTTPでrace_idが見つからない場合のみSelenium/Chromeへフォールバックします。
+
+## Discord通知
+
+レースデータ更新後、GitHub Pagesへの公開が成功した時点でDiscord Webhookへ通知します。
+
+GitHubリポジトリで `Settings` → `Secrets and variables` → `Actions` → `New repository secret` を開き、以下を登録してください。
+
+- Name: `DISCORD_WEBHOOK_URL`
+- Secret: 通知先DiscordチャンネルのWebhook URL
+
+通知タイミング:
+
+- `prepare`（前日15:00）: 予想公開通知
+- `result`（当日18:00）: 的中数・払戻総額・総回収率を含む結果通知
+
+通常のHTML/CSS/JS等の差分アップロードによるPages再公開ではDiscord通知を送りません。

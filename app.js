@@ -97,7 +97,7 @@ function renderDay(day) {
     <div class="table-scroll">
       <table class="race-table">
         <thead>
-          <tr class="column-row"><th>レース</th><th>軸1</th><th>軸2</th><th>相手</th><th>結果</th><th>判定</th><th>払戻金</th><th>回収率</th></tr>
+          <tr class="column-row"><th>レース</th><th>軸1</th><th>軸2</th><th>相手</th><th>結果</th><th>判定</th><th>三連単</th><th>回収率</th></tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
