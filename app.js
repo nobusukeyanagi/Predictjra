@@ -44,20 +44,6 @@ function judgement(status) {
   return '<span class="judgement pending">未確定</span>';
 }
 
-function officialTrifectaPayouts(race) {
-  const saved = Array.isArray(race?.trifectaPayouts) ? race.trifectaPayouts : [];
-  if (saved.length) return saved.map(Number).filter(Number.isFinite);
-  return (race?.result?.trifectas || [])
-    .map(t => Number(t?.payout))
-    .filter(Number.isFinite);
-}
-
-function officialPayoutLabel(race) {
-  const payouts = officialTrifectaPayouts(race);
-  if (!payouts.length) return '—';
-  return payouts.map(yen).join(' / ');
-}
-
 function daySummary(day) {
   const finished = day.races.filter(r => r.status === 'hit' || r.status === 'miss');
   const hits = finished.filter(r => r.status === 'hit').length;
@@ -73,12 +59,20 @@ function dateLabel(iso) {
   return `${iso}（${weekdays[d.getDay()]}）`;
 }
 
+function actualTrifectaPayout(race) {
+  const trifectas = race?.result?.trifectas || [];
+  if (!trifectas.length) return null;
+  return trifectas.reduce((sum, item) => sum + Number(item.payout || 0), 0);
+}
+
 function renderDay(day) {
   const summary = daySummary(day);
   const dl = dateLabel(day.date);
   const races = [...day.races].sort((a,b) => (VENUE_ORDER[a.venue] ?? 99) - (VENUE_ORDER[b.venue] ?? 99) || a.raceNo - b.raceNo);
   const rows = races.map(r => {
-    const rate = (r.status === 'hit' || r.status === 'miss') ? (Number(r.payout || 0) / Number(r.stake || STAKE_PER_RACE) * 100) : null;
+    const wonPayout = Number(r.payout || 0);
+    const actualPayout = actualTrifectaPayout(r);
+    const rate = (r.status === 'hit' || r.status === 'miss') ? (wonPayout / Number(r.stake || STAKE_PER_RACE) * 100) : null;
     return `<tr class="${r.status === 'hit' ? 'hit-row' : ''}">
       <td class="race-name"><span class="venue">${r.venue}</span> ${r.raceNo}R</td>
       <td>${predictionBoxes(r.prediction?.axes?.slice(0,1) || [], r)}</td>
@@ -86,7 +80,7 @@ function renderDay(day) {
       <td>${predictionBoxes(r.prediction?.opponents || [], r)}</td>
       <td>${resultBoxes(r.result, r)}</td>
       <td>${judgement(r.status)}</td>
-      <td class="money">${officialPayoutLabel(r)}</td>
+      <td class="money">${actualPayout == null ? '—' : yen(actualPayout)}</td>
       <td class="rate">${rate == null ? '—' : percent(rate)}</td>
     </tr>`;
   }).join('');
@@ -94,15 +88,18 @@ function renderDay(day) {
   return `<section class="day-card">
     <div class="day-top">
       <div class="date-wrap"><span class="date-label">${dl}</span></div>
-      <div class="summary">
-        <div class="summary-item"><span class="summary-label">的中数</span><span class="summary-value">${summary.hits} / ${races.length}</span></div>
-        <div class="summary-item"><span class="summary-label">払戻総額</span><span class="summary-value">${yen(summary.payout)}</span></div>
-        <div class="summary-item"><span class="summary-label">総回収率</span><span class="summary-value">${percent(summary.recovery)}</span></div>
-      </div>
     </div>
     <div class="table-scroll">
       <table class="race-table">
-        <thead><tr><th>レース</th><th>軸1</th><th>軸2</th><th>相手</th><th>結果</th><th>判定</th><th>払戻金</th><th>回収率</th></tr></thead>
+        <thead>
+          <tr class="summary-row">
+            <th class="summary-spacer" colspan="5"></th>
+            <th class="summary-cell"><span class="summary-label">的中数</span><span class="summary-value">${summary.hits} / ${races.length}</span></th>
+            <th class="summary-cell"><span class="summary-label">払戻総額</span><span class="summary-value">${yen(summary.payout)}</span></th>
+            <th class="summary-cell"><span class="summary-label">総回収率</span><span class="summary-value">${percent(summary.recovery)}</span></th>
+          </tr>
+          <tr class="column-row"><th>レース</th><th>軸1</th><th>軸2</th><th>相手</th><th>結果</th><th>判定</th><th>払戻金</th><th>回収率</th></tr>
+        </thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
