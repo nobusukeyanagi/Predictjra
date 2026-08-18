@@ -10,6 +10,11 @@
   --shadow: 0 8px 28px rgba(17, 54, 37, .08);
 }
 * { box-sizing: border-box; }
+html,
+body,
+body * {
+  touch-action: pan-x pan-y;
+}
 html { background: var(--bg); }
 body {
   margin: 0;

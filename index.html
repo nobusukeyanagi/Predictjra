@@ -18,6 +18,17 @@
     </div>
 
   </main>
+  <script>
+    (() => {
+      const preventGesture = (event) => event.preventDefault();
+      document.addEventListener('gesturestart', preventGesture, { passive: false });
+      document.addEventListener('gesturechange', preventGesture, { passive: false });
+      document.addEventListener('gestureend', preventGesture, { passive: false });
+      document.addEventListener('touchmove', (event) => {
+        if (event.touches && event.touches.length > 1) event.preventDefault();
+      }, { passive: false });
+    })();
+  </script>
   <script src="./app.js" defer></script>
 </body>
 </html>
