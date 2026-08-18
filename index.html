@@ -5,7 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <meta name="theme-color" content="#174c35">
   <title>YANAGI SYSTEM FOR JRA</title>
-  <link rel="stylesheet" href="./styles.css">
+  <script>
+    // Always request the current stylesheet instead of reusing a stale browser cache.
+    const stylesheet = document.createElement('link');
+    stylesheet.rel = 'stylesheet';
+    stylesheet.href = `./styles.css?v=${Date.now()}`;
+    document.head.appendChild(stylesheet);
+  </script>
 </head>
 <body>
   <main class="page-shell">
@@ -18,17 +24,6 @@
     </div>
 
   </main>
-  <script>
-    (() => {
-      const preventGesture = (event) => event.preventDefault();
-      document.addEventListener('gesturestart', preventGesture, { passive: false });
-      document.addEventListener('gesturechange', preventGesture, { passive: false });
-      document.addEventListener('gestureend', preventGesture, { passive: false });
-      document.addEventListener('touchmove', (event) => {
-        if (event.touches && event.touches.length > 1) event.preventDefault();
-      }, { passive: false });
-    })();
-  </script>
   <script src="./app.js" defer></script>
 </body>
 </html>
