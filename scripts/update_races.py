@@ -2,7 +2,7 @@
 """Fetch JRA race cards/results from netkeiba and update data/races.json.
 
 prepare: previous-day 15:00 JST run; targets tomorrow, creates predictions once.
-result: race-day 18:00 JST run; targets today, records results and trifecta payout.
+result: race-day 18:00 JST run; targets today, records results, official trifecta payout, and prediction return.
 
 The scraper deliberately uses conservative delays and has several selector fallbacks,
 because netkeiba markup can change over time.
@@ -349,7 +349,10 @@ def prepare_day(data: dict, target: date) -> int:
                 "prediction": race.get("prediction") or create_prediction(horses),
                 "result": race.get("result"),
                 "status": race.get("status", "pending"),
+                # payout = return from this prediction (0 when missed).
                 "payout": int(race.get("payout", 0)),
+                # trifectaPayouts = official 3連単 payout(s), regardless of hit/miss.
+                "trifectaPayouts": race.get("trifectaPayouts", []),
                 "stake": 3000,
             })
             if race_id not in existing:
@@ -384,7 +387,10 @@ def result_day(data: dict, target: date) -> int:
             payout = sum(int(t["payout"]) for t in winning)
             race["result"] = result
             race["status"] = "hit" if winning else "miss"
+            # Keep the prediction return separate from the official race payout.
+            # This lets the page show the real 3連単 payout even when the prediction missed.
             race["payout"] = payout
+            race["trifectaPayouts"] = [int(t["payout"]) for t in result["trifectas"]]
             race["stake"] = 3000
             changed += 1
             print(f"RESULT {race_id}: {race['status']} payout={payout}")

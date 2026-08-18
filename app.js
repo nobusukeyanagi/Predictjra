@@ -44,6 +44,20 @@ function judgement(status) {
   return '<span class="judgement pending">未確定</span>';
 }
 
+function officialTrifectaPayouts(race) {
+  const saved = Array.isArray(race?.trifectaPayouts) ? race.trifectaPayouts : [];
+  if (saved.length) return saved.map(Number).filter(Number.isFinite);
+  return (race?.result?.trifectas || [])
+    .map(t => Number(t?.payout))
+    .filter(Number.isFinite);
+}
+
+function officialPayoutLabel(race) {
+  const payouts = officialTrifectaPayouts(race);
+  if (!payouts.length) return '—';
+  return payouts.map(yen).join(' / ');
+}
+
 function daySummary(day) {
   const finished = day.races.filter(r => r.status === 'hit' || r.status === 'miss');
   const hits = finished.filter(r => r.status === 'hit').length;
@@ -72,7 +86,7 @@ function renderDay(day) {
       <td>${predictionBoxes(r.prediction?.opponents || [], r)}</td>
       <td>${resultBoxes(r.result, r)}</td>
       <td>${judgement(r.status)}</td>
-      <td class="money">${r.status === 'pending' ? '—' : yen(r.payout)}</td>
+      <td class="money">${officialPayoutLabel(r)}</td>
       <td class="rate">${rate == null ? '—' : percent(rate)}</td>
     </tr>`;
   }).join('');
