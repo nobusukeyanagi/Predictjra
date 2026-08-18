@@ -19,9 +19,38 @@ body {
   font-size: 15px;
   font-variant-numeric: tabular-nums;
 }
-.page-shell { width: calc(100% - 12px); max-width: 1180px; margin: 0 auto; padding: 24px 0 48px; }
-.site-header { margin-bottom: 14px; text-align: center; }
-h1 { margin: 0; font-size: clamp(24px, 3vw, 34px); letter-spacing: .01em; text-align: center; }
+.page-shell { width: calc(100% - 12px); max-width: 1180px; margin: 0 auto; padding: 0 0 48px; }
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  margin: 0 -6px 8px;
+  padding: 2px 6px;
+  background: rgba(244, 246, 245, .97);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(8px);
+}
+.site-title {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  margin: 0;
+  padding: 0;
+  color: var(--ink);
+  font: inherit;
+  font-size: 20px;
+  font-weight: 850;
+  line-height: 1.15;
+  letter-spacing: .01em;
+  text-align: center;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.site-title:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; border-radius: 3px; }
 .day-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin: 0 auto 20px; width: fit-content; max-width: 100%; }
 .day-top { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: #fff; }
 .date-wrap { display: flex; align-items: center; white-space: nowrap; flex: 0 0 auto; }
@@ -73,9 +102,10 @@ h1 { margin: 0; font-size: clamp(24px, 3vw, 34px); letter-spacing: .01em; text-a
 .loading { padding: 40px; text-align: center; color: var(--muted); font-size: 15px; }
 .error { padding: 18px; border: 1px solid #efc7c4; background: #fff6f5; color: #8f221c; border-radius: 10px; font-size: 15px; }
 @media (max-width: 760px) {
-  .page-shell { width: 100%; padding: 16px 0 40px; }
-  .site-header { padding: 0 6px; }
-  .day-card { border-left: 0; border-right: 0; border-radius: 0; margin-bottom: 16px; }
+  .page-shell { width: calc(100% - 12px); padding: 0 0 40px; }
+  .site-header { margin: 0 -6px 8px; padding: 2px 6px; min-height: 28px; }
+  .site-title { font-size: 20px; line-height: 1.15; }
+  .day-card { border-radius: 12px; margin-bottom: 16px; }
   .day-top { padding: 6px 10px; gap: 10px; }
   .day-summary { gap: 10px; }
   .summary-item { gap: 3px; }
