@@ -40,7 +40,7 @@ function resultBoxes(result, race) {
 
 function judgement(status) {
   if (status === 'hit') return '<span class="judgement hit">的中</span>';
-  if (status === 'miss') return '<span class="judgement miss">不的中</span>';
+  if (status === 'miss') return '';
   return '<span class="judgement pending">未確定</span>';
 }
 
@@ -132,10 +132,8 @@ function lockHorizontalPull() {
     const dx = touch.clientX - startX;
     const dy = touch.clientY - startY;
 
-    // 縦方向の操作は通常どおり許可する。
     if (Math.abs(dx) <= Math.abs(dy)) return;
 
-    // 表以外ではページ全体を横へ引っ張らせない。
     if (!scroller) {
       event.preventDefault();
       return;
@@ -145,7 +143,6 @@ function lockHorizontalPull() {
     const atLeftEdge = scroller.scrollLeft <= 0.5;
     const atRightEdge = scroller.scrollLeft >= maxScrollLeft - 0.5;
 
-    // 左端から右へ、または右端から左へ引っ張る操作だけ止める。
     if ((atLeftEdge && dx > 0) || (atRightEdge && dx < 0)) {
       event.preventDefault();
     }
