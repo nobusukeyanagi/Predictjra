@@ -47,6 +47,10 @@ h1 { margin: 0; font-size: clamp(24px, 3vw, 34px); letter-spacing: .01em; text-a
 .race-table tbody td { padding: 5px 1px; border-bottom: 1px solid var(--line); text-align: center; font-size: 15px; height: 39px; }
 .race-table tbody tr:last-child td { border-bottom: 0; }
 .race-table tbody tr:hover { background: #fbfcfb; }
+.race-table tbody tr.hit-row { background: #fff8d6; }
+.race-table tbody tr.hit-row:hover { background: #fff4bd; }
+.race-table tbody tr.miss-row .money,
+.race-table tbody tr.miss-row .rate { color: var(--miss); }
 .race-name { font-weight: 800; white-space: nowrap; }
 .venue { color: #000; }
 .horses { display: flex; justify-content: center; align-items: center; flex-wrap: nowrap; gap: 2px; }
@@ -65,7 +69,7 @@ h1 { margin: 0; font-size: clamp(24px, 3vw, 34px); letter-spacing: .01em; text-a
 .judgement.miss { color: #fff; background: var(--miss); }
 .judgement.pending { color: #57615c; background: #e9eeeb; }
 .money, .rate { text-align: right !important; font-weight: 800; white-space: nowrap; padding-left: 2px !important; padding-right: 2px !important; }
-.hit-row .rate { color: var(--hit); }
+.hit-row .money, .hit-row .rate { color: var(--hit); }
 .empty { padding: 50px 20px; text-align: center; color: var(--muted); background: #fff; border: 1px solid var(--line); border-radius: 14px; font-size: 15px; }
 .loading { padding: 40px; text-align: center; color: var(--muted); font-size: 15px; }
 .error { padding: 18px; border: 1px solid #efc7c4; background: #fff6f5; color: #8f221c; border-radius: 10px; font-size: 15px; }

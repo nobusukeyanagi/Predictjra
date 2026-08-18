@@ -73,7 +73,7 @@ function renderDay(day) {
     const wonPayout = Number(r.payout || 0);
     const actualPayout = actualTrifectaPayout(r);
     const rate = (r.status === 'hit' || r.status === 'miss') ? (wonPayout / Number(r.stake || STAKE_PER_RACE) * 100) : null;
-    return `<tr class="${r.status === 'hit' ? 'hit-row' : ''}">
+    return `<tr class="${r.status === 'hit' ? 'hit-row' : r.status === 'miss' ? 'miss-row' : ''}">
       <td class="race-name"><span class="venue">${r.venue}</span> ${r.raceNo}R</td>
       <td>${predictionBoxes(r.prediction?.axes?.slice(0,1) || [], r)}</td>
       <td>${predictionBoxes(r.prediction?.axes?.slice(1,2) || [], r)}</td>
