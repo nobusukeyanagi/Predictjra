@@ -230,15 +230,31 @@ body.index-modal-open { overflow: hidden; }
 }
 .index-table td { padding: 6px 9px; font-size: 13px; }
 .index-table tbody tr:hover { background: #f7faf8; }
-.index-table .index-horse-name { text-align: left; font-weight: 750; }
+.index-table .index-horse-name {
+  width: 9.5em;
+  min-width: 9.5em;
+  max-width: 9.5em;
+  padding-left: 7px;
+  padding-right: 7px;
+  text-align: left;
+  font-weight: 750;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .index-horse-box { width: 25px; height: 25px; border-radius: 5px; font-size: 13px; }
+.index-evaluation { min-width: 54px; }
 .index-strong { font-weight: 800; }
-.index-total { color: var(--green); font-size: 15px !important; font-weight: 900; }
+.index-table th:nth-child(4),
+.index-table td:nth-child(4) {
+  background: #fff8d6;
+  color: var(--ink);
+}
+.index-table th:nth-child(4) { color: #53480c; border-right-color: #e4d99b; }
+.index-total { color: var(--green) !important; font-size: 15px !important; font-weight: 900; }
 .index-rank { font-weight: 900; }
 .index-pick {
   display: inline-flex;
   align-items: center;
-  margin-left: 6px;
   padding: 2px 5px;
   border-radius: 999px;
   font-size: 10px;
@@ -249,8 +265,18 @@ body.index-modal-open { overflow: hidden; }
 .pick-main { color: #fff; background: #b3261e; }
 .pick-second { color: #fff; background: #174c35; }
 .pick-opponent { color: #174c35; background: #e8f5e9; }
-.pick-excluded { color: #686f6b; background: #ecefed; }
-.index-excluded-row { background: #f5f6f5; color: #727a76; }
+.index-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  color: #b3261e;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+}
+.index-eval-empty { color: #a0a8a3; }
 .index-logic { padding: 14px 16px 18px; border-top: 1px solid var(--line); }
 .index-logic h3 { margin: 0 0 8px; font-size: 16px; }
 .index-logic p { margin: 7px 0 0; font-size: 13px; line-height: 1.75; }
@@ -311,6 +337,14 @@ body.index-modal-open { overflow: hidden; }
   .index-modal-close { width: 32px; height: 32px; }
   .index-table th { padding: 6px 8px; font-size: 11px; }
   .index-table td { padding: 6px 8px; font-size: 12px; }
+  .index-table .index-horse-name {
+    width: 9.25em;
+    min-width: 9.25em;
+    max-width: 9.25em;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  .index-evaluation { min-width: 50px; }
   .index-logic { padding: 12px; }
   .index-logic p { font-size: 12px; line-height: 1.7; }
 }

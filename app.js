@@ -163,22 +163,23 @@ function selectionLabel(horse, detail) {
   if (horse.no === detail.prediction.axes[0]) return '<span class="index-pick pick-main">本命</span>';
   if (horse.no === detail.prediction.axes[1]) return '<span class="index-pick pick-second">対抗</span>';
   if (detail.prediction.opponents.includes(horse.no)) return '<span class="index-pick pick-opponent">相手</span>';
-  if (horse.excluded) return '<span class="index-pick pick-excluded">除外</span>';
-  return '';
+  if (horse.excluded) return '<span class="index-danger" role="img" aria-label="危険" title="危険">&#9888;&#xfe0e;</span>';
+  return '<span class="index-eval-empty">—</span>';
 }
 
 function renderIndexDetail(detail) {
   const rows = detail.horses.map(horse => `
-    <tr class="${horse.excluded ? 'index-excluded-row' : ''}">
+    <tr>
+      <td class="index-evaluation">${selectionLabel(horse, detail)}</td>
       <td>${indexHorseNumber(horse.no, detail.horseCount)}</td>
-      <td class="index-horse-name">${horse.name}${selectionLabel(horse, detail)}</td>
-      ${horse.recent.map(value => `<td>${value}</td>`).join('')}
-      <td class="index-strong">${horse.recentIndex}</td>
-      <td>${horse.virtualPopularity}</td>
-      <td>${horse.pace}</td>
-      <td>${horse.courseDistance}</td>
+      <td class="index-horse-name">${horse.name}</td>
       <td class="index-total">${horse.total}</td>
       <td class="index-rank">${horse.rank}</td>
+      <td>${horse.virtualPopularity}</td>
+      ${horse.recent.map(value => `<td>${value}</td>`).join('')}
+      <td class="index-strong">${horse.recentIndex}</td>
+      <td>${horse.pace}</td>
+      <td>${horse.courseDistance}</td>
     </tr>`).join('');
 
   return `
@@ -195,7 +196,7 @@ function renderIndexDetail(detail) {
           <table class="index-table">
             <thead>
               <tr>
-                <th>馬番</th><th>馬名</th><th>前走</th><th>2走前</th><th>3走前</th><th>4走前</th><th>5走前</th><th>近走</th><th>仮想人気</th><th>今回展開</th><th>コース距離</th><th>総合</th><th>順位</th>
+                <th>評価</th><th>馬番</th><th>馬名</th><th>総合</th><th>順位</th><th>想定人気</th><th>前走</th><th>2走前</th><th>3走前</th><th>4走前</th><th>5走前</th><th>近走</th><th>今回展開</th><th>コース適性</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -204,10 +205,10 @@ function renderIndexDetail(detail) {
         <div class="index-logic">
           <h3>指数・予想ロジック</h3>
           <p>近5走は各レースを「展開・タイム・成績」の3指数で個別評価し、すべて小数点を使わず1の位まで精査します。展開指数は通過順・位置取り・上がり・着差・ペースによる有利不利、タイム指数は走破時計・レースレベル・距離・馬場・着差・上がり、成績指数は着順に加えて重賞格や相手レベルを加味します。</p>
-          <p>1走ごとの評価は展開25％・タイム35％・成績40％を基本とし、近5走は前走から5：4：3：2：1で重み付けして「近走指数」を算出します。「仮想人気」は近5走の内容だけを基に順位化し、実際のオッズ・人気、今回の展開、今回のコース・距離適性は使用しません。</p>
-          <p>総合指数は、近走指数60％＋今回展開20％＋コース・距離適性20％を基本に算出します。今回展開は想定ペースと脚質・位置取りの噛み合わせ、コース・距離適性は札幌芝および芝2000mへの適性・実績を評価します。</p>
-          <p><strong>軸馬選定：</strong>本命は仮想3番人気以内のうち総合指数最上位、対抗は本命を除く仮想4番人気以内のうち総合指数最上位とします。ただし、仮想3番人気以内で総合指数最下位の馬は買い目から除外します。相手はそれ以外から総合指数上位を選び、頭数は「出走頭数の2分の1切上げ、または7頭以内」の既定ルールに従います。</p>
-          <p><strong>札幌11R：</strong>本命⑧サクラファレル、対抗⑬グランディア。仮想3番人気以内で総合指数最下位の⑩アドマイヤテラを除外し、相手は⑮シェイクユアハート、⑦ショウヘイ、④マジックサンズ、⑨マイネルモーント、⑥ローシャムパークの5頭です。</p>
+          <p>1走ごとの評価は展開25％・タイム35％・成績40％を基本とし、近5走は前走から5：4：3：2：1で重み付けして「近走指数」を算出します。「想定人気」は近5走の内容だけを基に順位化し、実際のオッズ・人気、今回の展開、今回のコース適性は使用しません。</p>
+          <p>総合指数は、近走指数60％＋今回展開20％＋コース適性20％を基本に算出します。今回展開は想定ペースと脚質・位置取りの噛み合わせ、コース適性は札幌芝および芝2000mへの適性・実績を評価します。</p>
+          <p><strong>軸馬選定：</strong>本命は想定3番人気以内のうち総合指数最上位、対抗は本命を除く想定4番人気以内のうち総合指数最上位とします。ただし、想定3番人気以内で総合指数最下位の馬は危険馬として買い目から除外します。相手はそれ以外から総合指数上位を選び、頭数は「出走頭数の2分の1切上げ、または7頭以内」の既定ルールに従います。</p>
+          <p><strong>札幌11R：</strong>本命⑧サクラファレル、対抗⑬グランディア。想定3番人気以内で総合指数最下位の⑩アドマイヤテラを危険馬として除外し、相手は⑮シェイクユアハート、⑦ショウヘイ、④マジックサンズ、⑨マイネルモーント、⑥ローシャムパークの5頭です。</p>
         </div>
       </section>
     </div>`;
