@@ -196,6 +196,9 @@ const yen = n => `${Number(n || 0).toLocaleString('ja-JP')}円`;
 const percent = n => `${Number(n || 0).toFixed(1)}%`;
 
 const RACE_DETAIL_CACHE = {};
+let INDEX_MODAL_RACE_ORDER = [];
+let activeIndexRaceId = null;
+let lastIndexTrigger = null;
 
 function raceDetail(race) {
   if (!race?.raceId) return null;
@@ -287,20 +290,29 @@ function mainHorseWon(race, prediction) {
   return firstPlace.map(Number).includes(main);
 }
 
+function secondHorseTop3(race, prediction) {
+  const second = Number(prediction?.axes?.[1]);
+  if (!Number.isFinite(second)) return false;
+  const top3 = (race?.result?.places || [])
+    .slice(0, 3)
+    .flat()
+    .map(Number);
+  return top3.includes(second);
+}
+
 function judgement(race, prediction) {
-  const labels = [];
+  // 三連単的中時は「的中」を最優先し、本/対補助表示は出さない。
   if (race?.status === 'hit') {
-    labels.push('<span class="judgement hit">的中</span>');
-  } else if (race?.status !== 'miss') {
-    labels.push('<span class="judgement pending">未確定</span>');
+    return '<span class="judgement hit">的中</span>';
+  }
+  if (race?.status !== 'miss') {
+    return '<span class="judgement pending">未確定</span>';
   }
 
-  if (mainHorseWon(race, prediction)) {
-    labels.push('<span class="single-win">単勝</span>');
-  }
-
-  if (!labels.length) return '';
-  return `<span class="judgement-stack">${labels.join('')}</span>`;
+  const mainMark = mainHorseWon(race, prediction) ? '本' : '';
+  const secondMark = secondHorseTop3(race, prediction) ? '対' : '';
+  const mark = `${mainMark}${secondMark}`;
+  return mark ? `<span class="prediction-result-mark">${mark}</span>` : '';
 }
 
 function daySummary(day) {
@@ -483,7 +495,13 @@ function sortIndexTable(header) {
   rows.forEach(row => tbody.appendChild(row));
 }
 
-function renderIndexDetail(detail) {
+function indexModalNeighbor(raceId, offset) {
+  const index = INDEX_MODAL_RACE_ORDER.indexOf(raceId);
+  if (index < 0) return null;
+  return INDEX_MODAL_RACE_ORDER[index + offset] || null;
+}
+
+function renderIndexDetail(detail, raceId) {
   const rows = [...detail.horses]
     .sort((a, b) => a.no - b.no)
     .map(horse => indexHorseRow(horse, detail))
@@ -493,7 +511,13 @@ function renderIndexDetail(detail) {
     <div class="index-modal-backdrop" data-index-close="true">
       <section class="index-modal" role="dialog" aria-modal="true" aria-labelledby="index-modal-title">
         <div class="index-modal-header">
-          <h2 id="index-modal-title">${detail.title}</h2>
+          <div class="index-modal-heading">
+            <div class="index-modal-nav" aria-label="前後のレースへ移動">
+              <button class="index-modal-nav-button" type="button" data-index-nav="-1" aria-label="前のレースへ"${indexModalNeighbor(raceId, -1) ? '' : ' disabled'}>＜</button>
+              <button class="index-modal-nav-button" type="button" data-index-nav="1" aria-label="次のレースへ"${indexModalNeighbor(raceId, 1) ? '' : ' disabled'}>＞</button>
+            </div>
+            <h2 id="index-modal-title">${detail.title}</h2>
+          </div>
           <button class="index-modal-close" type="button" data-index-close="true" aria-label="指数表を閉じる">×</button>
         </div>
         <div class="index-table-scroll">
@@ -531,19 +555,38 @@ function renderIndexDetail(detail) {
       </section>
     </div>`;
 }
-function openIndexDetail(raceId, trigger) {
+function openIndexDetail(raceId, trigger = null, focusTarget = 'close') {
   const detail = RACE_DETAIL_CACHE[raceId] || RACE_INDEX_DETAILS[raceId];
   if (!detail) return;
-  closeIndexDetail(false);
-  lastIndexTrigger = trigger || null;
-  document.body.insertAdjacentHTML('beforeend', renderIndexDetail(detail));
+
+  // 前後遷移では元の一覧側フォーカス位置を保持したままモーダルだけ差し替える。
+  document.querySelector('.index-modal-backdrop')?.remove();
+  if (trigger) lastIndexTrigger = trigger;
+  activeIndexRaceId = raceId;
+
+  document.body.insertAdjacentHTML('beforeend', renderIndexDetail(detail, raceId));
   document.body.classList.add('index-modal-open');
-  document.querySelector('.index-modal-close')?.focus();
+
+  if (focusTarget === 'prev') {
+    document.querySelector('.index-modal-nav-button[data-index-nav="-1"]:not(:disabled)')?.focus();
+  } else if (focusTarget === 'next') {
+    document.querySelector('.index-modal-nav-button[data-index-nav="1"]:not(:disabled)')?.focus();
+  } else {
+    document.querySelector('.index-modal-close')?.focus();
+  }
+}
+
+function navigateIndexDetail(offset) {
+  if (!activeIndexRaceId) return;
+  const targetRaceId = indexModalNeighbor(activeIndexRaceId, offset);
+  if (!targetRaceId) return;
+  openIndexDetail(targetRaceId, null, offset < 0 ? 'prev' : 'next');
 }
 
 function closeIndexDetail(restoreFocus = true) {
   document.querySelector('.index-modal-backdrop')?.remove();
   document.body.classList.remove('index-modal-open');
+  activeIndexRaceId = null;
   if (restoreFocus) lastIndexTrigger?.focus();
   lastIndexTrigger = null;
 }
@@ -570,6 +613,12 @@ function bindIndexDetails() {
       return;
     }
 
+    const navButton = event.target instanceof Element ? event.target.closest('.index-modal-nav-button') : null;
+    if (navButton) {
+      if (!navButton.disabled) navigateIndexDetail(Number(navButton.dataset.indexNav || 0));
+      return;
+    }
+
     const trigger = event.target instanceof Element ? event.target.closest('.race-detail-trigger') : null;
     if (trigger) {
       openIndexDetail(trigger.dataset.raceId, trigger);
@@ -587,6 +636,18 @@ function bindIndexDetails() {
     if (sortHeader && (event.key === 'Enter' || event.key === ' ')) {
       event.preventDefault();
       sortIndexTable(sortHeader);
+      return;
+    }
+
+    if (document.querySelector('.index-modal-backdrop') && event.key === 'ArrowLeft') {
+      event.preventDefault();
+      navigateIndexDetail(-1);
+      return;
+    }
+
+    if (document.querySelector('.index-modal-backdrop') && event.key === 'ArrowRight') {
+      event.preventDefault();
+      navigateIndexDetail(1);
       return;
     }
 
@@ -683,6 +744,17 @@ async function boot() {
     const data = await res.json();
     const days = [...(data.days || [])].sort((a,b) => b.date.localeCompare(a.date));
     days.forEach(day => (day.races || []).forEach(syncRaceDetailFromData));
+
+    INDEX_MODAL_RACE_ORDER = days.flatMap(day =>
+      [...(day.races || [])]
+        .sort((a,b) =>
+          (VENUE_ORDER[a.venue] ?? 99) - (VENUE_ORDER[b.venue] ?? 99)
+          || a.raceNo - b.raceNo
+        )
+        .filter(race => raceDetail(race))
+        .map(race => race.raceId)
+    );
+
     app.innerHTML = days.length ? days.map((day, index) => renderDay(day, index < 2)).join('') : '<div class="empty">表示できるレースがまだありません。</div>';
   } catch (e) {
     console.error(e);

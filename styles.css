@@ -74,10 +74,10 @@ body {
   white-space: nowrap;
 }
 .site-title:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; border-radius: 3px; }
-.day-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin: 0 auto 10px; width: fit-content; max-width: 100%; }
+.day-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin: 0 auto 10px; width: 100%; max-width: 100%; }
 .day-top {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) 30px;
+  grid-template-columns: minmax(160px, 1fr) 355px 30px;
   align-items: center;
   gap: 18px;
   padding: 6px 10px;
@@ -127,11 +127,13 @@ body {
   border-right: 2px solid #b8c9bf;
 }
 .day-summary {
-  display: flex;
+  display: grid;
+  grid-template-columns: 92px 150px 113px;
   align-items: center;
-  justify-content: flex-end;
-  gap: 20px;
-  padding-right: 4px;
+  justify-content: end;
+  gap: 0;
+  width: 355px;
+  padding-right: 0;
   white-space: nowrap;
 }
 .day-toggle {
@@ -171,7 +173,7 @@ body {
   border-bottom: 0;
   border-radius: 0 0 12px 12px;
 }
-.summary-item { display: flex; align-items: baseline; gap: 5px; line-height: 1; }
+.summary-item { display: flex; align-items: baseline; justify-content: flex-start; gap: 5px; line-height: 1; }
 .summary-label { color: var(--muted); font-size: 10px; font-weight: 700; }
 .summary-value { color: var(--ink); font-size: 15px; font-weight: 850; }
 .race-table thead .column-row th:first-child { min-width: 70px; }
@@ -229,11 +231,11 @@ body {
   gap: 2px;
   line-height: 1;
 }
-.single-win {
+.prediction-result-mark {
   color: var(--hit);
   background: transparent;
-  font-size: 14px;
-  font-weight: 850;
+  font-size: 15px;
+  font-weight: 900;
   line-height: 1;
   white-space: nowrap;
 }
@@ -275,7 +277,51 @@ body.index-modal-open { overflow: hidden; }
   background: #fff;
   border-bottom: 1px solid var(--line);
 }
-.index-modal-header h2 { margin: 0; font-size: 20px; line-height: 1; }
+.index-modal-heading {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 7px;
+}
+.index-modal-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+.index-modal-nav-button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 27px;
+  height: 27px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 850;
+  line-height: 1;
+  cursor: pointer;
+}
+.index-modal-nav-button:hover:not(:disabled) { background: #f3f6f4; }
+.index-modal-nav-button:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
+.index-modal-nav-button:disabled {
+  color: #b8bfbb;
+  background: #f6f8f7;
+  cursor: default;
+}
+.index-modal-header h2 {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 20px;
+  line-height: 1;
+}
 .index-modal-close {
   appearance: none;
   flex: 0 0 auto;
@@ -393,7 +439,7 @@ body.index-modal-open { overflow: hidden; }
     grid-template-columns: minmax(0, 1fr) 30px;
     grid-template-areas:
       "date toggle"
-      "summary toggle";
+      "summary summary";
     align-items: center;
     padding: 6px 10px;
     gap: 4px 8px;
@@ -401,10 +447,12 @@ body.index-modal-open { overflow: hidden; }
   .date-wrap { grid-area: date; }
   .day-summary {
     grid-area: summary;
-    justify-content: flex-start;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: 26% 42% 32%;
+    justify-content: stretch;
+    gap: 0;
+    width: 100%;
     padding-right: 0;
-    flex-wrap: nowrap;
   }
   .day-toggle { grid-area: toggle; align-self: center; }
   .summary-item { gap: 3px; }
@@ -440,6 +488,9 @@ body.index-modal-open { overflow: hidden; }
   .index-modal { max-height: calc(100vh - 12px); border-radius: 10px; }
   .index-modal-header { padding: 2px 7px; }
   .index-modal-header h2 { font-size: 17px; line-height: 1; }
+  .index-modal-heading { gap: 5px; }
+  .index-modal-nav { gap: 1px; }
+  .index-modal-nav-button { width: 25px; height: 25px; font-size: 14px; }
   .index-modal-close { width: 26px; height: 26px; }
   .index-table th { padding: 6px 8px; font-size: 11px; }
   .index-table td { padding: 6px 8px; font-size: 12px; }
@@ -559,3 +610,54 @@ body.index-modal-open { overflow: hidden; }
 .index-recent-part + .index-recent-part {
   margin-left: 3px;
 }
+
+
+/* 指数表は全レースで同一の列幅に固定 */
+.index-table {
+  width: 1112px;
+  min-width: 1112px;
+  max-width: 1112px;
+  table-layout: fixed;
+}
+.index-table th,
+.index-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.index-table th:nth-child(1), .index-table td:nth-child(1) { width: 58px !important; min-width: 58px !important; max-width: 58px !important; }
+.index-table th:nth-child(2), .index-table td:nth-child(2) { width: 48px !important; min-width: 48px !important; max-width: 48px !important; }
+.index-table th:nth-child(3), .index-table td:nth-child(3) { width: 132px !important; min-width: 132px !important; max-width: 132px !important; }
+.index-table th:nth-child(4), .index-table td:nth-child(4) { width: 52px !important; min-width: 52px !important; max-width: 52px !important; }
+.index-table th:nth-child(5), .index-table td:nth-child(5) { width: 56px !important; min-width: 56px !important; max-width: 56px !important; }
+.index-table th:nth-child(6), .index-table td:nth-child(6) { width: 48px !important; min-width: 48px !important; max-width: 48px !important; }
+.index-table th:nth-child(7), .index-table td:nth-child(7),
+.index-table th:nth-child(8), .index-table td:nth-child(8),
+.index-table th:nth-child(9), .index-table td:nth-child(9),
+.index-table th:nth-child(10), .index-table td:nth-child(10),
+.index-table th:nth-child(11), .index-table td:nth-child(11) {
+  width: 96px !important;
+  min-width: 96px !important;
+  max-width: 96px !important;
+}
+.index-table th:nth-child(12), .index-table td:nth-child(12),
+.index-table th:nth-child(13), .index-table td:nth-child(13) {
+  width: 58px !important;
+  min-width: 58px !important;
+  max-width: 58px !important;
+}
+.index-table th:nth-child(14), .index-table td:nth-child(14) {
+  width: 64px !important;
+  min-width: 64px !important;
+  max-width: 64px !important;
+}
+.index-table th:nth-child(15), .index-table td:nth-child(15) {
+  width: 58px !important;
+  min-width: 58px !important;
+  max-width: 58px !important;
+}
+.index-table .index-horse-name {
+  width: 132px !important;
+  min-width: 132px !important;
+  max-width: 132px !important;
+}
+
