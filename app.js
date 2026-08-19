@@ -199,6 +199,18 @@ function raceDetail(race) {
   return RACE_INDEX_DETAILS[race?.raceId] || null;
 }
 
+function syncRaceDetailFromData(race) {
+  const detail = raceDetail(race);
+  const popularity = race?.modelMeta?.estimatedPopularity;
+  if (!detail || !popularity) return;
+
+  detail.horses.forEach(horse => {
+    const rank = Number(popularity[String(horse.no)] ?? popularity[horse.no]);
+    if (Number.isFinite(rank) && rank > 0) horse.expectedPopularity = rank;
+  });
+  detail.prediction = buildPredictionFromIndex(detail);
+}
+
 function effectiveHorseCount(race) {
   return raceDetail(race)?.horseCount || race?.horseCount;
 }
@@ -591,6 +603,7 @@ async function boot() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     const days = [...(data.days || [])].sort((a,b) => b.date.localeCompare(a.date));
+    days.forEach(day => (day.races || []).forEach(syncRaceDetailFromData));
     app.innerHTML = days.length ? days.map((day, index) => renderDay(day, index < 2)).join('') : '<div class="empty">表示できるレースがまだありません。</div>';
   } catch (e) {
     console.error(e);
