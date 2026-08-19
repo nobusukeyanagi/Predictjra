@@ -74,7 +74,7 @@ body {
   white-space: nowrap;
 }
 .site-title:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; border-radius: 3px; }
-.day-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin: 0 auto 10px; width: 100%; max-width: 100%; }
+.day-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin: 0 auto 10px; width: fit-content; max-width: 100%; }
 .day-top {
   display: grid;
   grid-template-columns: minmax(160px, 1fr) 355px 30px;
@@ -659,5 +659,14 @@ body.index-modal-open { overflow: hidden; }
   width: 132px !important;
   min-width: 132px !important;
   max-width: 132px !important;
+}
+
+
+
+@media (min-width: 761px) {
+  /* PC: outer boxes follow the existing table widths; column widths remain unchanged. */
+  .index-modal {
+    width: min(1114px, calc(100vw - 36px));
+  }
 }
 

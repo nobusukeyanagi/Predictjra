@@ -736,6 +736,29 @@ function lockHorizontalPull() {
   }, true);
 }
 
+function syncDesktopRaceCardWidths() {
+  const cards = [...document.querySelectorAll('.day-card')];
+
+  if (window.innerWidth <= 760) {
+    cards.forEach(card => { card.style.width = ''; });
+    return;
+  }
+
+  const tables = [...document.querySelectorAll('.race-table')];
+  if (!tables.length) return;
+
+  // Measure the actual rendered table width. This changes only the outer card;
+  // no table column width is recalculated or overridden.
+  const widestTable = Math.ceil(Math.max(
+    ...tables.map(table => table.getBoundingClientRect().width)
+  ));
+  const cardWidth = widestTable + 2; // include the day-card's left/right border.
+
+  cards.forEach(card => {
+    card.style.width = `${cardWidth}px`;
+  });
+}
+
 async function boot() {
   const app = document.getElementById('app');
   try {
@@ -756,6 +779,7 @@ async function boot() {
     );
 
     app.innerHTML = days.length ? days.map((day, index) => renderDay(day, index < 2)).join('') : '<div class="empty">表示できるレースがまだありません。</div>';
+    requestAnimationFrame(syncDesktopRaceCardWidths);
   } catch (e) {
     console.error(e);
     app.innerHTML = '<div class="error">レースデータを読み込めませんでした。data/races.json を確認してください。</div>';
@@ -770,6 +794,7 @@ function initializeApp() {
   bindDayToggles();
   bindIndexDetails();
   lockHorizontalPull();
+  window.addEventListener('resize', syncDesktopRaceCardWidths, { passive: true });
   boot();
 }
 
