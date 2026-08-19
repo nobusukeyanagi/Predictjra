@@ -338,7 +338,7 @@ function recentIndexMarkup(value) {
   if (value === '評価外') return '<span class="index-recent-na">評価外</span>';
   const parts = String(value).split('/');
   if (parts.length !== 3) return value;
-  return `<span class="index-recent-score"><span class="index-recent-label">展</span>${parts[0]}<span class="index-recent-label">時</span>${parts[1]}<span class="index-recent-label">成</span>${parts[2]}</span>`;
+  return `<span class="index-recent-score"><span class="index-recent-part"><span class="index-recent-label">展</span>${parts[0]}</span><span class="index-recent-part"><span class="index-recent-label">時</span>${parts[1]}</span><span class="index-recent-part"><span class="index-recent-label">成</span>${parts[2]}</span></span>`;
 }
 
 
