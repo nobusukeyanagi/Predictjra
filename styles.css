@@ -63,7 +63,15 @@ body {
 }
 .site-title:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; border-radius: 3px; }
 .day-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin: 0 auto 20px; width: fit-content; max-width: 100%; }
-.day-top { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: #fff; }
+.day-top {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 30px;
+  align-items: center;
+  gap: 18px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
 .date-wrap { display: flex; align-items: center; white-space: nowrap; flex: 0 0 auto; }
 .date-label { font-size: 15px; font-weight: 850; letter-spacing: .01em; }
 .table-scroll {
@@ -97,7 +105,43 @@ body {
 .race-table tbody td:nth-child(4) {
   border-right: 2px solid #b8c9bf;
 }
-.day-summary { display: flex; align-items: center; justify-content: flex-end; gap: 20px; white-space: nowrap; }
+.day-summary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 20px;
+  padding-right: 4px;
+  white-space: nowrap;
+}
+.day-toggle {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.day-toggle:hover { background: #f0f4f2; color: var(--ink); }
+.day-toggle:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
+.day-toggle-icon {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(225deg) translate(-1px, -1px);
+  transition: transform .18s ease;
+}
+.day-card.is-collapsed .day-toggle-icon {
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+.day-card.is-collapsed .day-content { display: none; }
+.day-card.is-collapsed .day-top { border-bottom: 0; }
 .summary-item { display: flex; align-items: baseline; gap: 5px; line-height: 1; }
 .summary-label { color: var(--muted); font-size: 10px; font-weight: 700; }
 .summary-value { color: var(--ink); font-size: 15px; font-weight: 850; }
@@ -244,6 +288,7 @@ body.index-modal-open { overflow: hidden; }
 .index-evaluation { min-width: 58px; }
 .index-popularity { font-weight: 800; }
 .index-strong { font-weight: 800; }
+.index-recent-total,
 .index-today { font-size: 15px !important; color: var(--green); }
 .index-table th:nth-child(5),
 .index-table td:nth-child(5) {
@@ -296,17 +341,23 @@ body.index-modal-open { overflow: hidden; }
   .site-title { font-size: clamp(24px, 7vw, 34px); line-height: 1; }
   .day-card { border-radius: 12px; margin-bottom: 16px; }
   .day-top {
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: flex-start;
+    grid-template-columns: minmax(0, 1fr) 30px;
+    grid-template-areas:
+      "date toggle"
+      "summary toggle";
+    align-items: center;
     padding: 6px 10px;
-    gap: 4px;
+    gap: 4px 8px;
   }
+  .date-wrap { grid-area: date; }
   .day-summary {
+    grid-area: summary;
     justify-content: flex-start;
     gap: 10px;
+    padding-right: 0;
     flex-wrap: nowrap;
   }
+  .day-toggle { grid-area: toggle; align-self: center; }
   .summary-item { gap: 3px; }
   .date-label { font-size: 15px; }
 

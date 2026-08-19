@@ -113,7 +113,7 @@ function raceNameCell(race) {
   return `<button class="race-detail-trigger" type="button" data-race-id="${race.raceId}" aria-label="${race.venue}${race.raceNo}Rの指数表を表示">${label}</button>`;
 }
 
-function renderDay(day) {
+function renderDay(day, initiallyExpanded = true) {
   const summary = daySummary(day);
   const dl = dateLabel(day.date);
   const races = [...day.races].sort((a,b) => (VENUE_ORDER[a.venue] ?? 99) - (VENUE_ORDER[b.venue] ?? 99) || a.raceNo - b.raceNo);
@@ -134,7 +134,8 @@ function renderDay(day) {
     </tr>`;
   }).join('');
 
-  return `<section class="day-card">
+  const collapsedClass = initiallyExpanded ? '' : ' is-collapsed';
+  return `<section class="day-card${collapsedClass}" data-day-date="${day.date}">
     <div class="day-top">
       <div class="date-wrap"><span class="date-label">${dl}</span></div>
       <div class="day-summary">
@@ -142,14 +143,19 @@ function renderDay(day) {
         <div class="summary-item"><span class="summary-label">払戻総額</span><span class="summary-value">${yen(summary.payout)}</span></div>
         <div class="summary-item"><span class="summary-label">総回収率</span><span class="summary-value">${percent(summary.recovery)}</span></div>
       </div>
+      <button class="day-toggle" type="button" aria-label="${initiallyExpanded ? 'この日付を折りたたむ' : 'この日付を開く'}" aria-expanded="${initiallyExpanded ? 'true' : 'false'}">
+        <span class="day-toggle-icon" aria-hidden="true"></span>
+      </button>
     </div>
-    <div class="table-scroll">
-      <table class="race-table">
-        <thead>
-          <tr class="column-row"><th>レース</th><th>本命</th><th>対抗</th><th>相手</th><th>結果</th><th>判定</th><th>三連単</th><th>回収率</th></tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
+    <div class="day-content">
+      <div class="table-scroll">
+        <table class="race-table">
+          <thead>
+            <tr class="column-row"><th>レース</th><th>本命</th><th>対抗</th><th>相手</th><th>結果</th><th>判定</th><th>三連単</th><th>回収率</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
     </div>
   </section>`;
 }
@@ -184,7 +190,7 @@ function renderIndexDetail(detail) {
       <td class="index-total">${horse.total}</td>
       <td class="index-rank">${horse.rank}</td>
       ${horse.recent.map(value => `<td>${recentIndexMarkup(value)}</td>`).join('')}
-      <td class="index-strong">${horse.recentIndex}</td>
+      <td class="index-strong index-recent-total">${horse.recentIndex}</td>
       <td>${horse.pace}</td>
       <td>${horse.course}</td>
       <td class="index-strong index-today">${horse.today}</td>
@@ -231,6 +237,20 @@ function closeIndexDetail(restoreFocus = true) {
   document.body.classList.remove('index-modal-open');
   if (restoreFocus) lastIndexTrigger?.focus();
   lastIndexTrigger = null;
+}
+
+function bindDayToggles() {
+  document.addEventListener('click', event => {
+    const toggle = event.target instanceof Element ? event.target.closest('.day-toggle') : null;
+    if (!toggle) return;
+
+    const card = toggle.closest('.day-card');
+    if (!card) return;
+
+    const collapsed = card.classList.toggle('is-collapsed');
+    toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    toggle.setAttribute('aria-label', collapsed ? 'この日付を開く' : 'この日付を折りたたむ');
+  });
 }
 
 function bindIndexDetails() {
@@ -305,7 +325,7 @@ async function boot() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     const days = [...(data.days || [])].sort((a,b) => b.date.localeCompare(a.date));
-    app.innerHTML = days.length ? days.map(renderDay).join('') : '<div class="empty">表示できるレースがまだありません。</div>';
+    app.innerHTML = days.length ? days.map((day, index) => renderDay(day, index < 2)).join('') : '<div class="empty">表示できるレースがまだありません。</div>';
   } catch (e) {
     console.error(e);
     app.innerHTML = '<div class="error">レースデータを読み込めませんでした。data/races.json を確認してください。</div>';
@@ -317,6 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
   backToTop?.addEventListener('click', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
+  bindDayToggles();
   bindIndexDetails();
   lockHorizontalPull();
   boot();
