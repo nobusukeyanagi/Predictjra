@@ -251,6 +251,9 @@ def load_target_history(source_root: Path, target_horse_ids: set[str]) -> pd.Dat
 def recency_weighted(values: list[float]) -> float:
     if not values:
         return 70.0
+    # 近走指数は「直近5走」が定義。呼び出し側から5件超が渡っても
+    # 6要素×5重みの形状不一致を起こさないよう、この関数自身でも防御する。
+    values = list(values)[:5]
     base_weights = [0.34, 0.25, 0.18, 0.13, 0.10]
     weights = np.array(base_weights[:len(values)], dtype=float)
     weights = weights / weights.sum()
@@ -287,7 +290,8 @@ def course_index_for_horse(
     def score(frame: pd.DataFrame, cap: float) -> float | None:
         if frame.empty:
             return None
-        vals = pd.to_numeric(frame["_run_composite"], errors="coerce").dropna().tail(6).tolist()
+        # コース適性も最新ロジックの「近5走」に合わせる。
+        vals = pd.to_numeric(frame["_run_composite"], errors="coerce").dropna().tail(5).tolist()
         if not vals:
             return None
         value = 0.72 * recency_weighted(list(reversed(vals))) + 0.28 * max(vals)
