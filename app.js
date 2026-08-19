@@ -280,10 +280,27 @@ function resultBoxes(result, race) {
   return `<div class="horses">${groups.join('<span class="place-sep">›</span>')}</div>`;
 }
 
-function judgement(status) {
-  if (status === 'hit') return '<span class="judgement hit">的中</span>';
-  if (status === 'miss') return '';
-  return '<span class="judgement pending">未確定</span>';
+function mainHorseWon(race, prediction) {
+  const main = Number(prediction?.axes?.[0]);
+  if (!Number.isFinite(main)) return false;
+  const firstPlace = race?.result?.places?.[0] || [];
+  return firstPlace.map(Number).includes(main);
+}
+
+function judgement(race, prediction) {
+  const labels = [];
+  if (race?.status === 'hit') {
+    labels.push('<span class="judgement hit">的中</span>');
+  } else if (race?.status !== 'miss') {
+    labels.push('<span class="judgement pending">未確定</span>');
+  }
+
+  if (mainHorseWon(race, prediction)) {
+    labels.push('<span class="single-win">単勝</span>');
+  }
+
+  if (!labels.length) return '';
+  return `<span class="judgement-stack">${labels.join('')}</span>`;
 }
 
 function daySummary(day) {
@@ -328,7 +345,7 @@ function renderDay(day, initiallyExpanded = true) {
       <td>${predictionBoxes(prediction.axes?.slice(1,2) || [], r)}</td>
       <td>${predictionBoxes(prediction.opponents || [], r)}</td>
       <td>${resultBoxes(r.result, r)}</td>
-      <td>${judgement(r.status)}</td>
+      <td>${judgement(r, prediction)}</td>
       <td class="money">${actualPayout == null ? '—' : yen(actualPayout)}</td>
       <td class="rate">${rate == null ? '—' : percent(rate)}</td>
     </tr>`;
@@ -589,14 +606,27 @@ function bindIndexDetails() {
 function lockHorizontalPull() {
   let startX = 0;
   let startY = 0;
+  let startScrollLeft = 0;
   let scroller = null;
+
+  const clampScrollLeft = element => {
+    if (!(element instanceof Element)) return;
+    if (!element.matches('.table-scroll, .index-table-scroll')) return;
+    const maxScrollLeft = Math.max(0, element.scrollWidth - element.clientWidth);
+    if (element.scrollLeft < 0) element.scrollLeft = 0;
+    if (element.scrollLeft > maxScrollLeft) element.scrollLeft = maxScrollLeft;
+  };
 
   document.addEventListener('touchstart', event => {
     if (event.touches.length !== 1) return;
     const touch = event.touches[0];
     startX = touch.clientX;
     startY = touch.clientY;
-    scroller = event.target instanceof Element ? event.target.closest('.table-scroll, .index-table-scroll') : null;
+    scroller = event.target instanceof Element
+      ? event.target.closest('.table-scroll, .index-table-scroll')
+      : null;
+    startScrollLeft = scroller?.scrollLeft || 0;
+    if (scroller) clampScrollLeft(scroller);
   }, { passive: true });
 
   document.addEventListener('touchmove', event => {
@@ -614,13 +644,35 @@ function lockHorizontalPull() {
     }
 
     const maxScrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
-    const atLeftEdge = scroller.scrollLeft <= 0.5;
-    const atRightEdge = scroller.scrollLeft >= maxScrollLeft - 0.5;
+    const requestedScrollLeft = startScrollLeft - dx;
 
-    if ((atLeftEdge && dx > 0) || (atRightEdge && dx < 0)) {
+    if (requestedScrollLeft <= 0) {
+      scroller.scrollLeft = 0;
+      event.preventDefault();
+      return;
+    }
+
+    if (requestedScrollLeft >= maxScrollLeft) {
+      scroller.scrollLeft = maxScrollLeft;
       event.preventDefault();
     }
   }, { passive: false });
+
+  document.addEventListener('touchend', () => {
+    if (scroller) clampScrollLeft(scroller);
+    scroller = null;
+  }, { passive: true });
+
+  document.addEventListener('touchcancel', () => {
+    if (scroller) clampScrollLeft(scroller);
+    scroller = null;
+  }, { passive: true });
+
+  // Safari can temporarily report negative / over-max scrollLeft while rubber-banding.
+  // Clamp it immediately so the blank gutter is never exposed.
+  document.addEventListener('scroll', event => {
+    clampScrollLeft(event.target);
+  }, true);
 }
 
 async function boot() {
