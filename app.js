@@ -108,34 +108,41 @@ function predictionTargetCountForIndex(horseCount) {
 }
 
 function buildPredictionFromIndex(detail) {
-  const horses = [...detail.horses];
-  const top3 = horses
-    .filter(h => h.expectedPopularity <= 3)
-    .sort((a, b) => b.total - a.total || b.recentIndex - a.recentIndex || a.no - b.no);
+  const targetCount = predictionTargetCountForIndex(detail.horseCount);
 
-  const main = top3[0];
-  const danger = [...top3]
-    .sort((a, b) => a.total - b.total || a.recentIndex - b.recentIndex || b.no - a.no)[0];
+  const selected = [...detail.horses]
+    .sort((a, b) =>
+      b.total - a.total ||
+      b.recentIndex - a.recentIndex ||
+      a.no - b.no
+    )
+    .slice(0, targetCount);
 
-  const second = horses
-    .filter(h => h.expectedPopularity >= 4 && h.no !== main?.no && h.no !== danger?.no)
-    .sort((a, b) => b.total - a.total || b.recentIndex - a.recentIndex || a.no - b.no)[0];
+  const main = selected[0];
 
-  const opponentCount = Math.max(0, predictionTargetCountForIndex(detail.horseCount) - 2);
-  const excludedNos = new Set([main?.no, second?.no, danger?.no].filter(Boolean));
+  const second = [...selected]
+    .filter(h => h.no !== main?.no)
+    .sort((a, b) =>
+      b.expectedPopularity - a.expectedPopularity ||
+      b.total - a.total ||
+      a.no - b.no
+    )[0];
 
-  const opponents = horses
-    .filter(h => !excludedNos.has(h.no))
-    .sort((a, b) => b.total - a.total || b.recentIndex - a.recentIndex || a.no - b.no)
-    .slice(0, opponentCount)
+  const opponents = selected
+    .filter(h => h.no !== main?.no && h.no !== second?.no)
+    .sort((a, b) =>
+      b.total - a.total ||
+      b.recentIndex - a.recentIndex ||
+      a.no - b.no
+    )
     .map(h => h.no);
 
-  horses.forEach(h => { h.excluded = h.no === danger?.no; });
+  detail.horses.forEach(h => { h.excluded = false; });
 
   return {
     axes: [main?.no, second?.no].filter(Boolean),
     opponents,
-    excluded: danger ? [danger.no] : []
+    excluded: []
   };
 }
 
@@ -432,7 +439,7 @@ function renderIndexDetail(detail) {
           <p>近5走は各レースを「展開・タイム・成績」の3指数で個別評価し、すべて整数で1の位まで精査します。展開は通過順・位置取り・上がり・着差・ペース、タイムは走破時計・レースレベル・馬場・着差・上がり、成績は着順に加えてレース格と相手レベルを評価します。</p>
           <p>「近走」は単純な着順平均ではなく、直近を重視した基礎評価に、近5走の上位パフォーマンスから算出する能力上限と再現性を加味します。長期休養明け、大幅な馬体重変動など結果の信頼度を下げる客観的要因が重なった一走は、その凡走を能力低下と断定せず影響を抑えます。これにより、一度の大敗だけで過度に評価を落とさない設計とします。「想人」は近走成績と馬情報から市場人気を推定する専用モデルです。近走の着順・着差・レース格・安定度に加え、騎手・調教師・レーティング・上昇度など事前に取得できる情報をレース区分別の比率で評価します。当日オッズ、実際の人気、馬体重・増減は予測入力に使用しません。</p>
           <p>「展開」は今回の想定ペースと脚質・位置取りの適合度を評価します。「コース」は当該コース実績を最重視し、当該場の他距離実績を補助評価します。当該コース未経験の場合は同距離の他場実績と類似条件への適応力で補完しますが、実績馬より上限を抑えます。「今回」は展開50％＋コース50％、総合指数は近走60％＋今回40％を基本とします。</p>
-          <p><strong>軸馬選定：</strong>本命は想定3番人気以内のうち総合指数最上位、対抗は想定4番人気以下のうち総合指数最上位とします。ただし、想定3番人気以内で総合指数最下位の馬は危険馬として買い目から除外します。相手はそれ以外の総合指数上位から選び、頭数は既定の出走頭数ルールに従います。</p>
+          <p><strong>軸馬選定：</strong>出走頭数に応じた既定の選定対象馬数（出走頭数の半数切り上げ、最大7頭）を総合評価上位から選びます。本命は選定対象馬のうち総合評価1位、対抗は選定対象馬のうち想定人気が最も低い馬とし、残りを相手とします。</p>
         </div>
       </section>
     </div>`;
