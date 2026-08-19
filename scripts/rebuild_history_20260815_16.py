@@ -118,6 +118,48 @@ def parse_time_seconds(value) -> float:
         return math.nan
 
 
+def parse_distance_m(value) -> float:
+    """Parse race distance from 1700 / 1700m / 1,700 / 芝1700m style values."""
+    s = clean_str(value).replace(",", "")
+    if not s:
+        return math.nan
+    direct = pd.to_numeric(pd.Series([s]), errors="coerce").iloc[0]
+    if pd.notna(direct) and float(direct) > 0:
+        return float(direct)
+    m = re.search(r"(\d{3,4})", s)
+    if not m:
+        return math.nan
+    value = float(m.group(1))
+    return value if value > 0 else math.nan
+
+
+def first_race_distance(*frames: pd.DataFrame) -> float:
+    """Return the first valid distance from pre-race metadata, then result metadata.
+
+    Result data is used only as a fallback for the already-known race condition
+    (distance), never for performance scoring or horse evaluation.
+    """
+    for df in frames:
+        if df is None or df.empty or "distance_m" not in df.columns:
+            continue
+        for raw in df["distance_m"].tolist():
+            distance = parse_distance_m(raw)
+            if math.isfinite(distance) and distance > 0:
+                return float(distance)
+    return math.nan
+
+
+def first_race_surface(*frames: pd.DataFrame) -> str:
+    for df in frames:
+        if df is None or df.empty or "surface" not in df.columns:
+            continue
+        for raw in df["surface"].tolist():
+            value = clean_str(raw)
+            if value:
+                return value
+    return ""
+
+
 def passing_positions(value) -> list[int]:
     s = clean_str(value)
     if not s:
@@ -317,6 +359,7 @@ def build_index_detail(
     date_s: str,
     card: pd.DataFrame,
     pred: pd.DataFrame,
+    result: pd.DataFrame,
     history: pd.DataFrame,
 ) -> tuple[dict, dict[int, float], dict[int, int], dict[int, float]]:
     target_date = pd.Timestamp(date_s)
@@ -325,6 +368,17 @@ def build_index_detail(
     card2["horse_id"] = card2["horse_id"].apply(clean_str)
 
     pmap = pred.set_index("horse_number")
+
+    # Race conditions are known before the race. Prefer the archived race card,
+    # then the archived prediction snapshot. The result archive is only a
+    # metadata fallback when the pre-race CSV omitted/serialized the value.
+    race_distance = first_race_distance(card2, pred, result)
+    if not math.isfinite(race_distance) or race_distance <= 0:
+        raise ValueError(
+            f"{race_id}: distance_m unavailable in card/pred/result metadata"
+        )
+    race_surface = first_race_surface(card2, pred, result)
+
     horse_context = {}
     front_type_count = 0
 
@@ -403,13 +457,13 @@ def build_index_detail(
         else:
             pace_index = clamp_index(0.78 * proxy + 0.22 * 75)
 
-        surface = clean_str(row.get("surface"))
-        if not surface and "surface" in card2.columns:
-            surface = clean_str(card2["surface"].iloc[0])
-        distance = pd.to_numeric(pd.Series([row.get("distance_m")]), errors="coerce").iloc[0]
-        if pd.isna(distance) and "distance_m" in card2.columns:
-            distance = pd.to_numeric(card2["distance_m"], errors="coerce").dropna().iloc[0]
-        distance = float(distance) if pd.notna(distance) else 0.0
+        surface = clean_str(row.get("surface")) or race_surface
+        row_distance = parse_distance_m(row.get("distance_m"))
+        distance = (
+            float(row_distance)
+            if math.isfinite(row_distance) and row_distance > 0
+            else float(race_distance)
+        )
 
         course_index = course_index_for_horse(
             ctx["history"], race_id, surface, distance, proxy
@@ -534,7 +588,7 @@ def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: p
     p["ml_norm"] = minmax(p["ml_win_prob"])
 
     index_detail, total_internal, total_display, tie_order = build_index_detail(
-        race_id, date_s, card, p, history
+        race_id, date_s, card, p, result, history
     )
 
     # 札幌記念は既に個別検証済みの詳細指数があるため、選定用の総合値は
@@ -870,6 +924,7 @@ def main() -> int:
     )
 
     for date_s, f in target_files:
+        print(f"Rebuilding {f.stem} ({date_s})...")
         race = build_race_model(source_root, date_s, f, history)
         if race.race_id in races:
             raise RuntimeError(f"duplicate race {race.race_id}")
@@ -1110,6 +1165,10 @@ def main() -> int:
             ),
             "indexDetailHistoryCutoff": (
                 "previous-run/detail indices use only archived race results with date < target race date"
+            ),
+            "raceConditionMetadataFallback": (
+                "surface/distance may fall back to the target result archive only when "
+                "pre-race CSV metadata is missing; target result performance is never used"
             ),
         },
         "raceCount": len(audit_races),
