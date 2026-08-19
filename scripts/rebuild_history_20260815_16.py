@@ -230,8 +230,22 @@ def build_race_model(source_root: Path, date_s: str, pred_path: Path) -> RaceMod
         pop = pd.to_numeric(pd.Series([row["popularity"]]), errors="coerce").iloc[0]
         if pd.notna(pop):
             actual_popularity[no] = int(pop)
-    if set(actual_popularity) != result_nums:
-        raise ValueError(f"{race_id}: incomplete actual popularity")
+
+    # 取消・除外などの非出走馬は結果CSVに馬番自体は残る一方、
+    # 確定人気は付かない。これは正常なので教師データからだけ除外する。
+    # 実際に走った馬について人気が欠けている場合だけエラーにする。
+    finish_num = pd.to_numeric(result["finish_position"], errors="coerce")
+    starter_nums = set(
+        pd.to_numeric(
+            result.loc[finish_num.notna(), "horse_number"], errors="raise"
+        ).astype(int)
+    )
+    missing_starter_pop = starter_nums - set(actual_popularity)
+    if missing_starter_pop:
+        raise ValueError(
+            f"{race_id}: starters missing actual popularity: "
+            f"{sorted(missing_starter_pop)}"
+        )
 
     return RaceModel(
         race_id=race_id,
@@ -278,14 +292,17 @@ def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[i
     teacher_parts = []
     for rid, race in races.items():
         f = race.popularity_features.copy()
-        f["field_size"] = len(race.card)
+        actual_starter_count = len(race.actual_popularity)
+        if actual_starter_count < 2:
+            raise ValueError(f"{rid}: too few actual starters for popularity calibration")
+
+        f["field_size"] = actual_starter_count
         f["actual_popularity"] = f["horse_number"].map(race.actual_popularity)
-        # Scratched/non-starter horses may exist in the archived card but have no final
-        # popularity. They remain prediction candidates for the historical snapshot,
-        # but are not teacher rows for popularity calibration.
+        # 取消・除外などはレース前予想候補としては保持するが、
+        # 最終人気の教師ラベルを持たないため学習行から除外する。
         f = f[f["actual_popularity"].notna()].copy()
         f["market_strength"] = [
-            target_market_strength(int(p), len(race.card))
+            target_market_strength(int(p), actual_starter_count)
             for p in f["actual_popularity"]
         ]
         teacher_parts.append(f)
@@ -315,12 +332,25 @@ def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[i
         estimates[rid] = est
 
         actual = race.actual_popularity
-        for no, ep in est.items():
-            if no in actual:
-                abs_errors.append(abs(ep - actual[no]))
-        est_top3 = {no for no, p in est.items() if p <= 3}
+
+        # 検証時だけ非出走馬を除き、実際に走った馬の中で想定人気を振り直す。
+        # これにより、除外馬が想定順位の途中にいた場合でも実人気1〜Nと
+        # 公平に比較できる。ページに保存する est 自体はレース前全頭順位のまま。
+        starter_order = [
+            int(no) for no in feats["horse_number"].tolist()
+            if int(no) in actual
+        ]
+        est_starter = {no: i + 1 for i, no in enumerate(starter_order)}
+
+        for no, ep in est_starter.items():
+            abs_errors.append(abs(ep - actual[no]))
+
+        est_top3 = {no for no, p in est_starter.items() if p <= 3}
         act_top3 = {no for no, p in actual.items() if p <= 3}
-        top3_overlaps.append(len(est_top3 & act_top3) / 3.0)
+        top_n = min(3, len(actual))
+        top3_overlaps.append(
+            len(est_top3 & act_top3) / top_n if top_n else 0.0
+        )
 
     # Final coefficients for future generalization (trained on all 72 races).
     final_beta = fit_ridge(teacher)
@@ -567,6 +597,10 @@ def main() -> int:
                         else "pre-race historical reconstruction"
                     ),
                     "popularityMethod": "leave-one-race-out calibrated model",
+                    "nonStarters": sorted(
+                        set(int(x) for x in race.card["horse_number"])
+                        - set(race.actual_popularity)
+                    ),
                 },
                 "dataSources": {
                     "preRaceSnapshot": f"{SOURCE_REPO}@{source_sha or SOURCE_REF}",
@@ -577,8 +611,14 @@ def main() -> int:
             rebuilt.append(updated)
 
             actual_pop = race.actual_popularity
+            est_order = [
+                h for h, _ in sorted(est_pop.items(), key=lambda kv: kv[1])
+                if h in actual_pop
+            ]
+            est_pop_starters = {h: i + 1 for i, h in enumerate(est_order)}
             mae = float(np.mean([
-                abs(est_pop[h] - actual_pop[h]) for h in est_pop if h in actual_pop
+                abs(est_pop_starters[h] - actual_pop[h])
+                for h in est_pop_starters
             ]))
             audit_races.append({
                 "date": date_s,
@@ -595,6 +635,10 @@ def main() -> int:
                 "stake": stake,
                 "recoveryRate": round(payout_return / stake * 100, 1) if stake else 0.0,
                 "popularityMAE": round(mae, 3),
+                "nonStarters": sorted(
+                    set(int(x) for x in race.card["horse_number"])
+                    - set(race.actual_popularity)
+                ),
                 "oldResultMatchedArchive": rid not in old_result_mismatches,
             })
 
@@ -655,6 +699,10 @@ def main() -> int:
             "raceResultUsedAsPerformanceFeature": False,
             "actualPopularityUse": (
                 "teacher label only; each race excluded from its own estimator training"
+            ),
+            "nonStarterHandling": (
+                "cancelled/excluded horses are retained in pre-race prediction candidates "
+                "but omitted from final-popularity teacher rows and validation metrics"
             ),
         },
         "raceCount": len(audit_races),
