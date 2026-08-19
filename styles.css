@@ -101,6 +101,8 @@ body {
   color: var(--green);
   background: #e8f5e9;
 }
+.race-table thead .column-row th:first-child,
+.race-table tbody td:first-child,
 .race-table thead .column-row th:nth-child(4),
 .race-table tbody td:nth-child(4) {
   border-right: 2px solid #b8c9bf;
@@ -366,7 +368,6 @@ body.index-modal-open { overflow: hidden; }
     left: 0;
     z-index: 4;
     background: var(--green);
-    border-right: 2px solid #b8c9bf;
   }
 
   .race-table tbody td:first-child {
@@ -374,7 +375,6 @@ body.index-modal-open { overflow: hidden; }
     left: 0;
     z-index: 3;
     background: var(--surface);
-    border-right: 2px solid #b8c9bf;
   }
 
   .race-table tbody tr:hover td:first-child {
@@ -406,4 +406,18 @@ body.index-modal-open { overflow: hidden; }
   .index-evaluation { min-width: 56px; }
   .index-logic { padding: 8px 12px 12px; }
   .index-logic p { font-size: 12px; line-height: 1.7; }
+}
+
+
+.index-table th:nth-child(12),
+.index-table td:nth-child(12),
+.index-table th:nth-child(13),
+.index-table td:nth-child(13),
+.index-table th:nth-child(14),
+.index-table td:nth-child(14),
+.index-table th:nth-child(15),
+.index-table td:nth-child(15) {
+  width: 58px;
+  min-width: 58px;
+  max-width: 58px;
 }
