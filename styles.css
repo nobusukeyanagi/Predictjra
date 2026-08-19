@@ -479,3 +479,17 @@ body.index-modal-open { overflow: hidden; }
   text-align: center !important;
   vertical-align: middle !important;
 }
+
+
+.index-logic-item + .index-logic-item {
+  margin-top: 12px;
+}
+.index-logic-item h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--green);
+}
+.index-logic-item p {
+  margin: 0;
+}
