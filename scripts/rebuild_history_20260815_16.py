@@ -105,6 +105,356 @@ def source_commit(source_root: Path) -> str:
         return ""
 
 
+def parse_time_seconds(value) -> float:
+    s = clean_str(value)
+    if not s:
+        return math.nan
+    try:
+        if ":" in s:
+            mins, sec = s.split(":", 1)
+            return float(mins) * 60.0 + float(sec)
+        return float(s)
+    except (TypeError, ValueError):
+        return math.nan
+
+
+def passing_positions(value) -> list[int]:
+    s = clean_str(value)
+    if not s:
+        return []
+    return [int(x) for x in re.findall(r"\d+", s)]
+
+
+def clamp_index(value: float, lo: int = 45, hi: int = 98) -> float:
+    if not math.isfinite(float(value)):
+        return float((lo + hi) / 2)
+    return float(np.clip(value, lo, hi))
+
+
+def load_target_history(source_root: Path, target_horse_ids: set[str]) -> pd.DataFrame:
+    """Load full race files containing at least one target horse.
+
+    The scan reads race-result archives only. Target-day rows may be present in the
+    loaded frame, but every index calculation later applies date < target_date, so
+    the race being predicted and all same-day results are excluded.
+    """
+    ids = sorted({clean_str(x) for x in target_horse_ids if clean_str(x)})
+    if not ids:
+        return pd.DataFrame()
+
+    pattern = re.compile(r",(?:" + "|".join(re.escape(x) for x in ids) + r"),")
+    frames = []
+    result_root = source_root / "data" / "race_results"
+
+    for path in sorted(result_root.glob("*/*.csv")):
+        # The oldest archived seasons are irrelevant to most last-5-run lookups but
+        # retaining every available season also handles long layoffs correctly.
+        try:
+            text = path.read_text(encoding="utf-8-sig", errors="ignore")
+        except Exception:
+            continue
+        if not pattern.search(text):
+            continue
+        try:
+            df = read_csv(path)
+        except Exception:
+            continue
+        if "horse_id" not in df.columns:
+            continue
+        mask = df["horse_id"].apply(clean_str).isin(ids)
+        if mask.any():
+            # Keep the full race, not only target horses, because relative time and
+            # last-3F indices need the other runners in that historical race.
+            frames.append(df)
+
+    if not frames:
+        return pd.DataFrame()
+
+    hist = pd.concat(frames, ignore_index=True)
+    hist["race_id"] = hist["race_id"].astype(str)
+    hist["horse_id"] = hist["horse_id"].apply(clean_str)
+    hist["_date"] = pd.to_datetime(hist.get("date"), errors="coerce")
+    hist["_finish"] = pd.to_numeric(hist.get("finish_position"), errors="coerce")
+    hist["_time_sec"] = hist.get("time", pd.Series(index=hist.index, dtype=object)).apply(parse_time_seconds)
+    hist["_last3f"] = pd.to_numeric(hist.get("last_3f"), errors="coerce")
+
+    numeric_finish = hist["_finish"].notna()
+    hist["_field_size"] = (
+        numeric_finish.astype(int)
+        .groupby(hist["race_id"])
+        .transform("sum")
+        .replace(0, np.nan)
+    )
+    hist["_winner_time"] = hist["_time_sec"].groupby(hist["race_id"]).transform("min")
+    hist["_last3f_min"] = hist["_last3f"].groupby(hist["race_id"]).transform("min")
+    hist["_last3f_max"] = hist["_last3f"].groupby(hist["race_id"]).transform("max")
+
+    denom = (hist["_field_size"] - 1).replace(0, 1)
+    hist["_finish_strength"] = (1 - (hist["_finish"] - 1) / denom).clip(0, 1)
+
+    # 成績指数: 着順を頭数で補正。
+    hist["_result_index"] = (48 + 50 * hist["_finish_strength"]).clip(45, 98)
+
+    # タイム指数: 勝ち馬とのタイム差を中心に、上がり3Fの相対値を補助。
+    gap = (hist["_time_sec"] - hist["_winner_time"]).clip(lower=0)
+    gap_score = (96 - 6.0 * gap).clip(45, 98)
+    last_span = (hist["_last3f_max"] - hist["_last3f_min"]).replace(0, np.nan)
+    last_strength = 1 - (hist["_last3f"] - hist["_last3f_min"]) / last_span
+    last_score = (55 + 40 * last_strength).clip(50, 96)
+    hist["_time_index"] = (
+        0.75 * gap_score + 0.25 * last_score.fillna(gap_score)
+    ).clip(45, 98)
+
+    # 各過去走の展開指数: 位置取りからの前進度と上がりを加味。
+    pace_values = []
+    front_values = []
+    for _, row in hist.iterrows():
+        finish = row.get("_finish")
+        field = row.get("_field_size")
+        pos = passing_positions(row.get("passing_order"))
+        finish_strength = row.get("_finish_strength")
+        l3min, l3max, l3 = row.get("_last3f_min"), row.get("_last3f_max"), row.get("_last3f")
+
+        if pd.notna(field) and field > 1 and pos:
+            first = pos[0]
+            last = pos[-1]
+            front = 1 - (first - 1) / max(field - 1, 1)
+            improvement = (last - finish) / max(field, 1) if pd.notna(finish) else 0.0
+        else:
+            front = math.nan
+            improvement = 0.0
+
+        if pd.notna(l3) and pd.notna(l3min) and pd.notna(l3max) and l3max > l3min:
+            l3s = 1 - (l3 - l3min) / (l3max - l3min)
+        else:
+            l3s = 0.5
+
+        fs = float(finish_strength) if pd.notna(finish_strength) else 0.5
+        if math.isfinite(float(front)):
+            score = 64 + 18 * fs + 10 * np.clip(improvement, -1, 1) + 8 * l3s
+        else:
+            score = 62 + 26 * fs + 7 * l3s
+        pace_values.append(clamp_index(score))
+        front_values.append(front)
+
+    hist["_pace_index"] = pace_values
+    hist["_front_strength"] = front_values
+    hist["_run_composite"] = (
+        0.25 * hist["_pace_index"]
+        + 0.35 * hist["_time_index"]
+        + 0.40 * hist["_result_index"]
+    )
+
+    return hist
+
+
+def recency_weighted(values: list[float]) -> float:
+    if not values:
+        return 70.0
+    base_weights = [0.34, 0.25, 0.18, 0.13, 0.10]
+    weights = np.array(base_weights[:len(values)], dtype=float)
+    weights = weights / weights.sum()
+    return float(np.dot(np.array(values, dtype=float), weights))
+
+
+def course_index_for_horse(
+    horse_hist: pd.DataFrame,
+    current_race_id: str,
+    surface: str,
+    distance_m: float,
+    proxy: float,
+) -> float:
+    if horse_hist.empty:
+        return clamp_index(min(78, 0.82 * proxy + 0.18 * 72))
+
+    track_code = current_race_id[4:6]
+    h = horse_hist.copy()
+    h["_track_code"] = h["race_id"].astype(str).str[4:6]
+    h["_distance"] = pd.to_numeric(h.get("distance_m"), errors="coerce")
+    h["_surface"] = h.get("surface", pd.Series(index=h.index, dtype=object)).apply(clean_str)
+
+    exact = h[
+        (h["_track_code"] == track_code)
+        & (h["_surface"] == surface)
+        & ((h["_distance"] - distance_m).abs() <= 100)
+    ]
+    venue = h[(h["_track_code"] == track_code) & (h["_surface"] == surface)]
+    distance = h[
+        (h["_surface"] == surface)
+        & ((h["_distance"] - distance_m).abs() <= 200)
+    ]
+
+    def score(frame: pd.DataFrame, cap: float) -> float | None:
+        if frame.empty:
+            return None
+        vals = pd.to_numeric(frame["_run_composite"], errors="coerce").dropna().tail(6).tolist()
+        if not vals:
+            return None
+        value = 0.72 * recency_weighted(list(reversed(vals))) + 0.28 * max(vals)
+        return min(cap, value)
+
+    exact_score = score(exact, 98)
+    if exact_score is not None:
+        return clamp_index(0.84 * exact_score + 0.16 * proxy)
+
+    venue_score = score(venue, 86)
+    if venue_score is not None:
+        return clamp_index(0.80 * venue_score + 0.20 * proxy)
+
+    distance_score = score(distance, 82)
+    if distance_score is not None:
+        return clamp_index(0.78 * distance_score + 0.22 * proxy)
+
+    return clamp_index(min(78, 0.82 * proxy + 0.18 * 72))
+
+
+def build_index_detail(
+    race_id: str,
+    date_s: str,
+    card: pd.DataFrame,
+    pred: pd.DataFrame,
+    history: pd.DataFrame,
+) -> tuple[dict, dict[int, float], dict[int, int], dict[int, float]]:
+    target_date = pd.Timestamp(date_s)
+    card2 = card.copy()
+    card2["horse_number"] = pd.to_numeric(card2["horse_number"], errors="raise").astype(int)
+    card2["horse_id"] = card2["horse_id"].apply(clean_str)
+
+    pmap = pred.set_index("horse_number")
+    horse_context = {}
+    front_type_count = 0
+
+    for _, row in card2.iterrows():
+        no = int(row["horse_number"])
+        horse_id = clean_str(row.get("horse_id"))
+        h = history[
+            (history["horse_id"] == horse_id)
+            & (history["_date"].notna())
+            & (history["_date"] < target_date)
+            & (history["_finish"].notna())
+        ].sort_values("_date")
+        recent5 = h.tail(5).iloc[::-1].copy()
+
+        fronts = pd.to_numeric(recent5.get("_front_strength"), errors="coerce").dropna()
+        front_ratio = float(fronts.mean()) if len(fronts) else math.nan
+        if math.isfinite(front_ratio) and front_ratio >= 0.58:
+            front_type_count += 1
+
+        proxy = 55 + 40 * float(pmap.loc[no, "rule_norm"])
+        horse_context[no] = {
+            "row": row,
+            "history": h,
+            "recent5": recent5,
+            "front_ratio": front_ratio,
+            "proxy": proxy,
+        }
+
+    if front_type_count >= 3:
+        pace_regime = "fast"
+    elif front_type_count <= 1:
+        pace_regime = "slow"
+    else:
+        pace_regime = "medium"
+
+    horses = []
+    internal_totals = {}
+
+    for no in sorted(horse_context):
+        ctx = horse_context[no]
+        row = ctx["row"]
+        recent5 = ctx["recent5"]
+        proxy = float(ctx["proxy"])
+        front_ratio = ctx["front_ratio"]
+
+        recent_strings = []
+        composites = []
+        for _, rr in recent5.iterrows():
+            pace = int(round(clamp_index(rr["_pace_index"])))
+            timing = int(round(clamp_index(rr["_time_index"])))
+            result_i = int(round(clamp_index(rr["_result_index"])))
+            recent_strings.append(f"{pace}/{timing}/{result_i}")
+            composites.append(0.25 * pace + 0.35 * timing + 0.40 * result_i)
+        while len(recent_strings) < 5:
+            recent_strings.append("評価外")
+
+        if composites:
+            base = recency_weighted(composites)
+            ceiling = max(composites)
+            consistency = clamp_index(96 - 1.8 * float(np.std(composites)), 55, 96)
+            hist_recent = 0.70 * base + 0.20 * ceiling + 0.10 * consistency
+            history_weight = min(len(composites) / 5.0, 1.0) * 0.84
+            recent_index = history_weight * hist_recent + (1 - history_weight) * proxy
+        else:
+            recent_index = proxy
+        recent_index = clamp_index(recent_index)
+
+        if math.isfinite(float(front_ratio)):
+            if pace_regime == "fast":
+                style = 70 + 20 * (1 - front_ratio)
+            elif pace_regime == "slow":
+                style = 70 + 20 * front_ratio
+            else:
+                style = 76 + 10 * (1 - abs(front_ratio - 0.5) * 2)
+            pace_index = clamp_index(0.78 * style + 0.22 * proxy)
+        else:
+            pace_index = clamp_index(0.78 * proxy + 0.22 * 75)
+
+        surface = clean_str(row.get("surface"))
+        if not surface and "surface" in card2.columns:
+            surface = clean_str(card2["surface"].iloc[0])
+        distance = pd.to_numeric(pd.Series([row.get("distance_m")]), errors="coerce").iloc[0]
+        if pd.isna(distance) and "distance_m" in card2.columns:
+            distance = pd.to_numeric(card2["distance_m"], errors="coerce").dropna().iloc[0]
+        distance = float(distance) if pd.notna(distance) else 0.0
+
+        course_index = course_index_for_horse(
+            ctx["history"], race_id, surface, distance, proxy
+        )
+        today_index = clamp_index(0.50 * pace_index + 0.50 * course_index)
+        total_internal = 0.60 * recent_index + 0.40 * today_index
+        total_display = int(round(clamp_index(total_internal)))
+
+        internal_totals[no] = float(total_internal)
+        horses.append({
+            "no": no,
+            "name": clean_str(row.get("horse_name")),
+            "recent": recent_strings,
+            "recentIndex": int(round(recent_index)),
+            "pace": int(round(pace_index)),
+            "course": int(round(course_index)),
+            "today": int(round(today_index)),
+            "total": total_display,
+        })
+
+    # Rank uses unrounded internal totals, then current pre-race proxy, then horse number.
+    ordered = sorted(
+        horses,
+        key=lambda h: (
+            -internal_totals[h["no"]],
+            -horse_context[h["no"]]["proxy"],
+            h["no"],
+        ),
+    )
+    rank_map = {h["no"]: i + 1 for i, h in enumerate(ordered)}
+    for h in horses:
+        h["rank"] = rank_map[h["no"]]
+
+    venue = TRACKS.get(race_id[4:6], race_id[4:6])
+    race_no = int(race_id[-2:])
+    race_name = clean_str(card2.get("race_name", pd.Series([""])).iloc[0])
+    title = f"{venue}{race_no}R" + (f" {race_name}" if race_name else "")
+
+    detail = {
+        "title": title,
+        "horseCount": len(horses),
+        "paceRegime": pace_regime,
+        "horses": horses,
+    }
+    total_display_map = {h["no"]: int(h["total"]) for h in horses}
+    tie_order = {h["no"]: float(h["rank"]) for h in horses}
+    return detail, internal_totals, total_display_map, tie_order
+
+
 @dataclass
 class RaceModel:
     race_id: str
@@ -118,6 +468,7 @@ class RaceModel:
     tie_order: dict[int, float]
     popularity_features: pd.DataFrame
     actual_popularity: dict[int, int]
+    index_detail: dict
 
 
 def validate_no_market_input(card: pd.DataFrame, pred: pd.DataFrame, race_id: str) -> None:
@@ -139,7 +490,7 @@ def validate_no_market_input(card: pd.DataFrame, pred: pd.DataFrame, race_id: st
                 raise ValueError(f"{race_id} {label}: current horse weight found: {bad[:4]}")
 
 
-def build_race_model(source_root: Path, date_s: str, pred_path: Path) -> RaceModel:
+def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: pd.DataFrame) -> RaceModel:
     race_id = pred_path.stem
     card_path = source_root / "data" / "race_cards" / date_s.replace("-", "") / f"{race_id}.csv"
     result_path = source_root / "data" / "race_results" / "2026" / f"{race_id}.csv"
@@ -177,20 +528,13 @@ def build_race_model(source_root: Path, date_s: str, pred_path: Path) -> RaceMod
     p["horse_number"] = pd.to_numeric(p["horse_number"], errors="raise").astype(int)
     p["rule_norm"] = minmax(p["score"])
     p["ml_norm"] = minmax(p["ml_win_prob"])
-    # General total-performance proxy for the historical all-race reconstruction.
-    # Both terms are pre-race and market-neutral in the validated snapshot.
-    p["total_raw"] = 0.65 * p["rule_norm"] + 0.35 * p["ml_norm"]
 
-    # Display-scale integer is audit metadata; selection uses unrounded total_raw.
-    p["total_display"] = (55 + 40 * p["total_raw"]).round().astype(int)
+    index_detail, total_internal, total_display, tie_order = build_index_detail(
+        race_id, date_s, card, p, history
+    )
 
-    total_internal = dict(zip(p["horse_number"], p["total_raw"].astype(float)))
-    total_display = dict(zip(p["horse_number"], p["total_display"].astype(int)))
-    tie_order = dict(zip(
-        p["horse_number"],
-        pd.to_numeric(p["predicted_rank"], errors="coerce").fillna(999).astype(float)
-    ))
-
+    # 札幌記念は既に個別検証済みの詳細指数があるため、選定用の総合値は
+    # その手作業レビュー値を優先する。画面も app.js の詳細表を優先表示する。
     if race_id == SAPPORO11_ID:
         total_internal = {n: float(v) for n, v in SAPPORO11_TOTAL.items()}
         total_display = dict(SAPPORO11_TOTAL)
@@ -259,6 +603,7 @@ def build_race_model(source_root: Path, date_s: str, pred_path: Path) -> RaceMod
         tie_order=tie_order,
         popularity_features=features,
         actual_popularity=actual_popularity,
+        index_detail=index_detail,
     )
 
 
@@ -491,6 +836,8 @@ def main() -> int:
 
     source_sha = source_commit(source_root)
     races: dict[str, RaceModel] = {}
+    target_files: list[tuple[str, Path]] = []
+    target_horse_ids: set[str] = set()
 
     for date_s in TARGET_DATES:
         pred_dir = source_root / "data" / "predictions" / date_s.replace("-", "")
@@ -500,10 +847,29 @@ def main() -> int:
                 f"{date_s}: expected {EXPECTED_RACES_PER_DAY} prediction files, got {len(files)}"
             )
         for f in files:
-            race = build_race_model(source_root, date_s, f)
-            if race.race_id in races:
-                raise RuntimeError(f"duplicate race {race.race_id}")
-            races[race.race_id] = race
+            target_files.append((date_s, f))
+            card_path = (
+                source_root / "data" / "race_cards" / date_s.replace("-", "")
+                / f"{f.stem}.csv"
+            )
+            card = read_csv(card_path)
+            if "horse_id" in card.columns:
+                target_horse_ids.update(card["horse_id"].apply(clean_str))
+
+    print(f"Loading historical races for {len(target_horse_ids)} target horses...")
+    history = load_target_history(source_root, target_horse_ids)
+    if history.empty:
+        raise RuntimeError("No pre-race historical results could be loaded")
+    print(
+        f"Historical rows={len(history)} races={history['race_id'].nunique()} "
+        f"horses={history['horse_id'].nunique()}"
+    )
+
+    for date_s, f in target_files:
+        race = build_race_model(source_root, date_s, f, history)
+        if race.race_id in races:
+            raise RuntimeError(f"duplicate race {race.race_id}")
+        races[race.race_id] = race
 
     if len(races) != EXPECTED_TOTAL_RACES:
         raise RuntimeError(f"expected {EXPECTED_TOTAL_RACES} races, got {len(races)}")
@@ -571,6 +937,21 @@ def main() -> int:
                 for _, row in card.iterrows()
             }
 
+            index_detail = json.loads(json.dumps(race.index_detail, ensure_ascii=False))
+            index_horses = {int(h["no"]): h for h in index_detail.get("horses", [])}
+            for no, h in index_horses.items():
+                h["expectedPopularity"] = int(est_pop[no])
+                h["excluded"] = int(no) == int(danger)
+                # For Sapporo11 the frontend uses the separately reviewed hardcoded detail.
+                if rid == SAPPORO11_ID and no in SAPPORO11_TOTAL:
+                    h["total"] = int(SAPPORO11_TOTAL[no])
+                    h["rank"] = int(SAPPORO11_RANK[no])
+            index_detail["prediction"] = {
+                "axes": list(prediction["axes"]),
+                "opponents": list(prediction["opponents"]),
+                "excluded": [int(danger)],
+            }
+
             updated = dict(old)
             updated.pop("seedNote", None)
             updated.update({
@@ -591,6 +972,7 @@ def main() -> int:
                     "version": REBUILD_VERSION,
                     "estimatedPopularity": {str(k): int(v) for k, v in est_pop.items()},
                     "totalIndex": {str(k): int(v) for k, v in race.total_display.items()},
+                    "indexDetail": index_detail,
                     "performanceSource": (
                         "detailed-index-pilot"
                         if rid == SAPPORO11_ID
@@ -635,6 +1017,8 @@ def main() -> int:
                 "stake": stake,
                 "recoveryRate": round(payout_return / stake * 100, 1) if stake else 0.0,
                 "popularityMAE": round(mae, 3),
+                "indexDetailGenerated": True,
+                "indexHorseCount": len(index_detail.get("horses", [])),
                 "nonStarters": sorted(
                     set(int(x) for x in race.card["horse_number"])
                     - set(race.actual_popularity)
@@ -686,6 +1070,22 @@ def main() -> int:
             if r["stake"] != expected_stake:
                 raise RuntimeError(f"{r['raceId']}: stake invalid")
 
+            detail = r.get("modelMeta", {}).get("indexDetail")
+            if not detail:
+                raise RuntimeError(f"{r['raceId']}: indexDetail missing")
+            horses = detail.get("horses", [])
+            if len(horses) != r["horseCount"]:
+                raise RuntimeError(
+                    f"{r['raceId']}: indexDetail horse count "
+                    f"{len(horses)} != {r['horseCount']}"
+                )
+            for h in horses:
+                if len(h.get("recent", [])) != 5:
+                    raise RuntimeError(f"{r['raceId']}: recent index count invalid")
+                for key in ("recentIndex", "pace", "course", "today", "total", "rank"):
+                    if key not in h:
+                        raise RuntimeError(f"{r['raceId']}: index field {key} missing")
+
     audit = {
         "version": REBUILD_VERSION,
         "generatedAt": datetime.now(JST).isoformat(timespec="seconds"),
@@ -703,6 +1103,9 @@ def main() -> int:
             "nonStarterHandling": (
                 "cancelled/excluded horses are retained in pre-race prediction candidates "
                 "but omitted from final-popularity teacher rows and validation metrics"
+            ),
+            "indexDetailHistoryCutoff": (
+                "previous-run/detail indices use only archived race results with date < target race date"
             ),
         },
         "raceCount": len(audit_races),

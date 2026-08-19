@@ -195,20 +195,47 @@ Object.values(RACE_INDEX_DETAILS).forEach(finalizeIndexDetail);
 const yen = n => `${Number(n || 0).toLocaleString('ja-JP')}円`;
 const percent = n => `${Number(n || 0).toFixed(1)}%`;
 
+const RACE_DETAIL_CACHE = {};
+
 function raceDetail(race) {
-  return RACE_INDEX_DETAILS[race?.raceId] || null;
+  if (!race?.raceId) return null;
+  return RACE_INDEX_DETAILS[race.raceId]
+    || race?.modelMeta?.indexDetail
+    || RACE_DETAIL_CACHE[race.raceId]
+    || null;
 }
 
 function syncRaceDetailFromData(race) {
-  const detail = raceDetail(race);
-  const popularity = race?.modelMeta?.estimatedPopularity;
-  if (!detail || !popularity) return;
+  if (!race?.raceId) return;
+  const detail = RACE_INDEX_DETAILS[race.raceId] || race?.modelMeta?.indexDetail;
+  if (!detail) return;
+
+  const popularity = race?.modelMeta?.estimatedPopularity || {};
+  const danger = new Set(
+    (race?.danger || race?.prediction?.excluded || detail?.prediction?.excluded || [])
+      .map(Number)
+  );
+
+  detail.horseCount = Number(detail.horseCount || race.horseCount || detail.horses?.length || 0);
+  detail.title = detail.title || `${race.venue}${race.raceNo}R`;
 
   detail.horses.forEach(horse => {
-    const rank = Number(popularity[String(horse.no)] ?? popularity[horse.no]);
+    const rank = Number(popularity[String(horse.no)] ?? popularity[horse.no] ?? horse.expectedPopularity);
     if (Number.isFinite(rank) && rank > 0) horse.expectedPopularity = rank;
+    horse.excluded = danger.has(Number(horse.no));
   });
-  detail.prediction = buildPredictionFromIndex(detail);
+
+  if (race?.prediction) {
+    detail.prediction = {
+      axes: [...(race.prediction.axes || [])],
+      opponents: [...(race.prediction.opponents || [])],
+      excluded: [...danger]
+    };
+  } else {
+    detail.prediction = buildPredictionFromIndex(detail);
+  }
+
+  RACE_DETAIL_CACHE[race.raceId] = detail;
 }
 
 function effectiveHorseCount(race) {
@@ -347,7 +374,7 @@ function selectionLabel(horse, detail) {
 }
 
 function recentIndexMarkup(value) {
-  if (value === '評価外') return '<span class="index-recent-na">評価外</span>';
+  if (value == null || value === '' || value === '評価外') return '<span class="index-recent-na">評価外</span>';
   const parts = String(value).split('/');
   if (parts.length !== 3) return value;
   return `<span class="index-recent-score"><span class="index-recent-part"><span class="index-recent-label">展</span>${parts[0]}</span><span class="index-recent-part"><span class="index-recent-label">時</span>${parts[1]}</span><span class="index-recent-part"><span class="index-recent-label">成</span>${parts[2]}</span></span>`;
@@ -488,7 +515,7 @@ function renderIndexDetail(detail) {
     </div>`;
 }
 function openIndexDetail(raceId, trigger) {
-  const detail = RACE_INDEX_DETAILS[raceId];
+  const detail = RACE_DETAIL_CACHE[raceId] || RACE_INDEX_DETAILS[raceId];
   if (!detail) return;
   closeIndexDetail(false);
   lastIndexTrigger = trigger || null;
