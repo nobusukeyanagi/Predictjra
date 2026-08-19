@@ -2,7 +2,7 @@ name: Update race data
 
 on:
   schedule:
-    - cron: '0 15 * * *'
+    - cron: '0 13 * * *'
       timezone: 'Asia/Tokyo'
     - cron: '0 18 * * *'
       timezone: 'Asia/Tokyo'
@@ -51,7 +51,7 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             MODE="${{ inputs.mode }}"
             DATE="${{ inputs.target_date }}"
-          elif [[ "${{ github.event.schedule }}" == "0 15 * * *" ]]; then
+          elif [[ "${{ github.event.schedule }}" == "0 13 * * *" ]]; then
             MODE="prepare"
             DATE=""
           else
