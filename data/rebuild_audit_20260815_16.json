@@ -1,0 +1,3556 @@
+{
+  "version": "predictjra-history-20260815-16-v1",
+  "generatedAt": "2026-08-19T15:17:45+09:00",
+  "sourceRepository": "sugaimo15/keibayosoku",
+  "sourceRef": "claude/horse-racing-predictor-ak6crm",
+  "sourceCommit": "8d887b701ea1b225fdd74c8a9ce20d3c3d004a09",
+  "strictInputRules": {
+    "currentOddsUsed": false,
+    "currentPopularityUsedAsPredictionFeature": false,
+    "horseWeightOrChangeUsed": false,
+    "raceResultUsedAsPerformanceFeature": false,
+    "actualPopularityUse": "teacher label only; each race excluded from its own estimator training",
+    "nonStarterHandling": "cancelled/excluded horses are retained in pre-race prediction candidates but omitted from final-popularity teacher rows and validation metrics"
+  },
+  "raceCount": 72,
+  "oldResultMismatchCount": 0,
+  "oldResultMismatches": [],
+  "popularityModel": {
+    "method": "leave-one-race-out for historical estimates",
+    "ridge": 2.0,
+    "features": [
+      "rule_norm",
+      "ml_norm",
+      "rule_rank_strength",
+      "ml_rank_strength",
+      "age_strength",
+      "carried_strength"
+    ],
+    "meanAbsolutePopularityRankError": 2.1744,
+    "meanTop3OverlapRate": 0.6065,
+    "futureModelCoefficients": {
+      "intercept": 0.0772712074216577,
+      "rule_norm": 0.19911853343828154,
+      "ml_norm": -0.015500300550648603,
+      "rule_rank_strength": 0.5294978715240618,
+      "ml_rank_strength": 0.08467372241985119,
+      "age_strength": 0.06268549025867219,
+      "carried_strength": -0.05453512237299628
+    },
+    "teacherRows": 975,
+    "teacherRaces": 72
+  },
+  "daily": {
+    "2026-08-15": {
+      "races": 36,
+      "hits": 0,
+      "return": 0,
+      "stake": 94800,
+      "recoveryRate": 0.0
+    },
+    "2026-08-16": {
+      "races": 36,
+      "hits": 1,
+      "return": 197490,
+      "stake": 96000,
+      "recoveryRate": 205.7
+    }
+  },
+  "races": [
+    {
+      "date": "2026-08-15",
+      "raceId": "202601010701",
+      "venue": "札幌",
+      "raceNo": 1,
+      "horseCount": 14,
+      "prediction": {
+        "axes": [
+          6,
+          13
+        ],
+        "opponents": [
+          3,
+          9,
+          7,
+          14,
+          5
+        ]
+      },
+      "danger": 12,
+      "result": [
+        [
+          3
+        ],
+        [
+          12
+        ],
+        [
+          1
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            3,
+            12,
+            1
+          ],
+          "payout": 47140
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.5,
+      "nonStarters": [
+        8,
+        10
+      ],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202601010702",
+      "venue": "札幌",
+      "raceNo": 2,
+      "horseCount": 10,
+      "prediction": {
+        "axes": [
+          7,
+          1
+        ],
+        "opponents": [
+          3,
+          9,
+          8
+        ]
+      },
+      "danger": 2,
+      "result": [
+        [
+          9
+        ],
+        [
+          2
+        ],
+        [
+          8
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            9,
+            2,
+            8
+          ],
+          "payout": 3510
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 1800,
+      "recoveryRate": 0.0,
+      "popularityMAE": 0.4,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202601010703",
+      "venue": "札幌",
+      "raceNo": 3,
+      "horseCount": 12,
+      "prediction": {
+        "axes": [
+          12,
+          11
+        ],
+        "opponents": [
+          10,
+          1,
+          9,
+          3
+        ]
+      },
+      "danger": 6,
+      "result": [
+        [
+          11
+        ],
+        [
+          1
+        ],
+        [
+          10
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            11,
+            1,
+            10
+          ],
+          "payout": 36470
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 2400,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.667,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202601010704",
+      "venue": "札幌",
+      "raceNo": 4,
+      "horseCount": 12,
+      "prediction": {
+        "axes": [
+          12,
+          7
+        ],
+        "opponents": [
+          1,
+          10,
+          6,
+          4
+        ]
+      },
+      "danger": 3,
+      "result": [
+        [
+          12
+        ],
+        [
+          3
+        ],
+        [
+          7
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            12,
+            3,
+            7
+          ],
+          "payout": 43000
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 2400,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.5,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202601010705",
+      "venue": "札幌",
+      "raceNo": 5,
+      "horseCount": 12,
+      "prediction": {
+        "axes": [
+          5,
+          8
+        ],
+        "opponents": [
+          1,
+          2,
+          4,
+          12
+        ]
+      },
+      "danger": 7,
+      "result": [
+        [
+          5
+        ],
+        [
+          1
+        ],
+        [
+          2
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            5,
+            1,
+            2
+          ],
+          "payout": 6060
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 2400,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.167,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202601010706",
+      "venue": "札幌",
+      "raceNo": 6,
+      "horseCount": 14,
+      "prediction": {
+        "axes": [
+          1,
+          8
+        ],
+        "opponents": [
+          13,
+          9,
+          10,
+          11,
+          5
+        ]
+      },
+      "danger": 7,
+      "result": [
+        [
+          7
+        ],
+        [
+          11
+        ],
+        [
+          8
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            7,
+            11,
+            8
+          ],
+          "payout": 31160
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.857,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202601010707",
+      "venue": "札幌",
+      "raceNo": 7,
+      "horseCount": 15,
+      "prediction": {
+        "axes": [
+          3,
+          4
+        ],
+        "opponents": [
+          11,
+          13,
+          9,
+          1,
+          5
+        ]
+      },
+      "danger": 6,
+      "result": [
+        [
+          4
+        ],
+        [
+          5
+        ],
+        [
+          9
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            4,
+            5,
+            9
+          ],
+          "payout": 169780
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.867,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202601010708",
+      "venue": "札幌",
+      "raceNo": 8,
+      "horseCount": 11,
+      "prediction": {
+        "axes": [
+          7,
+          6
+        ],
+        "opponents": [
+          2,
+          3,
+          10,
+          5
+        ]
+      },
+      "danger": 9,
+      "result": [
+        [
+          9
+        ],
+        [
+          8
+        ],
+        [
+          10
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            9,
+            8,
+            10
+          ],
+          "payout": 15970
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 2400,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.636,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202601010709",
+      "venue": "札幌",
+      "raceNo": 9,
+      "horseCount": 8,
+      "prediction": {
+        "axes": [
+          7,
+          2
+        ],
+        "opponents": [
+          3,
+          8
+        ]
+      },
+      "danger": 5,
+      "result": [
+        [
+          8
+        ],
+        [
+          6
+        ],
+        [
+          1
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            8,
+            6,
+            1
+          ],
+          "payout": 4210
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 1200,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.0,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202601010710",
+      "venue": "札幌",
+      "raceNo": 10,
+      "horseCount": 16,
+      "prediction": {
+        "axes": [
+          2,
+          9
+        ],
+        "opponents": [
+          8,
+          11,
+          10,
+          4,
+          14
+        ]
+      },
+      "danger": 12,
+      "result": [
+        [
+          12
+        ],
+        [
+          2
+        ],
+        [
+          14
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            12,
+            2,
+            14
+          ],
+          "payout": 9590
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 3.125,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202601010711",
+      "venue": "札幌",
+      "raceNo": 11,
+      "horseCount": 14,
+      "prediction": {
+        "axes": [
+          7,
+          12
+        ],
+        "opponents": [
+          3,
+          13,
+          11,
+          10,
+          14
+        ]
+      },
+      "danger": 2,
+      "result": [
+        [
+          11
+        ],
+        [
+          5
+        ],
+        [
+          7
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            11,
+            5,
+            7
+          ],
+          "payout": 21390
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.286,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202601010712",
+      "venue": "札幌",
+      "raceNo": 12,
+      "horseCount": 14,
+      "prediction": {
+        "axes": [
+          8,
+          14
+        ],
+        "opponents": [
+          9,
+          12,
+          10,
+          1,
+          2
+        ]
+      },
+      "danger": 5,
+      "result": [
+        [
+          9
+        ],
+        [
+          12
+        ],
+        [
+          5
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            9,
+            12,
+            5
+          ],
+          "payout": 1800
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.857,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202604020701",
+      "venue": "新潟",
+      "raceNo": 1,
+      "horseCount": 9,
+      "prediction": {
+        "axes": [
+          9,
+          5
+        ],
+        "opponents": [
+          3,
+          1,
+          6
+        ]
+      },
+      "danger": 4,
+      "result": [
+        [
+          3
+        ],
+        [
+          6
+        ],
+        [
+          5
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            3,
+            6,
+            5
+          ],
+          "payout": 20050
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 1800,
+      "recoveryRate": 0.0,
+      "popularityMAE": 0.889,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202604020702",
+      "venue": "新潟",
+      "raceNo": 2,
+      "horseCount": 15,
+      "prediction": {
+        "axes": [
+          9,
+          12
+        ],
+        "opponents": [
+          14,
+          10,
+          3,
+          1,
+          4
+        ]
+      },
+      "danger": 2,
+      "result": [
+        [
+          1
+        ],
+        [
+          3
+        ],
+        [
+          10
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            1,
+            3,
+            10
+          ],
+          "payout": 171420
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 3.067,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202604020703",
+      "venue": "新潟",
+      "raceNo": 3,
+      "horseCount": 12,
+      "prediction": {
+        "axes": [
+          2,
+          4
+        ],
+        "opponents": [
+          8,
+          5,
+          12,
+          1
+        ]
+      },
+      "danger": 10,
+      "result": [
+        [
+          10
+        ],
+        [
+          9
+        ],
+        [
+          8
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            10,
+            9,
+            8
+          ],
+          "payout": 75130
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 2400,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.667,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202604020704",
+      "venue": "新潟",
+      "raceNo": 4,
+      "horseCount": 15,
+      "prediction": {
+        "axes": [
+          15,
+          10
+        ],
+        "opponents": [
+          4,
+          9,
+          12,
+          14,
+          7
+        ]
+      },
+      "danger": 8,
+      "result": [
+        [
+          12
+        ],
+        [
+          9
+        ],
+        [
+          15
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            12,
+            9,
+            15
+          ],
+          "payout": 3770
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.133,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202604020705",
+      "venue": "新潟",
+      "raceNo": 5,
+      "horseCount": 18,
+      "prediction": {
+        "axes": [
+          7,
+          6
+        ],
+        "opponents": [
+          15,
+          16,
+          5,
+          14,
+          13
+        ]
+      },
+      "danger": 4,
+      "result": [
+        [
+          4
+        ],
+        [
+          15
+        ],
+        [
+          7
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            4,
+            15,
+            7
+          ],
+          "payout": 22330
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 3.333,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202604020706",
+      "venue": "新潟",
+      "raceNo": 6,
+      "horseCount": 14,
+      "prediction": {
+        "axes": [
+          6,
+          11
+        ],
+        "opponents": [
+          3,
+          12,
+          9,
+          7,
+          14
+        ]
+      },
+      "danger": 5,
+      "result": [
+        [
+          5
+        ],
+        [
+          12
+        ],
+        [
+          11
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            5,
+            12,
+            11
+          ],
+          "payout": 10860
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.143,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202604020707",
+      "venue": "新潟",
+      "raceNo": 7,
+      "horseCount": 15,
+      "prediction": {
+        "axes": [
+          4,
+          7
+        ],
+        "opponents": [
+          13,
+          6,
+          14,
+          9,
+          11
+        ]
+      },
+      "danger": 15,
+      "result": [
+        [
+          7
+        ],
+        [
+          9
+        ],
+        [
+          10
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            7,
+            9,
+            10
+          ],
+          "payout": 1193640
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 3.467,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202604020708",
+      "venue": "新潟",
+      "raceNo": 8,
+      "horseCount": 15,
+      "prediction": {
+        "axes": [
+          8,
+          4
+        ],
+        "opponents": [
+          6,
+          2,
+          9,
+          3,
+          5
+        ]
+      },
+      "danger": 11,
+      "result": [
+        [
+          9
+        ],
+        [
+          3
+        ],
+        [
+          5
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            9,
+            3,
+            5
+          ],
+          "payout": 10790
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.867,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202604020709",
+      "venue": "新潟",
+      "raceNo": 9,
+      "horseCount": 11,
+      "prediction": {
+        "axes": [
+          1,
+          11
+        ],
+        "opponents": [
+          9,
+          8,
+          10,
+          2
+        ]
+      },
+      "danger": 6,
+      "result": [
+        [
+          8
+        ],
+        [
+          11
+        ],
+        [
+          6
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            8,
+            11,
+            6
+          ],
+          "payout": 15810
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 2400,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.182,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202604020710",
+      "venue": "新潟",
+      "raceNo": 10,
+      "horseCount": 15,
+      "prediction": {
+        "axes": [
+          5,
+          3
+        ],
+        "opponents": [
+          13,
+          9,
+          2,
+          1,
+          15
+        ]
+      },
+      "danger": 12,
+      "result": [
+        [
+          9
+        ],
+        [
+          12
+        ],
+        [
+          15
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            9,
+            12,
+            15
+          ],
+          "payout": 15690
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 3.2,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202604020711",
+      "venue": "新潟",
+      "raceNo": 11,
+      "horseCount": 18,
+      "prediction": {
+        "axes": [
+          11,
+          15
+        ],
+        "opponents": [
+          18,
+          12,
+          3,
+          10,
+          16
+        ]
+      },
+      "danger": 2,
+      "result": [
+        [
+          9
+        ],
+        [
+          10
+        ],
+        [
+          18
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            9,
+            10,
+            18
+          ],
+          "payout": 83960
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 3.444,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202604020712",
+      "venue": "新潟",
+      "raceNo": 12,
+      "horseCount": 18,
+      "prediction": {
+        "axes": [
+          13,
+          17
+        ],
+        "opponents": [
+          3,
+          8,
+          1,
+          4,
+          6
+        ]
+      },
+      "danger": 5,
+      "result": [
+        [
+          4
+        ],
+        [
+          13
+        ],
+        [
+          5
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            4,
+            13,
+            5
+          ],
+          "payout": 93620
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.556,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202607020701",
+      "venue": "中京",
+      "raceNo": 1,
+      "horseCount": 16,
+      "prediction": {
+        "axes": [
+          1,
+          8
+        ],
+        "opponents": [
+          7,
+          16,
+          10,
+          13,
+          14
+        ]
+      },
+      "danger": 15,
+      "result": [
+        [
+          16
+        ],
+        [
+          6
+        ],
+        [
+          11
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            16,
+            6,
+            11
+          ],
+          "payout": 8783430
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.75,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202607020702",
+      "venue": "中京",
+      "raceNo": 2,
+      "horseCount": 15,
+      "prediction": {
+        "axes": [
+          7,
+          12
+        ],
+        "opponents": [
+          8,
+          13,
+          9,
+          6,
+          3
+        ]
+      },
+      "danger": 14,
+      "result": [
+        [
+          7
+        ],
+        [
+          6
+        ],
+        [
+          9
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            7,
+            6,
+            9
+          ],
+          "payout": 8740
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.733,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202607020703",
+      "venue": "中京",
+      "raceNo": 3,
+      "horseCount": 7,
+      "prediction": {
+        "axes": [
+          6,
+          1
+        ],
+        "opponents": [
+          4,
+          3
+        ]
+      },
+      "danger": 5,
+      "result": [
+        [
+          3
+        ],
+        [
+          6
+        ],
+        [
+          2
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            3,
+            6,
+            2
+          ],
+          "payout": 8780
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 1200,
+      "recoveryRate": 0.0,
+      "popularityMAE": 0.286,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202607020704",
+      "venue": "中京",
+      "raceNo": 4,
+      "horseCount": 14,
+      "prediction": {
+        "axes": [
+          14,
+          12
+        ],
+        "opponents": [
+          10,
+          6,
+          2,
+          11,
+          1
+        ]
+      },
+      "danger": 4,
+      "result": [
+        [
+          14
+        ],
+        [
+          4
+        ],
+        [
+          12
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            14,
+            4,
+            12
+          ],
+          "payout": 2910
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.857,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202607020705",
+      "venue": "中京",
+      "raceNo": 5,
+      "horseCount": 16,
+      "prediction": {
+        "axes": [
+          6,
+          8
+        ],
+        "opponents": [
+          11,
+          7,
+          9,
+          2,
+          13
+        ]
+      },
+      "danger": 16,
+      "result": [
+        [
+          6
+        ],
+        [
+          7
+        ],
+        [
+          3
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            6,
+            7,
+            3
+          ],
+          "payout": 7440
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.875,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202607020706",
+      "venue": "中京",
+      "raceNo": 6,
+      "horseCount": 11,
+      "prediction": {
+        "axes": [
+          9,
+          3
+        ],
+        "opponents": [
+          7,
+          10,
+          4,
+          11
+        ]
+      },
+      "danger": 1,
+      "result": [
+        [
+          10
+        ],
+        [
+          7
+        ],
+        [
+          8
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            10,
+            7,
+            8
+          ],
+          "payout": 42020
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 2400,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.455,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202607020707",
+      "venue": "中京",
+      "raceNo": 7,
+      "horseCount": 8,
+      "prediction": {
+        "axes": [
+          4,
+          1
+        ],
+        "opponents": [
+          2,
+          7
+        ]
+      },
+      "danger": 5,
+      "result": [
+        [
+          5
+        ],
+        [
+          3
+        ],
+        [
+          1
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            5,
+            3,
+            1
+          ],
+          "payout": 46020
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 1200,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.25,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202607020708",
+      "venue": "中京",
+      "raceNo": 8,
+      "horseCount": 10,
+      "prediction": {
+        "axes": [
+          8,
+          9
+        ],
+        "opponents": [
+          7,
+          6,
+          1
+        ]
+      },
+      "danger": 2,
+      "result": [
+        [
+          8
+        ],
+        [
+          1
+        ],
+        [
+          6
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            8,
+            1,
+            6
+          ],
+          "payout": 2390
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 1800,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.2,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202607020709",
+      "venue": "中京",
+      "raceNo": 9,
+      "horseCount": 16,
+      "prediction": {
+        "axes": [
+          2,
+          1
+        ],
+        "opponents": [
+          10,
+          15,
+          7,
+          5,
+          16
+        ]
+      },
+      "danger": 3,
+      "result": [
+        [
+          15
+        ],
+        [
+          16
+        ],
+        [
+          12
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            15,
+            16,
+            12
+          ],
+          "payout": 619590
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.625,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202607020710",
+      "venue": "中京",
+      "raceNo": 10,
+      "horseCount": 16,
+      "prediction": {
+        "axes": [
+          3,
+          2
+        ],
+        "opponents": [
+          12,
+          10,
+          14,
+          1,
+          16
+        ]
+      },
+      "danger": 11,
+      "result": [
+        [
+          9
+        ],
+        [
+          2
+        ],
+        [
+          14
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            9,
+            2,
+            14
+          ],
+          "payout": 1890590
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.375,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202607020711",
+      "venue": "中京",
+      "raceNo": 11,
+      "horseCount": 15,
+      "prediction": {
+        "axes": [
+          1,
+          10
+        ],
+        "opponents": [
+          2,
+          13,
+          4,
+          3,
+          5
+        ]
+      },
+      "danger": 11,
+      "result": [
+        [
+          4
+        ],
+        [
+          3
+        ],
+        [
+          11
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            4,
+            3,
+            11
+          ],
+          "payout": 89830
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.867,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-15",
+      "raceId": "202607020712",
+      "venue": "中京",
+      "raceNo": 12,
+      "horseCount": 16,
+      "prediction": {
+        "axes": [
+          15,
+          3
+        ],
+        "opponents": [
+          5,
+          7,
+          9,
+          16,
+          8
+        ]
+      },
+      "danger": 6,
+      "result": [
+        [
+          15
+        ],
+        [
+          5
+        ],
+        [
+          7
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            15,
+            5,
+            7
+          ],
+          "payout": 3100
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.75,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202601010801",
+      "venue": "札幌",
+      "raceNo": 1,
+      "horseCount": 14,
+      "prediction": {
+        "axes": [
+          10,
+          7
+        ],
+        "opponents": [
+          13,
+          5,
+          8,
+          3,
+          2
+        ]
+      },
+      "danger": 1,
+      "result": [
+        [
+          10
+        ],
+        [
+          3
+        ],
+        [
+          14
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            10,
+            3,
+            14
+          ],
+          "payout": 78370
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 0.857,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202601010802",
+      "venue": "札幌",
+      "raceNo": 2,
+      "horseCount": 8,
+      "prediction": {
+        "axes": [
+          3,
+          8
+        ],
+        "opponents": [
+          6,
+          4
+        ]
+      },
+      "danger": 5,
+      "result": [
+        [
+          3
+        ],
+        [
+          7
+        ],
+        [
+          2
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            3,
+            7,
+            2
+          ],
+          "payout": 44150
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 1200,
+      "recoveryRate": 0.0,
+      "popularityMAE": 0.75,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202601010803",
+      "venue": "札幌",
+      "raceNo": 3,
+      "horseCount": 14,
+      "prediction": {
+        "axes": [
+          6,
+          14
+        ],
+        "opponents": [
+          2,
+          5,
+          8,
+          7,
+          9
+        ]
+      },
+      "danger": 10,
+      "result": [
+        [
+          5
+        ],
+        [
+          11
+        ],
+        [
+          10
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            5,
+            11,
+            10
+          ],
+          "payout": 12940
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.0,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202601010804",
+      "venue": "札幌",
+      "raceNo": 4,
+      "horseCount": 14,
+      "prediction": {
+        "axes": [
+          4,
+          14
+        ],
+        "opponents": [
+          12,
+          1,
+          10,
+          9,
+          8
+        ]
+      },
+      "danger": 11,
+      "result": [
+        [
+          8
+        ],
+        [
+          13
+        ],
+        [
+          12
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            8,
+            13,
+            12
+          ],
+          "payout": 11790
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.286,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202601010805",
+      "venue": "札幌",
+      "raceNo": 5,
+      "horseCount": 12,
+      "prediction": {
+        "axes": [
+          11,
+          6
+        ],
+        "opponents": [
+          8,
+          5,
+          3,
+          1
+        ]
+      },
+      "danger": 12,
+      "result": [
+        [
+          12
+        ],
+        [
+          11
+        ],
+        [
+          9
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            12,
+            11,
+            9
+          ],
+          "payout": 12490
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 2400,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.0,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202601010806",
+      "venue": "札幌",
+      "raceNo": 6,
+      "horseCount": 12,
+      "prediction": {
+        "axes": [
+          8,
+          6
+        ],
+        "opponents": [
+          7,
+          5,
+          9,
+          3
+        ]
+      },
+      "danger": 10,
+      "result": [
+        [
+          11
+        ],
+        [
+          4
+        ],
+        [
+          10
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            11,
+            4,
+            10
+          ],
+          "payout": 16660
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 2400,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.833,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202601010807",
+      "venue": "札幌",
+      "raceNo": 7,
+      "horseCount": 16,
+      "prediction": {
+        "axes": [
+          14,
+          11
+        ],
+        "opponents": [
+          6,
+          12,
+          7,
+          2,
+          13
+        ]
+      },
+      "danger": 16,
+      "result": [
+        [
+          14
+        ],
+        [
+          5
+        ],
+        [
+          9
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            14,
+            5,
+            9
+          ],
+          "payout": 112140
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.125,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202601010808",
+      "venue": "札幌",
+      "raceNo": 8,
+      "horseCount": 11,
+      "prediction": {
+        "axes": [
+          10,
+          1
+        ],
+        "opponents": [
+          5,
+          2,
+          3,
+          4
+        ]
+      },
+      "danger": 7,
+      "result": [
+        [
+          7
+        ],
+        [
+          4
+        ],
+        [
+          5
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            7,
+            4,
+            5
+          ],
+          "payout": 6940
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 2400,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.636,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202601010809",
+      "venue": "札幌",
+      "raceNo": 9,
+      "horseCount": 16,
+      "prediction": {
+        "axes": [
+          13,
+          9
+        ],
+        "opponents": [
+          5,
+          2,
+          16,
+          14,
+          15
+        ]
+      },
+      "danger": 3,
+      "result": [
+        [
+          16
+        ],
+        [
+          13
+        ],
+        [
+          12
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            16,
+            13,
+            12
+          ],
+          "payout": 102060
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.875,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202601010810",
+      "venue": "札幌",
+      "raceNo": 10,
+      "horseCount": 12,
+      "prediction": {
+        "axes": [
+          9,
+          1
+        ],
+        "opponents": [
+          6,
+          10,
+          12,
+          3
+        ]
+      },
+      "danger": 2,
+      "result": [
+        [
+          12
+        ],
+        [
+          10
+        ],
+        [
+          2
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            12,
+            10,
+            2
+          ],
+          "payout": 104850
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 2400,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.0,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202601010811",
+      "venue": "札幌",
+      "raceNo": 11,
+      "horseCount": 16,
+      "prediction": {
+        "axes": [
+          8,
+          14
+        ],
+        "opponents": [
+          10,
+          13,
+          4,
+          7,
+          15
+        ]
+      },
+      "danger": 12,
+      "result": [
+        [
+          15
+        ],
+        [
+          8
+        ],
+        [
+          14
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            15,
+            8,
+            14
+          ],
+          "payout": 197490
+        }
+      ],
+      "status": "hit",
+      "return": 197490,
+      "stake": 3000,
+      "recoveryRate": 6583.0,
+      "popularityMAE": 3.75,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202601010812",
+      "venue": "札幌",
+      "raceNo": 12,
+      "horseCount": 14,
+      "prediction": {
+        "axes": [
+          2,
+          1
+        ],
+        "opponents": [
+          12,
+          6,
+          9,
+          3,
+          14
+        ]
+      },
+      "danger": 4,
+      "result": [
+        [
+          2
+        ],
+        [
+          12
+        ],
+        [
+          13
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            2,
+            12,
+            13
+          ],
+          "payout": 2610
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.714,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202604020801",
+      "venue": "新潟",
+      "raceNo": 1,
+      "horseCount": 13,
+      "prediction": {
+        "axes": [
+          7,
+          6
+        ],
+        "opponents": [
+          8,
+          1,
+          9,
+          10,
+          2
+        ]
+      },
+      "danger": 4,
+      "result": [
+        [
+          1
+        ],
+        [
+          4
+        ],
+        [
+          8
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            1,
+            4,
+            8
+          ],
+          "payout": 13450
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.846,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202604020802",
+      "venue": "新潟",
+      "raceNo": 2,
+      "horseCount": 17,
+      "prediction": {
+        "axes": [
+          14,
+          1
+        ],
+        "opponents": [
+          15,
+          5,
+          3,
+          6,
+          8
+        ]
+      },
+      "danger": 11,
+      "result": [
+        [
+          5
+        ],
+        [
+          15
+        ],
+        [
+          3
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            5,
+            15,
+            3
+          ],
+          "payout": 19930
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.765,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202604020803",
+      "venue": "新潟",
+      "raceNo": 3,
+      "horseCount": 15,
+      "prediction": {
+        "axes": [
+          10,
+          9
+        ],
+        "opponents": [
+          8,
+          1,
+          4,
+          14,
+          7
+        ]
+      },
+      "danger": 6,
+      "result": [
+        [
+          3
+        ],
+        [
+          8
+        ],
+        [
+          10
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            3,
+            8,
+            10
+          ],
+          "payout": 22470
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.933,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202604020804",
+      "venue": "新潟",
+      "raceNo": 4,
+      "horseCount": 13,
+      "prediction": {
+        "axes": [
+          11,
+          5
+        ],
+        "opponents": [
+          1,
+          4,
+          7,
+          12,
+          9
+        ]
+      },
+      "danger": 10,
+      "result": [
+        [
+          9
+        ],
+        [
+          4
+        ],
+        [
+          5
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            9,
+            4,
+            5
+          ],
+          "payout": 37030
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.0,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202604020805",
+      "venue": "新潟",
+      "raceNo": 5,
+      "horseCount": 12,
+      "prediction": {
+        "axes": [
+          6,
+          4
+        ],
+        "opponents": [
+          10,
+          8,
+          11,
+          9
+        ]
+      },
+      "danger": 12,
+      "result": [
+        [
+          10
+        ],
+        [
+          12
+        ],
+        [
+          4
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            10,
+            12,
+            4
+          ],
+          "payout": 25060
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 2400,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.333,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202604020806",
+      "venue": "新潟",
+      "raceNo": 6,
+      "horseCount": 13,
+      "prediction": {
+        "axes": [
+          8,
+          7
+        ],
+        "opponents": [
+          11,
+          6,
+          10,
+          9,
+          13
+        ]
+      },
+      "danger": 12,
+      "result": [
+        [
+          8
+        ],
+        [
+          9
+        ],
+        [
+          11
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            8,
+            9,
+            11
+          ],
+          "payout": 9640
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.692,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202604020807",
+      "venue": "新潟",
+      "raceNo": 7,
+      "horseCount": 15,
+      "prediction": {
+        "axes": [
+          5,
+          15
+        ],
+        "opponents": [
+          2,
+          10,
+          7,
+          12,
+          3
+        ]
+      },
+      "danger": 9,
+      "result": [
+        [
+          11
+        ],
+        [
+          6
+        ],
+        [
+          10
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            11,
+            6,
+            10
+          ],
+          "payout": 148420
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.333,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202604020808",
+      "venue": "新潟",
+      "raceNo": 8,
+      "horseCount": 13,
+      "prediction": {
+        "axes": [
+          1,
+          7
+        ],
+        "opponents": [
+          5,
+          12,
+          13,
+          2,
+          4
+        ]
+      },
+      "danger": 6,
+      "result": [
+        [
+          8
+        ],
+        [
+          10
+        ],
+        [
+          6
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            8,
+            10,
+            6
+          ],
+          "payout": 1411780
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.923,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202604020809",
+      "venue": "新潟",
+      "raceNo": 9,
+      "horseCount": 12,
+      "prediction": {
+        "axes": [
+          6,
+          12
+        ],
+        "opponents": [
+          4,
+          8,
+          3,
+          5
+        ]
+      },
+      "danger": 11,
+      "result": [
+        [
+          5
+        ],
+        [
+          4
+        ],
+        [
+          12
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            5,
+            4,
+            12
+          ],
+          "payout": 109320
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 2400,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.167,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202604020810",
+      "venue": "新潟",
+      "raceNo": 10,
+      "horseCount": 15,
+      "prediction": {
+        "axes": [
+          10,
+          11
+        ],
+        "opponents": [
+          13,
+          1,
+          15,
+          4,
+          8
+        ]
+      },
+      "danger": 9,
+      "result": [
+        [
+          4
+        ],
+        [
+          10
+        ],
+        [
+          13
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            4,
+            10,
+            13
+          ],
+          "payout": 37480
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.667,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202604020811",
+      "venue": "新潟",
+      "raceNo": 11,
+      "horseCount": 9,
+      "prediction": {
+        "axes": [
+          7,
+          6
+        ],
+        "opponents": [
+          9,
+          3,
+          4
+        ]
+      },
+      "danger": 2,
+      "result": [
+        [
+          5
+        ],
+        [
+          9
+        ],
+        [
+          8
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            5,
+            9,
+            8
+          ],
+          "payout": 200320
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 1800,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.333,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202604020812",
+      "venue": "新潟",
+      "raceNo": 12,
+      "horseCount": 15,
+      "prediction": {
+        "axes": [
+          7,
+          8
+        ],
+        "opponents": [
+          10,
+          6,
+          2,
+          11,
+          15
+        ]
+      },
+      "danger": 13,
+      "result": [
+        [
+          13
+        ],
+        [
+          11
+        ],
+        [
+          15
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            13,
+            11,
+            15
+          ],
+          "payout": 25290
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.533,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202607020801",
+      "venue": "中京",
+      "raceNo": 1,
+      "horseCount": 10,
+      "prediction": {
+        "axes": [
+          2,
+          8
+        ],
+        "opponents": [
+          9,
+          10,
+          6
+        ]
+      },
+      "danger": 5,
+      "result": [
+        [
+          6
+        ],
+        [
+          5
+        ],
+        [
+          8
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            6,
+            5,
+            8
+          ],
+          "payout": 11440
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 1800,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.8,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202607020802",
+      "venue": "中京",
+      "raceNo": 2,
+      "horseCount": 12,
+      "prediction": {
+        "axes": [
+          12,
+          6
+        ],
+        "opponents": [
+          3,
+          9,
+          7,
+          11
+        ]
+      },
+      "danger": 4,
+      "result": [
+        [
+          12
+        ],
+        [
+          4
+        ],
+        [
+          10
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            12,
+            4,
+            10
+          ],
+          "payout": 123380
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 2400,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.0,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202607020803",
+      "venue": "中京",
+      "raceNo": 3,
+      "horseCount": 8,
+      "prediction": {
+        "axes": [
+          8,
+          2
+        ],
+        "opponents": [
+          7,
+          3
+        ]
+      },
+      "danger": 5,
+      "result": [
+        [
+          8
+        ],
+        [
+          5
+        ],
+        [
+          7
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            8,
+            5,
+            7
+          ],
+          "payout": 13670
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 1200,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.75,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202607020804",
+      "venue": "中京",
+      "raceNo": 4,
+      "horseCount": 18,
+      "prediction": {
+        "axes": [
+          2,
+          9
+        ],
+        "opponents": [
+          7,
+          4,
+          6,
+          8,
+          3
+        ]
+      },
+      "danger": 18,
+      "result": [
+        [
+          4
+        ],
+        [
+          7
+        ],
+        [
+          3
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            4,
+            7,
+            3
+          ],
+          "payout": 62290
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.889,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202607020805",
+      "venue": "中京",
+      "raceNo": 5,
+      "horseCount": 16,
+      "prediction": {
+        "axes": [
+          2,
+          10
+        ],
+        "opponents": [
+          3,
+          11,
+          14,
+          15,
+          7
+        ]
+      },
+      "danger": 6,
+      "result": [
+        [
+          8
+        ],
+        [
+          2
+        ],
+        [
+          11
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            8,
+            2,
+            11
+          ],
+          "payout": 203870
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.5,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202607020806",
+      "venue": "中京",
+      "raceNo": 6,
+      "horseCount": 7,
+      "prediction": {
+        "axes": [
+          5,
+          4
+        ],
+        "opponents": [
+          6,
+          1
+        ]
+      },
+      "danger": 2,
+      "result": [
+        [
+          6
+        ],
+        [
+          1
+        ],
+        [
+          3
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            6,
+            1,
+            3
+          ],
+          "payout": 14630
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 1200,
+      "recoveryRate": 0.0,
+      "popularityMAE": 0.857,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202607020807",
+      "venue": "中京",
+      "raceNo": 7,
+      "horseCount": 16,
+      "prediction": {
+        "axes": [
+          9,
+          8
+        ],
+        "opponents": [
+          10,
+          7,
+          16,
+          5,
+          11
+        ]
+      },
+      "danger": 12,
+      "result": [
+        [
+          3
+        ],
+        [
+          5
+        ],
+        [
+          12
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            3,
+            5,
+            12
+          ],
+          "payout": 19590
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 3.375,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202607020808",
+      "venue": "中京",
+      "raceNo": 8,
+      "horseCount": 16,
+      "prediction": {
+        "axes": [
+          14,
+          2
+        ],
+        "opponents": [
+          12,
+          5,
+          6,
+          1,
+          3
+        ]
+      },
+      "danger": 10,
+      "result": [
+        [
+          15
+        ],
+        [
+          6
+        ],
+        [
+          10
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            15,
+            6,
+            10
+          ],
+          "payout": 51960
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.125,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202607020809",
+      "venue": "中京",
+      "raceNo": 9,
+      "horseCount": 18,
+      "prediction": {
+        "axes": [
+          3,
+          14
+        ],
+        "opponents": [
+          11,
+          9,
+          16,
+          5,
+          8
+        ]
+      },
+      "danger": 6,
+      "result": [
+        [
+          3
+        ],
+        [
+          12
+        ],
+        [
+          9
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            3,
+            12,
+            9
+          ],
+          "payout": 72740
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.444,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202607020810",
+      "venue": "中京",
+      "raceNo": 10,
+      "horseCount": 16,
+      "prediction": {
+        "axes": [
+          8,
+          14
+        ],
+        "opponents": [
+          4,
+          1,
+          13,
+          11,
+          16
+        ]
+      },
+      "danger": 7,
+      "result": [
+        [
+          10
+        ],
+        [
+          11
+        ],
+        [
+          7
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            10,
+            11,
+            7
+          ],
+          "payout": 454970
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 3.625,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202607020811",
+      "venue": "中京",
+      "raceNo": 11,
+      "horseCount": 16,
+      "prediction": {
+        "axes": [
+          7,
+          2
+        ],
+        "opponents": [
+          13,
+          8,
+          11,
+          14,
+          3
+        ]
+      },
+      "danger": 5,
+      "result": [
+        [
+          5,
+          15
+        ],
+        [
+          12
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            5,
+            15,
+            12
+          ],
+          "payout": 867600
+        },
+        {
+          "horses": [
+            15,
+            5,
+            12
+          ],
+          "payout": 943870
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 2.25,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    },
+    {
+      "date": "2026-08-16",
+      "raceId": "202607020812",
+      "venue": "中京",
+      "raceNo": 12,
+      "horseCount": 16,
+      "prediction": {
+        "axes": [
+          13,
+          4
+        ],
+        "opponents": [
+          1,
+          12,
+          11,
+          5,
+          10
+        ]
+      },
+      "danger": 8,
+      "result": [
+        [
+          13
+        ],
+        [
+          5
+        ],
+        [
+          11
+        ]
+      ],
+      "trifectas": [
+        {
+          "horses": [
+            13,
+            5,
+            11
+          ],
+          "payout": 43150
+        }
+      ],
+      "status": "miss",
+      "return": 0,
+      "stake": 3000,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.75,
+      "nonStarters": [],
+      "oldResultMatchedArchive": true
+    }
+  ]
+}

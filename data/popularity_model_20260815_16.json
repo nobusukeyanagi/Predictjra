@@ -1,0 +1,39 @@
+{
+  "version": "predictjra-popularity-calibration-20260815-16-v1",
+  "trainedAt": "2026-08-19T15:17:45+09:00",
+  "teacherDates": [
+    "2026-08-15",
+    "2026-08-16"
+  ],
+  "teacherRaces": 72,
+  "teacherRows": 975,
+  "features": [
+    "rule_norm",
+    "ml_norm",
+    "rule_rank_strength",
+    "ml_rank_strength",
+    "age_strength",
+    "carried_strength"
+  ],
+  "ridge": 2.0,
+  "coefficients": {
+    "intercept": 0.0772712074216577,
+    "rule_norm": 0.19911853343828154,
+    "ml_norm": -0.015500300550648603,
+    "rule_rank_strength": 0.5294978715240618,
+    "ml_rank_strength": 0.08467372241985119,
+    "age_strength": 0.06268549025867219,
+    "carried_strength": -0.05453512237299628
+  },
+  "validation": {
+    "method": "leave-one-race-out for historical estimates",
+    "meanAbsolutePopularityRankError": 2.1744,
+    "meanTop3OverlapRate": 0.6065
+  },
+  "prohibitedInputs": [
+    "current odds",
+    "current actual popularity",
+    "horse bodyweight",
+    "horse bodyweight change"
+  ]
+}
