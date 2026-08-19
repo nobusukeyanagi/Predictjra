@@ -77,10 +77,17 @@ jobs:
       - name: Fetch, index and update
         shell: bash
         run: |
-          python scripts/update_races_v2.py \
-            --mode "${{ steps.args.outputs.mode }}" \
-            --date "${{ steps.args.outputs.date }}" \
-            --diagnostics "$RUNNER_TEMP/update-race-diagnostics.json"
+          python scripts/update_races_v2.py             --mode "${{ steps.args.outputs.mode }}"             --date "${{ steps.args.outputs.date }}"             --diagnostics "$RUNNER_TEMP/update-race-diagnostics.json"
+
+      - name: Protect design files
+        shell: bash
+        run: |
+          if ! git diff --quiet -- app.js styles.css index.html; then
+            echo "::error::Race-data updater modified design files. Aborting to preserve the current site design."
+            git diff -- app.js styles.css index.html
+            exit 1
+          fi
+          echo "Design files unchanged."
 
       - name: Upload update diagnostics
         if: always()
@@ -118,12 +125,10 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/discord-notification"
           if [[ "${{ steps.changes.outputs.changed }}" == "true" ]]; then
-            python scripts/build_discord_notification.py \
-              --mode "${{ steps.args.outputs.mode }}" \
-              --date "${{ steps.args.outputs.date }}" \
-              --output "$RUNNER_TEMP/discord-notification/notification.json"
+            python scripts/build_discord_notification.py               --mode "${{ steps.args.outputs.mode }}"               --date "${{ steps.args.outputs.date }}"               --output "$RUNNER_TEMP/discord-notification/notification.json"
           else
-            printf '%s\n' '{"send": false}' > "$RUNNER_TEMP/discord-notification/notification.json"
+            printf '%s
+' '{"send": false}' > "$RUNNER_TEMP/discord-notification/notification.json"
           fi
 
       - name: Upload Discord notification payload
