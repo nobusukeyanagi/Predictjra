@@ -1,35 +1,177 @@
 const VENUE_ORDER = { '札幌': 1, '函館': 2, '福島': 3, '新潟': 4, '東京': 5, '中山': 6, '中京': 7, '京都': 8, '阪神': 9, '小倉': 10 };
 const STAKE_PER_RACE = 3000;
 
+/*
+ * 想定人気（想人）モデル
+ * ------------------------------------------------------------
+ * 実運用時の入力に「当日オッズ・実人気・馬体重/増減」は使用しない。
+ * 実人気は過去レースで係数を検証する教師ラベルとしてのみ利用する。
+ *
+ * popularityFactors は 0〜100 の事前情報スコア。
+ * 各プロフィールで利用可能な要素だけを再正規化して加重平均するため、
+ * レース区分や取得できるデータに応じて共通ロジックを流用できる。
+ */
+const POPULARITY_MODEL_VERSION = '2.0';
+// 2026-08-15 / 2026-08-16 の実人気はモデル検証用ラベルとして扱い、
+// 将来レースの想人算出時には参照しない。
+
+const POPULARITY_PROFILES = {
+  // OP・L・重賞：格、騎手、レーティングも市場評価に強く反映
+  open: {
+    recent: .32,
+    class: .22,
+    consistency: .06,
+    jockey: .12,
+    trainer: .06,
+    rating: .08,
+    upward: .08,
+    age: .06
+  },
+  // 1勝・2勝・3勝：現級実績と上昇度を重視
+  class: {
+    recent: .42,
+    class: .13,
+    consistency: .11,
+    jockey: .10,
+    trainer: .05,
+    rating: .05,
+    upward: .10,
+    age: .04
+  },
+  // 未勝利：前走〜2走前の見栄えと安定度を最重視
+  maiden: {
+    recent: .52,
+    class: .04,
+    consistency: .13,
+    jockey: .12,
+    trainer: .06,
+    rating: .02,
+    upward: .09,
+    age: .02
+  },
+  // 障害：障害の直近内容と障害クラス実績を中心に評価
+  jump: {
+    recent: .50,
+    class: .17,
+    consistency: .10,
+    jockey: .11,
+    trainer: .05,
+    rating: .04,
+    upward: .03
+  },
+  // 新馬：近走がないため馬情報専用
+  debut: {
+    bloodline: .25,
+    siblings: .15,
+    jockey: .20,
+    trainer: .20,
+    breeder: .08,
+    owner: .05,
+    coursePedigree: .07
+  }
+};
+
+function popularityScore(horse, detail) {
+  const profileName = detail.popularityProfile || 'class';
+  const weights = POPULARITY_PROFILES[profileName] || POPULARITY_PROFILES.class;
+  const factors = horse.popularityFactors || {};
+  let total = 0;
+  let weightTotal = 0;
+
+  Object.entries(weights).forEach(([key, weight]) => {
+    const value = Number(factors[key]);
+    if (!Number.isFinite(value)) return;
+    total += value * weight;
+    weightTotal += weight;
+  });
+
+  return weightTotal ? total / weightTotal : Number(horse.recentIndex || 0);
+}
+
+function assignExpectedPopularities(detail) {
+  const ranked = detail.horses
+    .map(horse => ({ horse, score: popularityScore(horse, detail) }))
+    .sort((a, b) =>
+      b.score - a.score ||
+      Number(b.horse.recentIndex || 0) - Number(a.horse.recentIndex || 0) ||
+      a.horse.no - b.horse.no
+    );
+
+  ranked.forEach(({ horse, score }, index) => {
+    horse.popularityScore = Math.round(score);
+    horse.expectedPopularity = index + 1;
+  });
+}
+
+function predictionTargetCountForIndex(horseCount) {
+  return Math.min(Math.ceil(Number(horseCount || 0) / 2), 7);
+}
+
+function buildPredictionFromIndex(detail) {
+  const horses = [...detail.horses];
+  const top3 = horses
+    .filter(h => h.expectedPopularity <= 3)
+    .sort((a, b) => b.total - a.total || b.recentIndex - a.recentIndex || a.no - b.no);
+
+  const main = top3[0];
+  const danger = [...top3]
+    .sort((a, b) => a.total - b.total || a.recentIndex - b.recentIndex || b.no - a.no)[0];
+
+  const second = horses
+    .filter(h => h.expectedPopularity >= 4 && h.no !== main?.no && h.no !== danger?.no)
+    .sort((a, b) => b.total - a.total || b.recentIndex - a.recentIndex || a.no - b.no)[0];
+
+  const opponentCount = Math.max(0, predictionTargetCountForIndex(detail.horseCount) - 2);
+  const excludedNos = new Set([main?.no, second?.no, danger?.no].filter(Boolean));
+
+  const opponents = horses
+    .filter(h => !excludedNos.has(h.no))
+    .sort((a, b) => b.total - a.total || b.recentIndex - a.recentIndex || a.no - b.no)
+    .slice(0, opponentCount)
+    .map(h => h.no);
+
+  horses.forEach(h => { h.excluded = h.no === danger?.no; });
+
+  return {
+    axes: [main?.no, second?.no].filter(Boolean),
+    opponents,
+    excluded: danger ? [danger.no] : []
+  };
+}
+
+function finalizeIndexDetail(detail) {
+  assignExpectedPopularities(detail);
+  detail.prediction = buildPredictionFromIndex(detail);
+  return detail;
+}
+
 const RACE_INDEX_DETAILS = {
   '202601010811': {
     title: '札幌11R 札幌記念',
     horseCount: 16,
-    prediction: {
-      axes: [8, 4],
-      opponents: [10, 7, 14, 15, 12],
-      excluded: [13]
-    },
+    popularityProfile: 'open',
     horses: [
-      { no: 1, name: 'オニャンコポン', recent: ['88/79/83','61/72/55','63/69/50','64/61/48','66/74/60'], recentIndex: 68, expectedPopularity: 12, pace: 58, course: 64, today: 61, total: 65, rank: 14 },
-      { no: 2, name: 'イガッチ', recent: ['52/45/44','74/79/73','88/84/80','73/73/66','83/73/68'], recentIndex: 66, expectedPopularity: 14, pace: 66, course: 62, today: 64, total: 65, rank: 15 },
-      { no: 3, name: 'ピンクジン', recent: ['70/73/65','62/67/50','55/57/47','75/70/65','72/68/62'], recentIndex: 63, expectedPopularity: 16, pace: 61, course: 68, today: 65, total: 64, rank: 16 },
-      { no: 4, name: 'マジックサンズ', recent: ['73/81/76','86/87/79','77/83/75','74/78/59','82/85/74'], recentIndex: 78, expectedPopularity: 7, pace: 82, course: 82, today: 82, total: 80, rank: 4 },
-      { no: 5, name: 'エコロヴァルツ', recent: ['45/47/55','86/88/86','91/89/85','78/88/74','85/86/79'], recentIndex: 73, expectedPopularity: 10, pace: 81, course: 74, today: 78, total: 75, rank: 11 },
-      { no: 6, name: 'ローシャムパーク', recent: ['89/88/86','77/82/65','49/51/52','84/90/78','77/82/68'], recentIndex: 75, expectedPopularity: 9, pace: 76, course: 70, today: 73, total: 74, rank: 13 },
-      { no: 7, name: 'ショウヘイ', recent: ['63/73/69','93/91/94','59/67/61','91/94/91','92/95/93'], recentIndex: 79, expectedPopularity: 5, pace: 88, course: 68, today: 78, total: 79, rank: 5 },
-      { no: 8, name: 'サクラファレル', recent: ['88/84/76','92/87/80','78/78/76','94/81/72','96/83/69'], recentIndex: 82, expectedPopularity: 3, pace: 91, course: 96, today: 94, total: 87, rank: 1 },
-      { no: 9, name: 'マイネルモーント', recent: ['86/81/84','69/76/60','83/79/76','82/84/80','55/57/57'], recentIndex: 76, expectedPopularity: 8, pace: 78, course: 70, today: 74, total: 75, rank: 9 },
-      { no: 10, name: 'アドマイヤテラ', recent: ['91/97/96','95/96/96','67/78/69','評価外','89/90/87'], recentIndex: 89, expectedPopularity: 1, pace: 77, course: 73, today: 75, total: 83, rank: 2 },
-      { no: 11, name: 'アラタ', recent: ['67/73/61','75/79/66','67/73/57','82/78/76','91/86/86'], recentIndex: 71, expectedPopularity: 11, pace: 69, course: 93, today: 81, total: 75, rank: 10 },
-      { no: 12, name: 'ゼンダンハヤブサ', recent: ['91/87/90','78/78/68','82/82/69','74/75/65','87/80/68'], recentIndex: 79, expectedPopularity: 4, pace: 73, course: 67, today: 70, total: 75, rank: 8 },
-      { no: 13, name: 'グランディア', recent: ['91/90/92','84/84/82','89/88/88','89/86/86','54/61/49'], recentIndex: 85, expectedPopularity: 2, pace: 83, course: 69, today: 76, total: 81, rank: 3, excluded: true },
-      { no: 14, name: 'レディネス', recent: ['63/64/52','86/92/84','93/91/86','51/52/44','48/52/58'], recentIndex: 75, expectedPopularity: 15, pace: 84, course: 84, today: 84, total: 79, rank: 6 },
-      { no: 15, name: 'シェイクユアハート', recent: ['50/49/57','95/94/95','87/90/85','94/93/94','88/88/88'], recentIndex: 79, expectedPopularity: 6, pace: 85, course: 70, today: 78, total: 78, rank: 7 },
-      { no: 16, name: 'ホウオウビスケッツ', recent: ['58/74/62','42/47/51','73/86/68','94/91/91','78/81/73'], recentIndex: 67, expectedPopularity: 13, pace: 87, course: 84, today: 86, total: 74, rank: 12 }
+      { no: 1, name: 'オニャンコポン', recent: ['88/79/83','61/72/55','63/69/50','64/61/48','66/74/60'], recentIndex: 68, popularityFactors: { recent: 66, class: 80, consistency: 60, jockey: 74, trainer: 72, rating: 76, upward: 60, age: 65 }, pace: 58, course: 64, today: 61, total: 65, rank: 14 },
+      { no: 2, name: 'イガッチ', recent: ['52/45/44','74/79/73','88/84/80','73/73/66','83/73/68'], recentIndex: 66, popularityFactors: { recent: 68, class: 66, consistency: 74, jockey: 72, trainer: 70, rating: 70, upward: 82, age: 95 }, pace: 66, course: 62, today: 64, total: 65, rank: 15 },
+      { no: 3, name: 'ピンクジン', recent: ['70/73/65','62/67/50','55/57/47','75/70/65','72/68/62'], recentIndex: 63, popularityFactors: { recent: 62, class: 62, consistency: 70, jockey: 65, trainer: 64, rating: 64, upward: 65, age: 80 }, pace: 61, course: 68, today: 65, total: 64, rank: 16 },
+      { no: 4, name: 'マジックサンズ', recent: ['73/81/76','86/87/79','77/83/75','74/78/59','82/85/74'], recentIndex: 78, popularityFactors: { recent: 84, class: 86, consistency: 74, jockey: 88, trainer: 90, rating: 84, upward: 82, age: 95 }, pace: 82, course: 82, today: 82, total: 80, rank: 4 },
+      { no: 5, name: 'エコロヴァルツ', recent: ['45/47/55','86/88/86','91/89/85','78/88/74','85/86/79'], recentIndex: 73, popularityFactors: { recent: 76, class: 88, consistency: 78, jockey: 83, trainer: 74, rating: 86, upward: 72, age: 90 }, pace: 81, course: 74, today: 78, total: 75, rank: 11 },
+      { no: 6, name: 'ローシャムパーク', recent: ['89/88/86','77/82/65','49/51/52','84/90/78','77/82/68'], recentIndex: 75, popularityFactors: { recent: 78, class: 93, consistency: 70, jockey: 80, trainer: 88, rating: 93, upward: 70, age: 65 }, pace: 76, course: 70, today: 73, total: 74, rank: 13 },
+      { no: 7, name: 'ショウヘイ', recent: ['63/73/69','93/91/94','59/67/61','91/94/91','92/95/93'], recentIndex: 79, popularityFactors: { recent: 82, class: 94, consistency: 83, jockey: 98, trainer: 95, rating: 91, upward: 88, age: 95 }, pace: 88, course: 68, today: 78, total: 79, rank: 5 },
+      { no: 8, name: 'サクラファレル', recent: ['88/84/76','92/87/80','78/78/76','94/81/72','96/83/69'], recentIndex: 82, popularityFactors: { recent: 88, class: 78, consistency: 92, jockey: 94, trainer: 96, rating: 84, upward: 96, age: 95 }, pace: 91, course: 96, today: 94, total: 87, rank: 1 },
+      { no: 9, name: 'マイネルモーント', recent: ['86/81/84','69/76/60','83/79/76','82/84/80','55/57/57'], recentIndex: 76, popularityFactors: { recent: 80, class: 78, consistency: 82, jockey: 80, trainer: 76, rating: 80, upward: 84, age: 80 }, pace: 78, course: 70, today: 74, total: 75, rank: 9 },
+      { no: 10, name: 'アドマイヤテラ', recent: ['91/97/96','95/96/96','67/78/69','評価外','89/90/87'], recentIndex: 89, popularityFactors: { recent: 96, class: 98, consistency: 90, jockey: 91, trainer: 95, rating: 98, upward: 92, age: 90 }, pace: 77, course: 73, today: 75, total: 83, rank: 2 },
+      { no: 11, name: 'アラタ', recent: ['67/73/61','75/79/66','67/73/57','82/78/76','91/86/86'], recentIndex: 71, popularityFactors: { recent: 70, class: 85, consistency: 67, jockey: 78, trainer: 72, rating: 83, upward: 60, age: 45 }, pace: 69, course: 93, today: 81, total: 75, rank: 10 },
+      { no: 12, name: 'ゼンダンハヤブサ', recent: ['91/87/90','78/78/68','82/82/69','74/75/65','87/80/68'], recentIndex: 79, popularityFactors: { recent: 86, class: 76, consistency: 82, jockey: 76, trainer: 70, rating: 78, upward: 95, age: 95 }, pace: 73, course: 67, today: 70, total: 75, rank: 8 },
+      { no: 13, name: 'グランディア', recent: ['91/90/92','84/84/82','89/88/88','89/86/86','54/61/49'], recentIndex: 85, popularityFactors: { recent: 90, class: 82, consistency: 92, jockey: 85, trainer: 98, rating: 83, upward: 92, age: 65 }, pace: 83, course: 69, today: 76, total: 81, rank: 3 },
+      { no: 14, name: 'レディネス', recent: ['63/64/52','86/92/84','93/91/86','51/52/44','48/52/58'], recentIndex: 75, popularityFactors: { recent: 74, class: 80, consistency: 65, jockey: 78, trainer: 75, rating: 78, upward: 76, age: 95 }, pace: 84, course: 84, today: 84, total: 79, rank: 6 },
+      { no: 15, name: 'シェイクユアハート', recent: ['50/49/57','95/94/95','87/90/85','94/93/94','88/88/88'], recentIndex: 79, popularityFactors: { recent: 80, class: 90, consistency: 80, jockey: 70, trainer: 72, rating: 92, upward: 78, age: 80 }, pace: 85, course: 70, today: 78, total: 78, rank: 7 },
+      { no: 16, name: 'ホウオウビスケッツ', recent: ['58/74/62','42/47/51','73/86/68','94/91/91','78/81/73'], recentIndex: 67, popularityFactors: { recent: 70, class: 95, consistency: 72, jockey: 85, trainer: 82, rating: 93, upward: 65, age: 80 }, pace: 87, course: 84, today: 86, total: 74, rank: 12 }
     ]
   }
 };
+
+Object.values(RACE_INDEX_DETAILS).forEach(finalizeIndexDetail);
 
 const yen = n => `${Number(n || 0).toLocaleString('ja-JP')}円`;
 const percent = n => `${Number(n || 0).toFixed(1)}%`;
@@ -288,7 +430,7 @@ function renderIndexDetail(detail) {
         </div>
         <div class="index-logic">
           <p>近5走は各レースを「展開・タイム・成績」の3指数で個別評価し、すべて整数で1の位まで精査します。展開は通過順・位置取り・上がり・着差・ペース、タイムは走破時計・レースレベル・馬場・着差・上がり、成績は着順に加えてレース格と相手レベルを評価します。</p>
-          <p>「近走」は単純な着順平均ではなく、直近を重視した基礎評価に、近5走の上位パフォーマンスから算出する能力上限と再現性を加味します。長期休養明け、大幅な馬体重変動など結果の信頼度を下げる客観的要因が重なった一走は、その凡走を能力低下と断定せず影響を抑えます。これにより、一度の大敗だけで過度に評価を落とさない設計とします。「想人」は近走成績から推定する想定人気で、実際のオッズは使用しません。</p>
+          <p>「近走」は単純な着順平均ではなく、直近を重視した基礎評価に、近5走の上位パフォーマンスから算出する能力上限と再現性を加味します。長期休養明け、大幅な馬体重変動など結果の信頼度を下げる客観的要因が重なった一走は、その凡走を能力低下と断定せず影響を抑えます。これにより、一度の大敗だけで過度に評価を落とさない設計とします。「想人」は近走成績と馬情報から市場人気を推定する専用モデルです。近走の着順・着差・レース格・安定度に加え、騎手・調教師・レーティング・上昇度など事前に取得できる情報をレース区分別の比率で評価します。当日オッズ、実際の人気、馬体重・増減は予測入力に使用しません。</p>
           <p>「展開」は今回の想定ペースと脚質・位置取りの適合度を評価します。「コース」は当該コース実績を最重視し、当該場の他距離実績を補助評価します。当該コース未経験の場合は同距離の他場実績と類似条件への適応力で補完しますが、実績馬より上限を抑えます。「今回」は展開50％＋コース50％、総合指数は近走60％＋今回40％を基本とします。</p>
           <p><strong>軸馬選定：</strong>本命は想定3番人気以内のうち総合指数最上位、対抗は想定4番人気以下のうち総合指数最上位とします。ただし、想定3番人気以内で総合指数最下位の馬は危険馬として買い目から除外します。相手はそれ以外の総合指数上位から選び、頭数は既定の出走頭数ルールに従います。</p>
         </div>
