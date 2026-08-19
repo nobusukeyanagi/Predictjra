@@ -432,9 +432,14 @@ body.index-modal-open { overflow: hidden; }
 
 
 .index-table th.index-sortable {
+  position: relative;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
+  text-align: center;
+  vertical-align: middle;
+  padding-top: 5px;
+  padding-bottom: 11px;
 }
 .index-table th.index-sortable:hover {
   filter: brightness(.96);
@@ -445,20 +450,26 @@ body.index-modal-open { overflow: hidden; }
 }
 .index-table th.index-sortable::after {
   content: "";
-  display: inline-block;
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
   width: 0;
   height: 0;
-  margin-left: 4px;
-  vertical-align: middle;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
+  transform: translateX(-50%);
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
   opacity: 0;
 }
 .index-table th.index-sortable[data-sort-direction="asc"]::after {
-  border-bottom: 5px solid currentColor;
-  opacity: .9;
+  border-bottom: 4px solid currentColor;
+  opacity: .8;
 }
 .index-table th.index-sortable[data-sort-direction="desc"]::after {
-  border-top: 5px solid currentColor;
-  opacity: .9;
+  border-top: 4px solid currentColor;
+  opacity: .8;
+}
+
+.index-table thead th {
+  text-align: center;
+  vertical-align: middle;
 }
