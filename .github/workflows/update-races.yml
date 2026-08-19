@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'prepare = 出馬表/予想, result = 結果/判定'
+        description: 'prepare = 出馬表/指数/予想, result = 結果/判定'
         required: true
         type: choice
         options:
@@ -71,12 +71,25 @@ jobs:
           echo "date=$DATE" >> "$GITHUB_OUTPUT"
           echo "Resolved: mode=$MODE date=$DATE"
 
-      - name: Fetch and update
+      - name: Validate prediction rules
+        run: python scripts/test_predict_engine.py
+
+      - name: Fetch, index and update
         shell: bash
         run: |
-          python scripts/update_races.py \
+          python scripts/update_races_v2.py \
             --mode "${{ steps.args.outputs.mode }}" \
-            --date "${{ steps.args.outputs.date }}"
+            --date "${{ steps.args.outputs.date }}" \
+            --diagnostics "$RUNNER_TEMP/update-race-diagnostics.json"
+
+      - name: Upload update diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-race-diagnostics-${{ steps.args.outputs.mode }}-${{ steps.args.outputs.date }}
+          path: ${{ runner.temp }}/update-race-diagnostics.json
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Detect data changes
         id: changes
