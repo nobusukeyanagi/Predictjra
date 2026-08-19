@@ -24,6 +24,12 @@
     </div>
 
   </main>
-  <script src="./app.js" defer></script>
+  <script>
+    // app.js also contains race-modal logic, so never reuse a stale cached copy.
+    const appScript = document.createElement('script');
+    appScript.src = `./app.js?v=${Date.now()}`;
+    appScript.defer = true;
+    document.body.appendChild(appScript);
+  </script>
 </body>
 </html>
