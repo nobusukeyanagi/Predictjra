@@ -96,8 +96,8 @@ body {
   overflow-x: auto;
   overflow-y: hidden;
   background: var(--surface);
-  overscroll-behavior: none;
   overscroll-behavior-x: none;
+  overscroll-behavior-y: auto;
   overscroll-behavior-inline: none;
   -webkit-overflow-scrolling: auto;
 }
@@ -342,8 +342,8 @@ body.index-modal-open { overflow: hidden; }
   max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-  overscroll-behavior: none;
   overscroll-behavior-x: none;
+  overscroll-behavior-y: auto;
   overscroll-behavior-inline: none;
   -webkit-overflow-scrolling: auto;
 }
@@ -670,3 +670,10 @@ body.index-modal-open { overflow: hidden; }
   }
 }
 
+
+@media (min-width: 761px) {
+  .table-scroll,
+  .index-table-scroll {
+    overscroll-behavior-y: auto;
+  }
+}
