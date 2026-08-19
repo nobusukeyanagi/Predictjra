@@ -7,7 +7,7 @@ const RACE_INDEX_DETAILS = {
     horseCount: 16,
     prediction: {
       axes: [8, 4],
-      opponents: [10, 7, 15, 12, 9],
+      opponents: [10, 7, 14, 15, 12],
       excluded: [13]
     },
     horses: [
@@ -15,18 +15,18 @@ const RACE_INDEX_DETAILS = {
       { no: 2, name: 'イガッチ', recent: ['52/45/44','74/79/73','88/84/80','73/73/66','83/73/68'], recentIndex: 66, expectedPopularity: 14, pace: 66, course: 62, today: 64, total: 65, rank: 15 },
       { no: 3, name: 'ピンクジン', recent: ['70/73/65','62/67/50','55/57/47','75/70/65','72/68/62'], recentIndex: 63, expectedPopularity: 16, pace: 61, course: 68, today: 65, total: 64, rank: 16 },
       { no: 4, name: 'マジックサンズ', recent: ['73/81/76','86/87/79','77/83/75','74/78/59','82/85/74'], recentIndex: 78, expectedPopularity: 7, pace: 82, course: 82, today: 82, total: 80, rank: 4 },
-      { no: 5, name: 'エコロヴァルツ', recent: ['45/47/55','86/88/86','91/89/85','78/88/74','85/86/79'], recentIndex: 73, expectedPopularity: 10, pace: 81, course: 74, today: 78, total: 75, rank: 10 },
-      { no: 6, name: 'ローシャムパーク', recent: ['89/88/86','77/82/65','49/51/52','84/90/78','77/82/68'], recentIndex: 75, expectedPopularity: 9, pace: 76, course: 70, today: 73, total: 74, rank: 12 },
+      { no: 5, name: 'エコロヴァルツ', recent: ['45/47/55','86/88/86','91/89/85','78/88/74','85/86/79'], recentIndex: 73, expectedPopularity: 10, pace: 81, course: 74, today: 78, total: 75, rank: 11 },
+      { no: 6, name: 'ローシャムパーク', recent: ['89/88/86','77/82/65','49/51/52','84/90/78','77/82/68'], recentIndex: 75, expectedPopularity: 9, pace: 76, course: 70, today: 73, total: 74, rank: 13 },
       { no: 7, name: 'ショウヘイ', recent: ['63/73/69','93/91/94','59/67/61','91/94/91','92/95/93'], recentIndex: 79, expectedPopularity: 5, pace: 88, course: 68, today: 78, total: 79, rank: 5 },
       { no: 8, name: 'サクラファレル', recent: ['88/84/76','92/87/80','78/78/76','94/81/72','96/83/69'], recentIndex: 82, expectedPopularity: 3, pace: 91, course: 96, today: 94, total: 87, rank: 1 },
-      { no: 9, name: 'マイネルモーント', recent: ['86/81/84','69/76/60','83/79/76','82/84/80','55/57/57'], recentIndex: 76, expectedPopularity: 8, pace: 78, course: 70, today: 74, total: 75, rank: 8 },
+      { no: 9, name: 'マイネルモーント', recent: ['86/81/84','69/76/60','83/79/76','82/84/80','55/57/57'], recentIndex: 76, expectedPopularity: 8, pace: 78, course: 70, today: 74, total: 75, rank: 9 },
       { no: 10, name: 'アドマイヤテラ', recent: ['91/97/96','95/96/96','67/78/69','評価外','89/90/87'], recentIndex: 89, expectedPopularity: 1, pace: 77, course: 73, today: 75, total: 83, rank: 2 },
-      { no: 11, name: 'アラタ', recent: ['67/73/61','75/79/66','67/73/57','82/78/76','91/86/86'], recentIndex: 71, expectedPopularity: 11, pace: 69, course: 93, today: 81, total: 75, rank: 9 },
-      { no: 12, name: 'ゼンダンハヤブサ', recent: ['91/87/90','78/78/68','82/82/69','74/75/65','87/80/68'], recentIndex: 79, expectedPopularity: 4, pace: 73, course: 67, today: 70, total: 75, rank: 7 },
+      { no: 11, name: 'アラタ', recent: ['67/73/61','75/79/66','67/73/57','82/78/76','91/86/86'], recentIndex: 71, expectedPopularity: 11, pace: 69, course: 93, today: 81, total: 75, rank: 10 },
+      { no: 12, name: 'ゼンダンハヤブサ', recent: ['91/87/90','78/78/68','82/82/69','74/75/65','87/80/68'], recentIndex: 79, expectedPopularity: 4, pace: 73, course: 67, today: 70, total: 75, rank: 8 },
       { no: 13, name: 'グランディア', recent: ['91/90/92','84/84/82','89/88/88','89/86/86','54/61/49'], recentIndex: 85, expectedPopularity: 2, pace: 83, course: 69, today: 76, total: 81, rank: 3, excluded: true },
-      { no: 14, name: 'レディネス', recent: ['57/58/50','79/82/74','92/88/82','51/52/44','43/45/52'], recentIndex: 66, expectedPopularity: 15, pace: 80, course: 72, today: 76, total: 70, rank: 13 },
-      { no: 15, name: 'シェイクユアハート', recent: ['50/49/57','95/94/95','87/90/85','94/93/94','88/88/88'], recentIndex: 79, expectedPopularity: 6, pace: 85, course: 70, today: 78, total: 78, rank: 6 },
-      { no: 16, name: 'ホウオウビスケッツ', recent: ['58/74/62','42/47/51','73/86/68','94/91/91','78/81/73'], recentIndex: 67, expectedPopularity: 13, pace: 87, course: 84, today: 86, total: 74, rank: 11 }
+      { no: 14, name: 'レディネス', recent: ['63/64/52','86/92/84','93/91/86','51/52/44','48/52/58'], recentIndex: 75, expectedPopularity: 15, pace: 84, course: 84, today: 84, total: 79, rank: 6 },
+      { no: 15, name: 'シェイクユアハート', recent: ['50/49/57','95/94/95','87/90/85','94/93/94','88/88/88'], recentIndex: 79, expectedPopularity: 6, pace: 85, course: 70, today: 78, total: 78, rank: 7 },
+      { no: 16, name: 'ホウオウビスケッツ', recent: ['58/74/62','42/47/51','73/86/68','94/91/91','78/81/73'], recentIndex: 67, expectedPopularity: 13, pace: 87, course: 84, today: 86, total: 74, rank: 12 }
     ]
   }
 };
@@ -208,12 +208,10 @@ function renderIndexDetail(detail) {
           </table>
         </div>
         <div class="index-logic">
-          <h3>指数・予想ロジック</h3>
-          <p>近5走は各レースを「展開・タイム・成績」の3指数で個別評価し、すべて小数点を使わず1の位まで精査します。展開指数は通過順・位置取り・上がり・着差・ペースによる有利不利、タイム指数は走破時計・レースレベル・距離・馬場・着差・上がり、成績指数は着順に加えて重賞格や相手レベルを加味します。</p>
-          <p>1走ごとの評価は展開25％・タイム35％・成績40％を基本とし、近5走は前走から5：4：3：2：1で重み付けして「近走指数」を算出します。「想人」は近5走の内容だけを基にした想定人気順位で、実際のオッズ・人気や今回条件は使用しません。</p>
-          <p>「展開」は今回の想定ペースと脚質・位置取りの噛み合わせを評価します。「コース」は当該コース（今回は札幌芝2000m）の実績を最重視し、同じ札幌競馬場の他距離実績を補助的に加味します。「今回」は展開50％＋コース50％の総合評価です。総合指数は近走60％＋今回40％を基本に算出します。</p>
-          <p><strong>軸馬選定：</strong>本命は想定3番人気以内のうち総合指数最上位、対抗は想定4番人気以下のうち総合指数最上位とします。ただし、想定3番人気以内で総合指数最下位の馬は危険馬として買い目から除外します。相手は本命・対抗・危険馬を除いた総合指数上位から選び、頭数は「出走頭数の2分の1切上げ、または7頭以内」の既定ルールに従います。</p>
-          <p><strong>札幌11R：</strong>本命⑧サクラファレル、対抗④マジックサンズ。想定3番人気以内で総合指数最下位の⑬グランディアを危険馬として除外し、相手は⑩アドマイヤテラ、⑦ショウヘイ、⑮シェイクユアハート、⑫ゼンダンハヤブサ、⑨マイネルモーントの5頭です。</p>
+          <p>近5走は各レースを「展開・タイム・成績」の3指数で個別評価し、すべて整数で1の位まで精査します。展開は通過順・位置取り・上がり・着差・ペース、タイムは走破時計・レースレベル・馬場・着差・上がり、成績は着順に加えてレース格と相手レベルを評価します。</p>
+          <p>「近走」は単純な着順平均ではなく、直近を重視した基礎評価に、近5走の上位パフォーマンスから算出する能力上限と再現性を加味します。長期休養明け、大幅な馬体重変動など結果の信頼度を下げる客観的要因が重なった一走は、その凡走を能力低下と断定せず影響を抑えます。これにより、一度の大敗だけで過度に評価を落とさない設計とします。「想人」は近走成績から推定する想定人気で、実際のオッズは使用しません。</p>
+          <p>「展開」は今回の想定ペースと脚質・位置取りの適合度を評価します。「コース」は当該コース実績を最重視し、当該場の他距離実績を補助評価します。当該コース未経験の場合は同距離の他場実績と類似条件への適応力で補完しますが、実績馬より上限を抑えます。「今回」は展開50％＋コース50％、総合指数は近走60％＋今回40％を基本とします。</p>
+          <p><strong>軸馬選定：</strong>本命は想定3番人気以内のうち総合指数最上位、対抗は想定4番人気以下のうち総合指数最上位とします。ただし、想定3番人気以内で総合指数最下位の馬は危険馬として買い目から除外します。相手はそれ以外の総合指数上位から選び、頭数は既定の出走頭数ルールに従います。</p>
         </div>
       </section>
     </div>`;

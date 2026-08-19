@@ -287,9 +287,8 @@ body.index-modal-open { overflow: hidden; }
   line-height: 1;
 }
 .index-eval-empty { color: #a0a8a3; }
-.index-logic { padding: 14px 16px 18px; border-top: 1px solid var(--line); }
-.index-logic h3 { margin: 0 0 8px; font-size: 16px; }
-.index-logic p { margin: 7px 0 0; font-size: 13px; line-height: 1.75; }
+.index-logic { padding: 8px 16px 16px; border-top: 1px solid var(--line); }
+.index-logic p { margin: 6px 0 0; font-size: 13px; line-height: 1.7; }
 
 @media (max-width: 760px) {
   .page-shell { width: calc(100% - 12px); padding: 0 0 40px; }
@@ -354,6 +353,6 @@ body.index-modal-open { overflow: hidden; }
     padding-right: 6px;
   }
   .index-evaluation { min-width: 56px; }
-  .index-logic { padding: 12px; }
+  .index-logic { padding: 8px 12px 12px; }
   .index-logic p { font-size: 12px; line-height: 1.7; }
 }
