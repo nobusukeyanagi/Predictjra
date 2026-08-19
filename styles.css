@@ -118,6 +118,20 @@ body {
 .race-table tbody tr.miss-row .rate { color: var(--miss); }
 .race-name { font-weight: 800; white-space: nowrap; }
 .venue { color: #000; }
+.race-detail-trigger {
+  appearance: none;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  background: transparent;
+  margin: 0;
+  padding: 0 0 1px;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 850;
+  cursor: pointer;
+}
+.race-detail-trigger:hover { color: var(--green); }
+.race-detail-trigger:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 2px; }
 .horses { display: flex; justify-content: center; align-items: center; flex-wrap: nowrap; gap: 2px; }
 .race-table tbody td:nth-child(4) .horses { justify-content: flex-start; }
 .horse-box { display: inline-flex; align-items: center; justify-content: center; width: 27px; height: 27px; border-radius: 6px; border: 1px solid rgba(0,0,0,.18); font-size: 15px; line-height: 1; font-weight: 850; box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); }
@@ -139,6 +153,108 @@ body {
 .empty { padding: 50px 20px; text-align: center; color: var(--muted); background: #fff; border: 1px solid var(--line); border-radius: 14px; font-size: 15px; }
 .loading { padding: 40px; text-align: center; color: var(--muted); font-size: 15px; }
 .error { padding: 18px; border: 1px solid #efc7c4; background: #fff6f5; color: #8f221c; border-radius: 10px; font-size: 15px; }
+
+body.index-modal-open { overflow: hidden; }
+.index-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(11, 20, 15, .46);
+}
+.index-modal {
+  width: min(1240px, 100%);
+  max-height: calc(100vh - 36px);
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 22px 60px rgba(0,0,0,.22);
+}
+.index-modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px 10px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+.index-modal-header h2 { margin: 0; font-size: 20px; line-height: 1.3; }
+.index-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+.index-modal-close {
+  appearance: none;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--ink);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+.index-modal-close:hover { background: #f3f6f4; }
+.index-modal-close:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.index-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.index-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+.index-table th,
+.index-table td { white-space: nowrap; text-align: center; border-bottom: 1px solid var(--line); }
+.index-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 7px 9px;
+  color: #fff;
+  background: var(--green);
+  font-size: 12px;
+  font-weight: 800;
+  border-right: 1px solid rgba(255,255,255,.13);
+}
+.index-table td { padding: 6px 9px; font-size: 13px; }
+.index-table tbody tr:hover { background: #f7faf8; }
+.index-table .index-horse-name { text-align: left; font-weight: 750; }
+.index-horse-box { width: 25px; height: 25px; border-radius: 5px; font-size: 13px; }
+.index-strong { font-weight: 800; }
+.index-total { color: var(--green); font-size: 15px !important; font-weight: 900; }
+.index-rank { font-weight: 900; }
+.index-pick {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 850;
+  vertical-align: 1px;
+}
+.pick-main { color: #fff; background: #b3261e; }
+.pick-second { color: #fff; background: #174c35; }
+.pick-opponent { color: #174c35; background: #e8f5e9; }
+.pick-excluded { color: #686f6b; background: #ecefed; }
+.index-excluded-row { background: #f5f6f5; color: #727a76; }
+.index-logic { padding: 14px 16px 18px; border-top: 1px solid var(--line); }
+.index-logic h3 { margin: 0 0 8px; font-size: 16px; }
+.index-logic p { margin: 7px 0 0; font-size: 13px; line-height: 1.75; }
+
 @media (max-width: 760px) {
   .page-shell { width: calc(100% - 12px); padding: 0 0 40px; }
   .site-header { margin: 0 -6px 8px; padding: 0 6px; }
@@ -186,4 +302,15 @@ body {
   .race-table tbody tr.hit-row:hover td:first-child {
     background: #fff4bd;
   }
+
+  .index-modal-backdrop { align-items: stretch; padding: 6px; }
+  .index-modal { max-height: calc(100vh - 12px); border-radius: 10px; }
+  .index-modal-header { padding: 11px 12px 8px; }
+  .index-modal-header h2 { font-size: 17px; }
+  .index-subtitle { font-size: 11px; }
+  .index-modal-close { width: 32px; height: 32px; }
+  .index-table th { padding: 6px 8px; font-size: 11px; }
+  .index-table td { padding: 6px 8px; font-size: 12px; }
+  .index-logic { padding: 12px; }
+  .index-logic p { font-size: 12px; line-height: 1.7; }
 }

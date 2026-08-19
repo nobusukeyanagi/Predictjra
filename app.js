@@ -1,8 +1,50 @@
 const VENUE_ORDER = { '札幌': 1, '函館': 2, '福島': 3, '新潟': 4, '東京': 5, '中山': 6, '中京': 7, '京都': 8, '阪神': 9, '小倉': 10 };
 const STAKE_PER_RACE = 3000;
 
+const RACE_INDEX_DETAILS = {
+  '202601010811': {
+    title: '札幌11R 札幌記念',
+    horseCount: 16,
+    prediction: {
+      axes: [8, 13],
+      opponents: [15, 7, 4, 9, 6],
+      excluded: [10]
+    },
+    horses: [
+      { no: 1, name: 'オニャンコポン', recent: ['88/79/83','61/72/55','63/69/50','64/61/48','66/74/60'], recentIndex: 68, virtualPopularity: 12, pace: 58, courseDistance: 68, total: 66, rank: 14 },
+      { no: 2, name: 'イガッチ', recent: ['52/45/44','74/79/73','88/84/80','73/73/66','83/73/68'], recentIndex: 66, virtualPopularity: 14, pace: 66, courseDistance: 66, total: 66, rank: 15 },
+      { no: 3, name: 'ピンクジン', recent: ['70/73/65','62/67/50','55/57/47','75/70/65','72/68/62'], recentIndex: 63, virtualPopularity: 16, pace: 61, courseDistance: 72, total: 64, rank: 16 },
+      { no: 4, name: 'マジックサンズ', recent: ['73/81/76','86/87/79','77/83/75','74/78/59','82/85/74'], recentIndex: 78, virtualPopularity: 7, pace: 82, courseDistance: 86, total: 80, rank: 6 },
+      { no: 5, name: 'エコロヴァルツ', recent: ['45/47/55','86/88/86','91/89/85','78/88/74','85/86/79'], recentIndex: 73, virtualPopularity: 10, pace: 81, courseDistance: 78, total: 76, rank: 10 },
+      { no: 6, name: 'ローシャムパーク', recent: ['89/88/86','77/82/65','49/51/52','84/90/78','77/82/68'], recentIndex: 75, virtualPopularity: 9, pace: 76, courseDistance: 85, total: 77, rank: 8 },
+      { no: 7, name: 'ショウヘイ', recent: ['63/73/69','93/91/94','59/67/61','91/94/91','92/95/93'], recentIndex: 79, virtualPopularity: 5, pace: 88, courseDistance: 75, total: 80, rank: 5 },
+      { no: 8, name: 'サクラファレル', recent: ['88/84/76','92/87/80','78/78/76','94/81/72','96/83/69'], recentIndex: 82, virtualPopularity: 3, pace: 91, courseDistance: 94, total: 86, rank: 1 },
+      { no: 9, name: 'マイネルモーント', recent: ['86/81/84','69/76/60','83/79/76','82/84/80','55/57/57'], recentIndex: 76, virtualPopularity: 8, pace: 78, courseDistance: 80, total: 77, rank: 7 },
+      { no: 10, name: 'アドマイヤテラ', recent: ['91/97/96','95/96/96','67/78/69','評価外','89/90/87'], recentIndex: 89, virtualPopularity: 1, pace: 77, courseDistance: 72, total: 83, rank: 3, excluded: true },
+      { no: 11, name: 'アラタ', recent: ['67/73/61','75/79/66','67/73/57','82/78/76','91/86/86'], recentIndex: 71, virtualPopularity: 11, pace: 69, courseDistance: 91, total: 75, rank: 12 },
+      { no: 12, name: 'ゼンダンハヤブサ', recent: ['91/87/90','78/78/68','82/82/69','74/75/65','87/80/68'], recentIndex: 79, virtualPopularity: 4, pace: 73, courseDistance: 70, total: 76, rank: 9 },
+      { no: 13, name: 'グランディア', recent: ['91/90/92','84/84/82','89/88/88','89/86/86','54/61/49'], recentIndex: 85, virtualPopularity: 2, pace: 83, courseDistance: 84, total: 84, rank: 2 },
+      { no: 14, name: 'レディネス', recent: ['57/58/50','79/82/74','92/88/82','51/52/44','43/45/52'], recentIndex: 66, virtualPopularity: 15, pace: 80, courseDistance: 74, total: 70, rank: 13 },
+      { no: 15, name: 'シェイクユアハート', recent: ['50/49/57','95/94/95','87/90/85','94/93/94','88/88/88'], recentIndex: 79, virtualPopularity: 6, pace: 85, courseDistance: 93, total: 83, rank: 4 },
+      { no: 16, name: 'ホウオウビスケッツ', recent: ['58/74/62','42/47/51','73/86/68','94/91/91','78/81/73'], recentIndex: 67, virtualPopularity: 13, pace: 87, courseDistance: 92, total: 76, rank: 11 }
+    ]
+  }
+};
+
 const yen = n => `${Number(n || 0).toLocaleString('ja-JP')}円`;
 const percent = n => `${Number(n || 0).toFixed(1)}%`;
+
+function raceDetail(race) {
+  return RACE_INDEX_DETAILS[race?.raceId] || null;
+}
+
+function effectiveHorseCount(race) {
+  return raceDetail(race)?.horseCount || race?.horseCount;
+}
+
+function effectivePrediction(race) {
+  return raceDetail(race)?.prediction || race?.prediction || { axes: [], opponents: [] };
+}
 
 function frameNumber(horseNo, horseCount) {
   const n = Math.max(Number(horseCount) || Number(horseNo), Number(horseNo));
@@ -21,7 +63,7 @@ function frameNumber(horseNo, horseCount) {
 
 function horseBox(no, race) {
   const saved = race?.horseFrames?.[String(no)] ?? race?.horseFrames?.[no];
-  const frame = Number(saved) || frameNumber(no, race?.horseCount);
+  const frame = Number(saved) || frameNumber(no, effectiveHorseCount(race));
   return `<span class="horse-box frame-${frame}" title="馬番 ${no} / ${frame}枠">${no}</span>`;
 }
 
@@ -65,6 +107,12 @@ function actualTrifectaPayout(race) {
   return trifectas.reduce((sum, item) => sum + Number(item.payout || 0), 0);
 }
 
+function raceNameCell(race) {
+  const label = `<span class="venue">${race.venue}</span> ${race.raceNo}R`;
+  if (!raceDetail(race)) return label;
+  return `<button class="race-detail-trigger" type="button" data-race-id="${race.raceId}" aria-label="${race.venue}${race.raceNo}Rの指数表を表示">${label}</button>`;
+}
+
 function renderDay(day) {
   const summary = daySummary(day);
   const dl = dateLabel(day.date);
@@ -73,11 +121,12 @@ function renderDay(day) {
     const wonPayout = Number(r.payout || 0);
     const actualPayout = actualTrifectaPayout(r);
     const rate = (r.status === 'hit' || r.status === 'miss') ? (wonPayout / Number(r.stake || STAKE_PER_RACE) * 100) : null;
+    const prediction = effectivePrediction(r);
     return `<tr class="${r.status === 'hit' ? 'hit-row' : r.status === 'miss' ? 'miss-row' : ''}">
-      <td class="race-name"><span class="venue">${r.venue}</span> ${r.raceNo}R</td>
-      <td>${predictionBoxes(r.prediction?.axes?.slice(0,1) || [], r)}</td>
-      <td>${predictionBoxes(r.prediction?.axes?.slice(1,2) || [], r)}</td>
-      <td>${predictionBoxes(r.prediction?.opponents || [], r)}</td>
+      <td class="race-name">${raceNameCell(r)}</td>
+      <td>${predictionBoxes(prediction.axes?.slice(0,1) || [], r)}</td>
+      <td>${predictionBoxes(prediction.axes?.slice(1,2) || [], r)}</td>
+      <td>${predictionBoxes(prediction.opponents || [], r)}</td>
       <td>${resultBoxes(r.result, r)}</td>
       <td>${judgement(r.status)}</td>
       <td class="money">${actualPayout == null ? '—' : yen(actualPayout)}</td>
@@ -105,6 +154,105 @@ function renderDay(day) {
   </section>`;
 }
 
+function indexHorseNumber(no, horseCount) {
+  const frame = frameNumber(no, horseCount);
+  return `<span class="horse-box index-horse-box frame-${frame}">${no}</span>`;
+}
+
+function selectionLabel(horse, detail) {
+  if (horse.no === detail.prediction.axes[0]) return '<span class="index-pick pick-main">本命</span>';
+  if (horse.no === detail.prediction.axes[1]) return '<span class="index-pick pick-second">対抗</span>';
+  if (detail.prediction.opponents.includes(horse.no)) return '<span class="index-pick pick-opponent">相手</span>';
+  if (horse.excluded) return '<span class="index-pick pick-excluded">除外</span>';
+  return '';
+}
+
+function renderIndexDetail(detail) {
+  const rows = detail.horses.map(horse => `
+    <tr class="${horse.excluded ? 'index-excluded-row' : ''}">
+      <td>${indexHorseNumber(horse.no, detail.horseCount)}</td>
+      <td class="index-horse-name">${horse.name}${selectionLabel(horse, detail)}</td>
+      ${horse.recent.map(value => `<td>${value}</td>`).join('')}
+      <td class="index-strong">${horse.recentIndex}</td>
+      <td>${horse.virtualPopularity}</td>
+      <td>${horse.pace}</td>
+      <td>${horse.courseDistance}</td>
+      <td class="index-total">${horse.total}</td>
+      <td class="index-rank">${horse.rank}</td>
+    </tr>`).join('');
+
+  return `
+    <div class="index-modal-backdrop" data-index-close="true">
+      <section class="index-modal" role="dialog" aria-modal="true" aria-labelledby="index-modal-title">
+        <div class="index-modal-header">
+          <div>
+            <h2 id="index-modal-title">${detail.title} 指数表</h2>
+            <p class="index-subtitle">展／時／成 ＝ 展開指数／タイム指数／成績指数</p>
+          </div>
+          <button class="index-modal-close" type="button" data-index-close="true" aria-label="指数表を閉じる">×</button>
+        </div>
+        <div class="index-table-scroll">
+          <table class="index-table">
+            <thead>
+              <tr>
+                <th>馬番</th><th>馬名</th><th>前走</th><th>2走前</th><th>3走前</th><th>4走前</th><th>5走前</th><th>近走</th><th>仮想人気</th><th>今回展開</th><th>コース距離</th><th>総合</th><th>順位</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        <div class="index-logic">
+          <h3>指数・予想ロジック</h3>
+          <p>近5走は各レースを「展開・タイム・成績」の3指数で個別評価し、すべて小数点を使わず1の位まで精査します。展開指数は通過順・位置取り・上がり・着差・ペースによる有利不利、タイム指数は走破時計・レースレベル・距離・馬場・着差・上がり、成績指数は着順に加えて重賞格や相手レベルを加味します。</p>
+          <p>1走ごとの評価は展開25％・タイム35％・成績40％を基本とし、近5走は前走から5：4：3：2：1で重み付けして「近走指数」を算出します。「仮想人気」は近5走の内容だけを基に順位化し、実際のオッズ・人気、今回の展開、今回のコース・距離適性は使用しません。</p>
+          <p>総合指数は、近走指数60％＋今回展開20％＋コース・距離適性20％を基本に算出します。今回展開は想定ペースと脚質・位置取りの噛み合わせ、コース・距離適性は札幌芝および芝2000mへの適性・実績を評価します。</p>
+          <p><strong>軸馬選定：</strong>本命は仮想3番人気以内のうち総合指数最上位、対抗は本命を除く仮想4番人気以内のうち総合指数最上位とします。ただし、仮想3番人気以内で総合指数最下位の馬は買い目から除外します。相手はそれ以外から総合指数上位を選び、頭数は「出走頭数の2分の1切上げ、または7頭以内」の既定ルールに従います。</p>
+          <p><strong>札幌11R：</strong>本命⑧サクラファレル、対抗⑬グランディア。仮想3番人気以内で総合指数最下位の⑩アドマイヤテラを除外し、相手は⑮シェイクユアハート、⑦ショウヘイ、④マジックサンズ、⑨マイネルモーント、⑥ローシャムパークの5頭です。</p>
+        </div>
+      </section>
+    </div>`;
+}
+
+let lastIndexTrigger = null;
+
+function openIndexDetail(raceId, trigger) {
+  const detail = RACE_INDEX_DETAILS[raceId];
+  if (!detail) return;
+  closeIndexDetail(false);
+  lastIndexTrigger = trigger || null;
+  document.body.insertAdjacentHTML('beforeend', renderIndexDetail(detail));
+  document.body.classList.add('index-modal-open');
+  document.querySelector('.index-modal-close')?.focus();
+}
+
+function closeIndexDetail(restoreFocus = true) {
+  document.querySelector('.index-modal-backdrop')?.remove();
+  document.body.classList.remove('index-modal-open');
+  if (restoreFocus) lastIndexTrigger?.focus();
+  lastIndexTrigger = null;
+}
+
+function bindIndexDetails() {
+  document.addEventListener('click', event => {
+    const trigger = event.target instanceof Element ? event.target.closest('.race-detail-trigger') : null;
+    if (trigger) {
+      openIndexDetail(trigger.dataset.raceId, trigger);
+      return;
+    }
+
+    const close = event.target instanceof Element ? event.target.closest('[data-index-close="true"]') : null;
+    if (!close) return;
+    if (close.classList.contains('index-modal-backdrop') && event.target !== close) return;
+    closeIndexDetail();
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && document.querySelector('.index-modal-backdrop')) {
+      closeIndexDetail();
+    }
+  });
+}
+
 /*
  * SPで横方向に「引っ張る」操作が端を越えないようにする。
  * - 表の途中では通常どおり横スクロール可能
@@ -122,7 +270,7 @@ function lockHorizontalPull() {
     const touch = event.touches[0];
     startX = touch.clientX;
     startY = touch.clientY;
-    scroller = event.target instanceof Element ? event.target.closest('.table-scroll') : null;
+    scroller = event.target instanceof Element ? event.target.closest('.table-scroll, .index-table-scroll') : null;
   }, { passive: true });
 
   document.addEventListener('touchmove', event => {
@@ -168,6 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
   backToTop?.addEventListener('click', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
+  bindIndexDetails();
   lockHorizontalPull();
   boot();
 });
