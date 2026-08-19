@@ -62,7 +62,7 @@ body {
   white-space: nowrap;
 }
 .site-title:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; border-radius: 3px; }
-.day-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin: 0 auto 20px; width: fit-content; max-width: 100%; }
+.day-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin: 0 auto 10px; width: fit-content; max-width: 100%; }
 .day-top {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) 30px;
@@ -349,7 +349,7 @@ body.index-modal-open { overflow: hidden; }
   .page-shell { width: calc(100% - 12px); padding: 0 0 40px; }
   .site-header { margin: 0 -6px 8px; padding: 0 6px; }
   .site-title { font-size: clamp(24px, 7vw, 34px); line-height: 1; }
-  .day-card { border-radius: 12px; margin-bottom: 16px; }
+  .day-card { border-radius: 12px; margin-bottom: 8px; }
   .day-top {
     grid-template-columns: minmax(0, 1fr) 30px;
     grid-template-areas:
