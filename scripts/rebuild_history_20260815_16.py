@@ -26,6 +26,7 @@ import json
 import math
 import re
 import subprocess
+import traceback
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -59,9 +60,17 @@ SAPPORO11_RANK = {
     9: 9, 11: 10, 5: 11, 16: 12, 6: 13, 1: 14, 2: 15, 3: 16,
 }
 
-REBUILD_VERSION = "predictjra-history-20260815-16-v1"
+REBUILD_VERSION = "predictjra-history-20260815-16-v2-robust"
 SOURCE_REPO = "sugaimo15/keibayosoku"
 SOURCE_REF = "claude/horse-racing-predictor-ak6crm"
+
+# Known race-condition metadata gaps in the archived source.
+# Values here come from authoritative pre-race race-program information.
+RACE_METADATA_OVERRIDES = {
+    "202604020709": {"surface": "障害", "distance_m": 3250.0},  # 新潟ジャンプS
+}
+
+DIAGNOSTIC_PATH_DEFAULT = Path("data/rebuild_diagnostics_20260815_16.json")
 
 
 def clean_str(v) -> str:
@@ -309,6 +318,12 @@ def course_index_for_horse(
     distance_m: float,
     proxy: float,
 ) -> float:
+    """Course suitability with graceful degradation for incomplete metadata.
+
+    Missing distance/surface is not grounds to abort an otherwise valid race.
+    Exact-course evidence is used when available; otherwise venue/distance history
+    is used, and finally the pre-race proxy is returned as a neutral fallback.
+    """
     if horse_hist.empty:
         return clamp_index(min(78, 0.82 * proxy + 0.18 * 72))
 
@@ -316,42 +331,57 @@ def course_index_for_horse(
     h = horse_hist.copy()
     h["_track_code"] = h["race_id"].astype(str).str[4:6]
     h["_distance"] = pd.to_numeric(h.get("distance_m"), errors="coerce")
-    h["_surface"] = h.get("surface", pd.Series(index=h.index, dtype=object)).apply(clean_str)
+    h["_surface"] = h.get(
+        "surface", pd.Series(index=h.index, dtype=object)
+    ).apply(clean_str)
 
-    exact = h[
-        (h["_track_code"] == track_code)
-        & (h["_surface"] == surface)
-        & ((h["_distance"] - distance_m).abs() <= 100)
-    ]
-    venue = h[(h["_track_code"] == track_code) & (h["_surface"] == surface)]
-    distance = h[
-        (h["_surface"] == surface)
-        & ((h["_distance"] - distance_m).abs() <= 200)
-    ]
+    valid_distance = math.isfinite(float(distance_m)) and float(distance_m) > 0
+    valid_surface = bool(clean_str(surface))
 
     def score(frame: pd.DataFrame, cap: float) -> float | None:
         if frame.empty:
             return None
-        # コース適性も最新ロジックの「近5走」に合わせる。
-        vals = pd.to_numeric(frame["_run_composite"], errors="coerce").dropna().tail(5).tolist()
+        vals = (
+            pd.to_numeric(frame["_run_composite"], errors="coerce")
+            .dropna()
+            .tail(5)
+            .tolist()
+        )
         if not vals:
             return None
         value = 0.72 * recency_weighted(list(reversed(vals))) + 0.28 * max(vals)
         return min(cap, value)
 
-    exact_score = score(exact, 98)
-    if exact_score is not None:
-        return clamp_index(0.84 * exact_score + 0.16 * proxy)
+    # Best case: same venue + same surface + nearly same distance.
+    if valid_distance and valid_surface:
+        exact = h[
+            (h["_track_code"] == track_code)
+            & (h["_surface"] == surface)
+            & ((h["_distance"] - float(distance_m)).abs() <= 100)
+        ]
+        exact_score = score(exact, 98)
+        if exact_score is not None:
+            return clamp_index(0.84 * exact_score + 0.16 * proxy)
 
-    venue_score = score(venue, 86)
+    # Same venue; retain surface filter when known.
+    venue = h[h["_track_code"] == track_code]
+    if valid_surface:
+        venue = venue[venue["_surface"] == surface]
+    venue_score = score(venue, 86 if valid_surface else 82)
     if venue_score is not None:
-        return clamp_index(0.80 * venue_score + 0.20 * proxy)
+        return clamp_index(0.78 * venue_score + 0.22 * proxy)
 
-    distance_score = score(distance, 82)
-    if distance_score is not None:
-        return clamp_index(0.78 * distance_score + 0.22 * proxy)
+    # Same/similar distance elsewhere; retain surface filter when known.
+    if valid_distance:
+        distance = h[(h["_distance"] - float(distance_m)).abs() <= 200]
+        if valid_surface:
+            distance = distance[distance["_surface"] == surface]
+        distance_score = score(distance, 82 if valid_surface else 79)
+        if distance_score is not None:
+            return clamp_index(0.76 * distance_score + 0.24 * proxy)
 
-    return clamp_index(min(78, 0.82 * proxy + 0.18 * 72))
+    # No trustworthy course metadata/history: neutral pre-race fallback.
+    return clamp_index(min(78, 0.88 * proxy + 0.12 * 72))
 
 
 def build_index_detail(
@@ -369,15 +399,26 @@ def build_index_detail(
 
     pmap = pred.set_index("horse_number")
 
-    # Race conditions are known before the race. Prefer the archived race card,
-    # then the archived prediction snapshot. The result archive is only a
-    # metadata fallback when the pre-race CSV omitted/serialized the value.
+    # Race conditions are known before the race. Prefer archived pre-race metadata,
+    # then result metadata strictly for condition fields, then an authoritative
+    # per-race override. If still missing, continue with a neutral course fallback.
+    quality_warnings: list[str] = []
     race_distance = first_race_distance(card2, pred, result)
-    if not math.isfinite(race_distance) or race_distance <= 0:
-        raise ValueError(
-            f"{race_id}: distance_m unavailable in card/pred/result metadata"
-        )
     race_surface = first_race_surface(card2, pred, result)
+
+    override = RACE_METADATA_OVERRIDES.get(race_id, {})
+    if (not math.isfinite(race_distance) or race_distance <= 0) and override.get("distance_m"):
+        race_distance = float(override["distance_m"])
+        quality_warnings.append("distance_m supplemented from authoritative race-program override")
+    if not race_surface and override.get("surface"):
+        race_surface = clean_str(override["surface"])
+        quality_warnings.append("surface supplemented from authoritative race-program override")
+
+    if not math.isfinite(race_distance) or race_distance <= 0:
+        race_distance = math.nan
+        quality_warnings.append("distance_m unavailable; course index used neutral fallback")
+    if not race_surface:
+        quality_warnings.append("surface unavailable; course index used neutral fallback")
 
     horse_context = {}
     front_type_count = 0
@@ -506,6 +547,11 @@ def build_index_detail(
         "title": title,
         "horseCount": len(horses),
         "paceRegime": pace_regime,
+        "raceConditions": {
+            "surface": race_surface or None,
+            "distanceM": int(race_distance) if math.isfinite(race_distance) else None,
+        },
+        "qualityWarnings": quality_warnings,
         "horses": horses,
     }
     total_display_map = {h["no"]: int(h["total"]) for h in horses}
@@ -527,6 +573,83 @@ class RaceModel:
     popularity_features: pd.DataFrame
     actual_popularity: dict[int, int]
     index_detail: dict
+
+
+
+def build_fallback_index_detail(
+    race_id: str,
+    card: pd.DataFrame,
+    pred: pd.DataFrame,
+    reason: str,
+) -> tuple[dict, dict[int, float], dict[int, int], dict[int, float]]:
+    """Last-resort modal data from validated pre-race model scores only.
+
+    This prevents a non-critical display-index issue from blocking all 72 races.
+    The fallback is explicitly marked in qualityWarnings and never uses target results.
+    """
+    card2 = card.copy()
+    card2["horse_number"] = pd.to_numeric(
+        card2["horse_number"], errors="coerce"
+    )
+    card2 = card2[card2["horse_number"].notna()].copy()
+    card2["horse_number"] = card2["horse_number"].astype(int)
+
+    p = pred.copy()
+    p["horse_number"] = pd.to_numeric(p["horse_number"], errors="coerce")
+    p = p[p["horse_number"].notna()].copy()
+    p["horse_number"] = p["horse_number"].astype(int)
+    if "rule_norm" not in p.columns:
+        p["rule_norm"] = minmax(p.get("score", pd.Series(0.5, index=p.index)))
+    if "ml_norm" not in p.columns:
+        p["ml_norm"] = minmax(p.get("ml_win_prob", pd.Series(0.5, index=p.index)))
+    p["fallback_raw"] = 0.65 * p["rule_norm"] + 0.35 * p["ml_norm"]
+    pmap = p.set_index("horse_number")
+
+    horses = []
+    totals = {}
+    for _, row in card2.iterrows():
+        no = int(row["horse_number"])
+        if no in pmap.index:
+            raw = float(pmap.loc[no, "fallback_raw"])
+        else:
+            raw = 0.5
+        total = clamp_index(55 + 40 * raw)
+        recent_i = clamp_index(53 + 42 * raw)
+        pace_i = clamp_index(58 + 34 * raw)
+        course_i = clamp_index(0.88 * total + 0.12 * 72)
+        today_i = clamp_index(0.50 * pace_i + 0.50 * course_i)
+        internal = 0.60 * recent_i + 0.40 * today_i
+        totals[no] = float(internal)
+        horses.append({
+            "no": no,
+            "name": clean_str(row.get("horse_name")),
+            "recent": ["評価外"] * 5,
+            "recentIndex": int(round(recent_i)),
+            "pace": int(round(pace_i)),
+            "course": int(round(course_i)),
+            "today": int(round(today_i)),
+            "total": int(round(clamp_index(internal))),
+        })
+
+    ordered = sorted(horses, key=lambda h: (-totals[h["no"]], h["no"]))
+    rank_map = {h["no"]: i + 1 for i, h in enumerate(ordered)}
+    for h in horses:
+        h["rank"] = rank_map[h["no"]]
+
+    venue = TRACKS.get(race_id[4:6], race_id[4:6])
+    race_no = int(race_id[-2:])
+    race_name = clean_str(card2.get("race_name", pd.Series([""])).iloc[0]) if len(card2) else ""
+    detail = {
+        "title": f"{venue}{race_no}R" + (f" {race_name}" if race_name else ""),
+        "horseCount": len(horses),
+        "paceRegime": "unknown",
+        "raceConditions": {"surface": None, "distanceM": None},
+        "qualityWarnings": [f"fallback index detail used: {reason}"],
+        "horses": horses,
+    }
+    total_display = {h["no"]: h["total"] for h in horses}
+    tie_order = {h["no"]: float(h["rank"]) for h in horses}
+    return detail, totals, total_display, tie_order
 
 
 def validate_no_market_input(card: pd.DataFrame, pred: pd.DataFrame, race_id: str) -> None:
@@ -587,13 +710,18 @@ def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: p
     p["rule_norm"] = minmax(p["score"])
     p["ml_norm"] = minmax(p["ml_win_prob"])
 
-    index_detail, total_internal, total_display, tie_order = build_index_detail(
-        race_id, date_s, card, p, result, history
-    )
+    try:
+        index_detail, total_internal, total_display, tie_order = build_index_detail(
+            race_id, date_s, card, p, result, history
+        )
+    except Exception as exc:
+        index_detail, total_internal, total_display, tie_order = build_fallback_index_detail(
+            race_id, card, p, f"{type(exc).__name__}: {exc}"
+        )
 
     # 札幌記念は既に個別検証済みの詳細指数があるため、選定用の総合値は
     # その手作業レビュー値を優先する。画面も app.js の詳細表を優先表示する。
-    if race_id == SAPPORO11_ID:
+    if race_id == SAPPORO11_ID and set(card_nums) == set(SAPPORO11_TOTAL):
         total_internal = {n: float(v) for n, v in SAPPORO11_TOTAL.items()}
         total_display = dict(SAPPORO11_TOTAL)
         tie_order = {n: float(v) for n, v in SAPPORO11_RANK.items()}
@@ -884,6 +1012,7 @@ def main() -> int:
     parser.add_argument("--data-path", default="data/races.json", type=Path)
     parser.add_argument("--audit-path", default="data/rebuild_audit_20260815_16.json", type=Path)
     parser.add_argument("--pop-model-path", default="data/popularity_model_20260815_16.json", type=Path)
+    parser.add_argument("--diagnostic-path", default=DIAGNOSTIC_PATH_DEFAULT, type=Path)
     args = parser.parse_args()
 
     source_root = args.source_root.resolve()
@@ -923,15 +1052,46 @@ def main() -> int:
         f"horses={history['horse_id'].nunique()}"
     )
 
+    build_errors = []
     for date_s, f in target_files:
         print(f"Rebuilding {f.stem} ({date_s})...")
-        race = build_race_model(source_root, date_s, f, history)
-        if race.race_id in races:
-            raise RuntimeError(f"duplicate race {race.race_id}")
-        races[race.race_id] = race
+        try:
+            race = build_race_model(source_root, date_s, f, history)
+            if race.race_id in races:
+                raise RuntimeError(f"duplicate race {race.race_id}")
+            races[race.race_id] = race
+        except Exception as exc:
+            build_errors.append({
+                "date": date_s,
+                "raceId": f.stem,
+                "errorType": type(exc).__name__,
+                "message": str(exc),
+                "traceback": traceback.format_exc(),
+            })
+            print(f"  ERROR {f.stem}: {type(exc).__name__}: {exc}")
 
-    if len(races) != EXPECTED_TOTAL_RACES:
-        raise RuntimeError(f"expected {EXPECTED_TOTAL_RACES} races, got {len(races)}")
+    if build_errors or len(races) != EXPECTED_TOTAL_RACES:
+        diagnostic = {
+            "generatedAt": datetime.now(JST).isoformat(timespec="seconds"),
+            "stage": "race-preflight",
+            "expectedRaces": EXPECTED_TOTAL_RACES,
+            "builtRaces": len(races),
+            "errorCount": len(build_errors),
+            "errors": build_errors,
+        }
+        args.diagnostic_path.parent.mkdir(parents=True, exist_ok=True)
+        args.diagnostic_path.write_text(
+            json.dumps(diagnostic, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        summary = "\n".join(
+            f"- {e['raceId']}: {e['errorType']}: {e['message']}"
+            for e in build_errors
+        )
+        raise RuntimeError(
+            f"Preflight found {len(build_errors)} critical race errors "
+            f"({len(races)}/{EXPECTED_TOTAL_RACES} built).\n{summary}"
+        )
 
     estimated_pops, pop_metrics = estimate_popularities(races)
 
@@ -1002,7 +1162,11 @@ def main() -> int:
                 h["expectedPopularity"] = int(est_pop[no])
                 h["excluded"] = int(no) == int(danger)
                 # For Sapporo11 the frontend uses the separately reviewed hardcoded detail.
-                if rid == SAPPORO11_ID and no in SAPPORO11_TOTAL:
+                if (
+                    rid == SAPPORO11_ID
+                    and set(index_horses) == set(SAPPORO11_TOTAL)
+                    and no in SAPPORO11_TOTAL
+                ):
                     h["total"] = int(SAPPORO11_TOTAL[no])
                     h["rank"] = int(SAPPORO11_RANK[no])
             index_detail["prediction"] = {
@@ -1078,6 +1242,7 @@ def main() -> int:
                 "popularityMAE": round(mae, 3),
                 "indexDetailGenerated": True,
                 "indexHorseCount": len(index_detail.get("horses", [])),
+                "indexQualityWarnings": index_detail.get("qualityWarnings", []),
                 "nonStarters": sorted(
                     set(int(x) for x in race.card["horse_number"])
                     - set(race.actual_popularity)
@@ -1167,8 +1332,13 @@ def main() -> int:
                 "previous-run/detail indices use only archived race results with date < target race date"
             ),
             "raceConditionMetadataFallback": (
-                "surface/distance may fall back to the target result archive only when "
-                "pre-race CSV metadata is missing; target result performance is never used"
+                "surface/distance may fall back to target result metadata or an authoritative "
+                "race-program override; if still missing, course index degrades neutrally "
+                "instead of aborting. Target result performance is never used"
+            ),
+            "indexDetailFailurePolicy": (
+                "non-critical modal-index exceptions fall back to validated pre-race scores; "
+                "critical race input errors are collected across all races and reported together"
             ),
         },
         "raceCount": len(audit_races),
@@ -1207,6 +1377,27 @@ def main() -> int:
     )
     args.pop_model_path.write_text(
         json.dumps(pop_model, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    args.diagnostic_path.parent.mkdir(parents=True, exist_ok=True)
+    args.diagnostic_path.write_text(
+        json.dumps({
+            "generatedAt": datetime.now(JST).isoformat(timespec="seconds"),
+            "stage": "complete",
+            "expectedRaces": EXPECTED_TOTAL_RACES,
+            "builtRaces": len(audit_races),
+            "errorCount": 0,
+            "warnings": [
+                {
+                    "raceId": r["raceId"],
+                    "qualityWarnings": r.get("modelMeta", {}).get("indexDetail", {}).get("qualityWarnings", []),
+                }
+                for d in data.get("days", [])
+                if d.get("date") in TARGET_DATES
+                for r in d.get("races", [])
+                if r.get("modelMeta", {}).get("indexDetail", {}).get("qualityWarnings")
+            ],
+        }, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
     )
 
     print(json.dumps({
