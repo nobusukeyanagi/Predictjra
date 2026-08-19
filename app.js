@@ -638,7 +638,7 @@ async function boot() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function initializeApp() {
   const backToTop = document.getElementById('back-to-top');
   backToTop?.addEventListener('click', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -647,4 +647,10 @@ document.addEventListener('DOMContentLoaded', () => {
   bindIndexDetails();
   lockHorizontalPull();
   boot();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeApp, { once: true });
+} else {
+  initializeApp();
+}
