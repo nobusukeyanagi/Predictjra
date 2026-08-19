@@ -438,8 +438,8 @@ body.index-modal-open { overflow: hidden; }
   -webkit-user-select: none;
   text-align: center;
   vertical-align: middle;
-  padding-top: 5px;
-  padding-bottom: 11px;
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 .index-table th.index-sortable:hover {
   filter: brightness(.96);
@@ -452,13 +452,14 @@ body.index-modal-open { overflow: hidden; }
   content: "";
   position: absolute;
   left: 50%;
-  bottom: 3px;
+  bottom: 2px;
   width: 0;
   height: 0;
   transform: translateX(-50%);
   border-left: 3px solid transparent;
   border-right: 3px solid transparent;
   opacity: 0;
+  pointer-events: none;
 }
 .index-table th.index-sortable[data-sort-direction="asc"]::after {
   border-bottom: 4px solid currentColor;
@@ -472,4 +473,9 @@ body.index-modal-open { overflow: hidden; }
 .index-table thead th {
   text-align: center;
   vertical-align: middle;
+}
+
+.index-table thead th {
+  text-align: center !important;
+  vertical-align: middle !important;
 }
