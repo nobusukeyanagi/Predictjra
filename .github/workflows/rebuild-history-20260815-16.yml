@@ -1,0 +1,79 @@
+name: Rebuild 2026-08-15 and 2026-08-16
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'scripts/rebuild_history_20260815_16.py'
+      - '.github/workflows/rebuild-history-20260815-16.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rebuild-history-20260815-16
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Predictjra
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pandas numpy
+
+      - name: Checkout historical pre-race archive
+        shell: bash
+        run: |
+          git clone --depth 1 \
+            --branch claude/horse-racing-predictor-ak6crm \
+            https://github.com/sugaimo15/keibayosoku.git \
+            "$RUNNER_TEMP/keibayosoku"
+
+      - name: Rebuild and validate 72 races
+        shell: bash
+        run: |
+          python scripts/rebuild_history_20260815_16.py \
+            --source-root "$RUNNER_TEMP/keibayosoku"
+
+      - name: Show rebuild summary
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("data/rebuild_audit_20260815_16.json")
+          a = json.loads(p.read_text(encoding="utf-8"))
+          print("raceCount:", a["raceCount"])
+          print("daily:", json.dumps(a["daily"], ensure_ascii=False, indent=2))
+          print("popularity:", json.dumps(a["popularityModel"], ensure_ascii=False, indent=2))
+          print("oldResultMismatchCount:", a["oldResultMismatchCount"])
+          PY
+
+      - name: Commit rebuilt data
+        shell: bash
+        run: |
+          if git diff --quiet -- \
+            data/races.json \
+            data/rebuild_audit_20260815_16.json \
+            data/popularity_model_20260815_16.json; then
+            echo "No rebuild changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            data/races.json \
+            data/rebuild_audit_20260815_16.json \
+            data/popularity_model_20260815_16.json
+          git commit -m "Rebuild JRA predictions for 2026-08-15 and 2026-08-16"
+          git push
