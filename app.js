@@ -167,6 +167,13 @@ function selectionLabel(horse, detail) {
   return '<span class="index-eval-empty">—</span>';
 }
 
+function recentIndexMarkup(value) {
+  if (value === '評価外') return '<span class="index-recent-na">評価外</span>';
+  const parts = String(value).split('/');
+  if (parts.length !== 3) return value;
+  return `<span class="index-recent-score"><span class="index-recent-label">展</span>${parts[0]}<span class="index-recent-label">時</span>${parts[1]}<span class="index-recent-label">成</span>${parts[2]}</span>`;
+}
+
 function renderIndexDetail(detail) {
   const rows = detail.horses.map(horse => `
     <tr>
@@ -176,7 +183,7 @@ function renderIndexDetail(detail) {
       <td class="index-total">${horse.total}</td>
       <td class="index-rank">${horse.rank}</td>
       <td>${horse.virtualPopularity}</td>
-      ${horse.recent.map(value => `<td>${value}</td>`).join('')}
+      ${horse.recent.map(value => `<td>${recentIndexMarkup(value)}</td>`).join('')}
       <td class="index-strong">${horse.recentIndex}</td>
       <td>${horse.pace}</td>
       <td>${horse.courseDistance}</td>
@@ -187,8 +194,7 @@ function renderIndexDetail(detail) {
       <section class="index-modal" role="dialog" aria-modal="true" aria-labelledby="index-modal-title">
         <div class="index-modal-header">
           <div>
-            <h2 id="index-modal-title">${detail.title} 指数表</h2>
-            <p class="index-subtitle">展／時／成 ＝ 展開指数／タイム指数／成績指数</p>
+            <h2 id="index-modal-title">${detail.title}</h2>
           </div>
           <button class="index-modal-close" type="button" data-index-close="true" aria-label="指数表を閉じる">×</button>
         </div>
