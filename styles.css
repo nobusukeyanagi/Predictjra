@@ -493,3 +493,16 @@ body.index-modal-open { overflow: hidden; }
 .index-logic-item p {
   margin: 0;
 }
+
+
+/* モーダル表を少しコンパクトに */
+.index-table th,
+.index-table td {
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+  line-height: 1.25;
+}
+.index-table th.index-sortable {
+  padding-top: 6px !important;
+  padding-bottom: 8px !important;
+}

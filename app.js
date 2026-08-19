@@ -388,7 +388,10 @@ function sortIndexTable(header) {
   if (columnIndex < 0) return;
 
   const previousDirection = header.dataset.sortDirection;
-  const direction = previousDirection === 'asc' ? 'desc' : 'asc';
+  const firstDirection = header.dataset.initialSort || 'asc';
+  const direction = previousDirection
+    ? (previousDirection === 'asc' ? 'desc' : 'asc')
+    : firstDirection;
 
   headers.forEach(th => {
     delete th.dataset.sortDirection;
@@ -441,7 +444,7 @@ function renderIndexDetail(detail) {
           <table class="index-table">
             <thead>
               <tr>
-                <th class="index-sortable" tabindex="0" role="button" aria-sort="none">評価</th><th class="index-sortable" tabindex="0" role="button" aria-sort="ascending" data-sort-direction="asc">馬番</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">馬名</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">想人</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">総合</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">順位</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">前走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">2走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">3走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">4走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">5走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">近走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">展開</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">コース</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">今回</th>
+                <th class="index-sortable" tabindex="0" role="button" aria-sort="none">評価</th><th class="index-sortable" tabindex="0" role="button" aria-sort="ascending" data-sort-direction="asc">馬番</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">馬名</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">想人</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">総合</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">順位</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">前走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">2走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">3走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">4走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">5走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">近走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">展開</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">コース</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">今回</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
