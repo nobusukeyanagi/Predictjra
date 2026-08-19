@@ -506,3 +506,9 @@ body.index-modal-open { overflow: hidden; }
   padding-top: 6px !important;
   padding-bottom: 8px !important;
 }
+
+
+.index-pick.pick-danger {
+  background: #6f42c1;
+  color: #fff;
+}

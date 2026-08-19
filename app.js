@@ -330,7 +330,7 @@ function selectionLabel(horse, detail) {
   if (horse.no === detail.prediction.axes[0]) return '<span class="index-pick pick-main">本命</span>';
   if (horse.no === detail.prediction.axes[1]) return '<span class="index-pick pick-second">対抗</span>';
   if (detail.prediction.opponents.includes(horse.no)) return '<span class="index-pick pick-opponent">相手</span>';
-  if (horse.excluded) return '<span class="index-danger" role="img" aria-label="危険" title="危険">&#9888;&#xfe0e;</span>';
+  if (horse.excluded) return '<span class="index-pick pick-danger">危険</span>';
   return '<span class="index-eval-empty">—</span>';
 }
 
