@@ -180,21 +180,94 @@ function recentIndexMarkup(value) {
   return `<span class="index-recent-score"><span class="index-recent-label">展</span>${parts[0]}<span class="index-recent-label">時</span>${parts[1]}<span class="index-recent-label">成</span>${parts[2]}</span>`;
 }
 
-function renderIndexDetail(detail) {
-  const rows = detail.horses.map(horse => `
+
+function recentSortValue(value) {
+  if (value === '評価外') return -1;
+  const parts = String(value).split('/').map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return -1;
+  return parts[0] * 0.25 + parts[1] * 0.35 + parts[2] * 0.40;
+}
+
+function evaluationSortValue(horse, detail) {
+  const firstAxis = detail.prediction?.axes?.[0];
+  const secondAxis = detail.prediction?.axes?.[1];
+  const opponents = detail.prediction?.opponents || [];
+  const excluded = detail.prediction?.excluded || [];
+  if (horse.no === firstAxis) return 1;
+  if (horse.no === secondAxis) return 2;
+  if (opponents.includes(horse.no)) return 3;
+  if (excluded.includes(horse.no)) return 4;
+  return 5;
+}
+
+function indexHorseRow(horse, detail) {
+  return `
     <tr>
-      <td class="index-evaluation">${selectionLabel(horse, detail)}</td>
-      <td>${indexHorseNumber(horse.no, detail.horseCount)}</td>
-      <td class="index-horse-name">${horse.name}</td>
-      <td class="index-popularity">${horse.expectedPopularity}</td>
-      <td class="index-total">${horse.total}</td>
-      <td class="index-rank">${horse.rank}</td>
-      ${horse.recent.map(value => `<td>${recentIndexMarkup(value)}</td>`).join('')}
-      <td class="index-strong index-recent-total">${horse.recentIndex}</td>
-      <td>${horse.pace}</td>
-      <td>${horse.course}</td>
-      <td class="index-strong index-today">${horse.today}</td>
-    </tr>`).join('');
+      <td class="index-evaluation" data-sort-value="${evaluationSortValue(horse, detail)}">${selectionLabel(horse, detail)}</td>
+      <td data-sort-value="${horse.no}">${indexHorseNumber(horse.no, detail.horseCount)}</td>
+      <td class="index-horse-name" data-sort-value="${horse.name}">${horse.name}</td>
+      <td class="index-popularity" data-sort-value="${horse.expectedPopularity}">${horse.expectedPopularity}</td>
+      <td class="index-total" data-sort-value="${horse.total}">${horse.total}</td>
+      <td class="index-rank" data-sort-value="${horse.rank}">${horse.rank}</td>
+      ${horse.recent.map(value => `<td data-sort-value="${recentSortValue(value)}">${recentIndexMarkup(value)}</td>`).join('')}
+      <td class="index-strong index-recent-total" data-sort-value="${horse.recentIndex}">${horse.recentIndex}</td>
+      <td data-sort-value="${horse.pace}">${horse.pace}</td>
+      <td data-sort-value="${horse.course}">${horse.course}</td>
+      <td class="index-strong index-today" data-sort-value="${horse.today}">${horse.today}</td>
+    </tr>`;
+}
+
+function sortIndexTable(header) {
+  const table = header.closest('.index-table');
+  const tbody = table?.querySelector('tbody');
+  if (!table || !tbody) return;
+
+  const headers = [...table.querySelectorAll('thead th')];
+  const columnIndex = headers.indexOf(header);
+  if (columnIndex < 0) return;
+
+  const previousDirection = header.dataset.sortDirection;
+  const direction = previousDirection === 'asc' ? 'desc' : 'asc';
+
+  headers.forEach(th => {
+    delete th.dataset.sortDirection;
+    th.setAttribute('aria-sort', 'none');
+  });
+  header.dataset.sortDirection = direction;
+  header.setAttribute('aria-sort', direction === 'asc' ? 'ascending' : 'descending');
+
+  const rows = [...tbody.querySelectorAll('tr')];
+  rows.sort((a, b) => {
+    const aCell = a.children[columnIndex];
+    const bCell = b.children[columnIndex];
+    const aRaw = aCell?.dataset.sortValue ?? '';
+    const bRaw = bCell?.dataset.sortValue ?? '';
+
+    const aNum = Number(aRaw);
+    const bNum = Number(bRaw);
+    let cmp;
+    if (aRaw !== '' && bRaw !== '' && Number.isFinite(aNum) && Number.isFinite(bNum)) {
+      cmp = aNum - bNum;
+    } else {
+      cmp = String(aRaw).localeCompare(String(bRaw), 'ja');
+    }
+
+    if (cmp === 0) {
+      const aNo = Number(a.children[1]?.dataset.sortValue ?? 0);
+      const bNo = Number(b.children[1]?.dataset.sortValue ?? 0);
+      cmp = aNo - bNo;
+    }
+    return direction === 'asc' ? cmp : -cmp;
+  });
+
+  rows.forEach(row => tbody.appendChild(row));
+}
+
+function renderIndexDetail(detail) {
+  const rows = [...detail.horses]
+    .sort((a, b) => a.no - b.no)
+    .map(horse => indexHorseRow(horse, detail))
+    .join('');
 
   return `
     <div class="index-modal-backdrop" data-index-close="true">
@@ -207,7 +280,7 @@ function renderIndexDetail(detail) {
           <table class="index-table">
             <thead>
               <tr>
-                <th>評価</th><th>馬番</th><th>馬名</th><th>想人</th><th>総合</th><th>順位</th><th>前走</th><th>2走前</th><th>3走前</th><th>4走前</th><th>5走前</th><th>近走</th><th>展開</th><th>コース</th><th>今回</th>
+                <th class="index-sortable" tabindex="0" role="button" aria-sort="none">評価</th><th class="index-sortable" tabindex="0" role="button" aria-sort="ascending" data-sort-direction="asc">馬番</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">馬名</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">想人</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">総合</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">順位</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">前走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">2走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">3走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">4走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">5走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">近走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">展開</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">コース</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">今回</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -255,6 +328,12 @@ function bindDayToggles() {
 
 function bindIndexDetails() {
   document.addEventListener('click', event => {
+    const sortHeader = event.target instanceof Element ? event.target.closest('.index-table th.index-sortable') : null;
+    if (sortHeader) {
+      sortIndexTable(sortHeader);
+      return;
+    }
+
     const trigger = event.target instanceof Element ? event.target.closest('.race-detail-trigger') : null;
     if (trigger) {
       openIndexDetail(trigger.dataset.raceId, trigger);
@@ -268,6 +347,13 @@ function bindIndexDetails() {
   });
 
   document.addEventListener('keydown', event => {
+    const sortHeader = event.target instanceof Element ? event.target.closest('.index-table th.index-sortable') : null;
+    if (sortHeader && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault();
+      sortIndexTable(sortHeader);
+      return;
+    }
+
     if (event.key === 'Escape' && document.querySelector('.index-modal-backdrop')) {
       closeIndexDetail();
     }
