@@ -145,6 +145,15 @@ def load_popularity_model() -> dict:
     return {}
 
 
+def load_time_baselines() -> dict:
+    path = Path(__file__).resolve().parents[1] / "data" / "time_baselines.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
 def entity_prior(model: dict, kind: str, entity_id: str, entity_name: str) -> float:
     priors = model.get("entityPriors") or {}
     by_id = priors.get(kind) or {}
@@ -181,6 +190,10 @@ def parse_history_cell(text: str) -> dict | None:
     sd = re.search(r"(芝|ダ|障(?:害)?)\s*(\d{3,4})", raw)
     surface = normalize_surface(sd.group(1)) if sd else ""
     distance = float(sd.group(2)) if sd else math.nan
+    condition_match = re.search(
+        r"(?:芝|ダ|障(?:害)?)\s*\d{3,4}\s*m?\s*(稍重|不良|良|重)", raw
+    )
+    track_condition = condition_match.group(1) if condition_match else ""
 
     tm = re.search(r"(?<!\d)(\d+:\d{2}\.\d)(?!\d)", raw)
     time_text = tm.group(1) if tm else ""
@@ -216,6 +229,7 @@ def parse_history_cell(text: str) -> dict | None:
         "carriedWeight": carried_weight,
         "surface": surface,
         "distance": distance,
+        "trackCondition": track_condition,
         "time": time_text,
         "last3f": last3f,
         "positions": positions,
@@ -457,6 +471,16 @@ def build_prediction(card: dict) -> dict:
     if horse_count < 5:
         raise ValueError(f"{card['raceId']}: need at least 5 horses, got {horse_count}")
 
+    core_kwargs = {
+        "venue": card["venue"],
+        "surface": card.get("surface", ""),
+        "distance_m": card.get("distanceM"),
+    }
+    # Production v2 does not accept the v3-only keyword. Until apply promotes v3,
+    # keep the live adapter perfectly backward-compatible with the current production file.
+    if "v3-run-flow-power" in str(MODEL_VERSION):
+        core_kwargs["time_baselines"] = load_time_baselines()
+
     index_core = build_index_core(
         [
             {
@@ -467,9 +491,7 @@ def build_prediction(card: dict) -> dict:
             }
             for entry in entries
         ],
-        venue=card["venue"],
-        surface=card.get("surface", ""),
-        distance_m=card.get("distanceM"),
+        **core_kwargs,
     )
     detail_horses = index_core["horses"]
     totals = index_core["totals"]
@@ -551,8 +573,12 @@ def build_prediction(card: dict) -> dict:
             "totalIndex": {str(h["no"]): int(h["total"]) for h in detail_horses},
             "indexDetail": index_detail,
             "performanceSource": (
-                "netkeiba pre-race 5-run card; per-run 展開/タイム/成績; "
-                "近走60% + 今回40%; 今回=展開50%+コース50%"
+                "netkeiba pre-race 5-run card; per-run 走/展/力 0-100; "
+                "走=median/MAD standard-clock normalization; near=35/25/18/13/9; "
+                "total=近走55%+今回45%"
+                if "v3-run-flow-power" in MODEL_VERSION
+                else "netkeiba pre-race 5-run card; legacy per-run 展開/タイム/成績; "
+                     "近走60% + 今回40%; 今回=展開50%+コース50%"
             ),
             "popularityMethod": (
                 "market-memory v2: previous-race popularity, recent market memory, "

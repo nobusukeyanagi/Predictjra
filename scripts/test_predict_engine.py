@@ -60,6 +60,7 @@ def main():
 
     base = [{"horse": n, "frame": 1+(n-1)//2, "name": f"馬{n}"} for n in range(1, 15)]
     card = parse_rich_card(fixture_html(), "202601010901", base)
+    assert card["entries"][0]["histories"][0].get("trackCondition") == "良"
     built = build_prediction(card)
     assert built["modelMeta"]["logicSource"] == "scripts/prediction_logic_production.py"
     prediction = built["prediction"]
@@ -68,6 +69,9 @@ def main():
     assert len(prediction["excluded"]) == 1
     assert len(built["indexDetail"]["horses"]) == 14
     assert all(len(h["recent"]) == 5 for h in built["indexDetail"]["horses"])
+    if "v3-run-flow-power" in MODEL_VERSION:
+        assert all(h.get("todayParts", "").count("/") == 2 for h in built["indexDetail"]["horses"])
+        assert all(0 <= h["total"] <= 100 for h in built["indexDetail"]["horses"])
 
     market_card = parse_rich_card(fixture_html(16, zendan_like=True), "202601010811",
                                   [{"horse": n, "frame": 1+(n-1)//2, "name": f"馬{n}"} for n in range(1,17)])

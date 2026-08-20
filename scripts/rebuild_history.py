@@ -62,7 +62,7 @@ TRACK_ORDER = {name: i for i, name in enumerate(TRACKS.values(), start=1)}
 # prediction score override is allowed; all races use prediction_logic_candidate.py.
 SAPPORO11_ID = "202601010811"
 
-REBUILD_VERSION = "predictjra-history-generic-v7-unified-logic"
+REBUILD_VERSION = "predictjra-history-generic-v8-run-flow-power"
 SOURCE_REPO = "sugaimo15/keibayosoku"
 SOURCE_REF = "claude/horse-racing-predictor-ak6crm"
 
@@ -241,6 +241,45 @@ def load_target_history(source_root: Path, target_horse_ids: set[str]) -> pd.Dat
     )
     hist["_winner_time"] = hist["_time_sec"].groupby(hist["race_id"]).transform("min")
 
+    # v3 走・展・力 historical context. All of this belongs to a horse's PRIOR race,
+    # so it is known before any later target race being rebuilt.
+    third_map = (
+        hist.loc[hist["_finish"] == 3]
+        .groupby("race_id")["_time_sec"]
+        .min()
+    )
+    hist["_third_time"] = hist["race_id"].map(third_map)
+
+    def _first_passing_strength(row):
+        field = row.get("_field_size")
+        positions = passing_positions(row.get("passing_order"))
+        if pd.isna(field) or float(field) <= 1 or not positions:
+            return np.nan
+        sample = positions[:2]
+        vals = [1 - (p - 1) / max(float(field) - 1, 1) for p in sample]
+        return float(np.clip(np.mean(vals), 0.0, 1.0)) if vals else np.nan
+
+    hist["_front_strength"] = hist.apply(_first_passing_strength, axis=1)
+    finish_denom = (hist["_field_size"] - 1).replace(0, np.nan)
+    hist["_finish_strength"] = (
+        1 - (hist["_finish"] - 1) / finish_denom
+    ).clip(0, 1)
+
+    # Positive = front-positioned horses were favored; negative = closers were favored.
+    # Compare the front half and back half within each prior race.
+    race_bias: dict[str, float] = {}
+    for rid, group in hist.groupby("race_id", sort=False):
+        valid = group[["_front_strength", "_finish_strength"]].dropna()
+        if len(valid) < 4:
+            race_bias[str(rid)] = 0.0
+            continue
+        ordered = valid.sort_values("_front_strength")
+        split = max(1, len(ordered) // 2)
+        back = ordered.iloc[:split]["_finish_strength"].mean()
+        front = ordered.iloc[-split:]["_finish_strength"].mean()
+        race_bias[str(rid)] = float(np.clip(front - back, -1.0, 1.0))
+    hist["_race_front_bias"] = hist["race_id"].map(race_bias).fillna(0.0)
+
     # Historical market-memory fields. These are all known before a future race:
     # previous-race popularity, assigned weight, jockey and trainer.
     hist["_popularity"] = pd.to_numeric(
@@ -272,6 +311,102 @@ def load_target_history(source_root: Path, target_horse_ids: set[str]) -> pd.Dat
     return hist
 
 
+def _baseline_surface(raw: str) -> str:
+    value = clean_str(raw)
+    if "障" in value:
+        return "障害"
+    if "ダ" in value:
+        return "ダート"
+    if "芝" in value:
+        return "芝"
+    return value
+
+
+def prepare_time_baseline_races(history: pd.DataFrame) -> pd.DataFrame:
+    """Reduce full historical result rows to one robust third-place clock per race."""
+    if history.empty:
+        return pd.DataFrame()
+    rows = []
+    for rid, group in history.groupby("race_id", sort=False):
+        dated = group[group["_date"].notna()]
+        if dated.empty:
+            continue
+        third = pd.to_numeric(dated.get("_third_time"), errors="coerce").dropna()
+        if third.empty:
+            continue
+        distance_vals = dated.get("distance_m", pd.Series(dtype=object)).apply(parse_distance_m)
+        distance_vals = pd.to_numeric(distance_vals, errors="coerce").dropna()
+        if distance_vals.empty or float(distance_vals.iloc[0]) <= 0:
+            continue
+        distance = float(distance_vals.iloc[0])
+        third_sec = float(third.iloc[0])
+        if not math.isfinite(third_sec) or third_sec <= 0:
+            continue
+        first = dated.iloc[0]
+        venue = TRACKS.get(str(rid)[4:6], str(rid)[4:6]) if len(str(rid)) >= 6 else ""
+        rows.append({
+            "raceId": str(rid),
+            "date": pd.Timestamp(first["_date"]),
+            "venue": venue,
+            "surface": _baseline_surface(first.get("surface")),
+            "distance": int(round(distance)),
+            "trackCondition": clean_str(first.get("track_condition")),
+            "thirdSecPer1000": third_sec * 1000.0 / distance,
+        })
+    return pd.DataFrame(rows)
+
+
+def _robust_time_stats(values: list[float]) -> dict:
+    arr = np.asarray([float(x) for x in values if math.isfinite(float(x))], dtype=float)
+    if len(arr) == 0:
+        return {"n": 0, "medianSecPer1000": None, "madSecPer1000": None, "sigmaSecPer1000": None}
+    median = float(np.median(arr))
+    mad = float(np.median(np.abs(arr - median)))
+    sigma = max(0.20, 1.4826 * mad)
+    return {
+        "n": int(len(arr)),
+        "medianSecPer1000": round(median, 6),
+        "madSecPer1000": round(mad, 6),
+        "sigmaSecPer1000": round(sigma, 6),
+    }
+
+
+def build_time_baselines(
+    race_rows: pd.DataFrame,
+    cutoff_date: pd.Timestamp,
+    *,
+    source_commit_value: str = "",
+) -> dict:
+    """Build leakage-safe standard clocks from races strictly before cutoff_date."""
+    groups: dict[str, list[float]] = {}
+    if not race_rows.empty:
+        frame = race_rows[race_rows["date"] < cutoff_date]
+        for row in frame.to_dict("records"):
+            venue = clean_str(row.get("venue"))
+            surface = clean_str(row.get("surface"))
+            distance = int(row.get("distance") or 0)
+            condition = clean_str(row.get("trackCondition"))
+            value = float(row["thirdSecPer1000"])
+            if not surface or distance <= 0 or not math.isfinite(value):
+                continue
+            keys = [
+                f"{venue}|{surface}|{distance}|{condition or '*'}",
+                f"{venue}|{surface}|{distance}|*",
+                f"*|{surface}|{distance}|{condition or '*'}",
+                f"*|{surface}|{distance}|*",
+            ]
+            for key in set(keys):
+                groups.setdefault(key, []).append(value)
+    stats = {key: _robust_time_stats(values) for key, values in groups.items()}
+    return {
+        "version": "predictjra-time-baseline-v1-median-mad",
+        "cutoffDateExclusive": cutoff_date.strftime("%Y-%m-%d"),
+        "sourceCommit": source_commit_value,
+        "formula": "median third-place sec/1000; MAD; sigma=max(0.20,1.4826*MAD)",
+        "groups": stats,
+    }
+
+
 def normalize_historical_run(row: pd.Series) -> dict:
     """Convert one archived result row to the same normalized run shape as live parsing."""
     race_id = clean_str(row.get("race_id"))
@@ -281,6 +416,8 @@ def normalize_historical_run(row: pd.Series) -> dict:
     carried_raw = row.get("_weight_carried_num")
     time_raw = row.get("_time_sec")
     winner_raw = row.get("_winner_time")
+    third_raw = row.get("_third_time")
+    race_bias_raw = row.get("_race_front_bias")
 
     finish = int(finish_raw) if pd.notna(finish_raw) else None
     field = int(field_raw) if pd.notna(field_raw) else None
@@ -314,6 +451,11 @@ def normalize_historical_run(row: pd.Series) -> dict:
         "carriedWeight": carried,
         "surface": surface,
         "distance": distance,
+        "trackCondition": clean_str(row.get("track_condition")),
+        "time": clean_str(row.get("time")),
+        "timeSeconds": float(time_raw) if pd.notna(time_raw) else math.nan,
+        "thirdTimeSeconds": float(third_raw) if pd.notna(third_raw) else math.nan,
+        "raceFrontBias": float(race_bias_raw) if pd.notna(race_bias_raw) else 0.0,
         "positions": passing_positions(row.get("passing_order")),
         "margin": margin,
     }
@@ -326,6 +468,7 @@ def build_index_detail(
     pred: pd.DataFrame,
     result: pd.DataFrame,
     history: pd.DataFrame,
+    time_baselines: dict | None = None,
 ) -> tuple[dict, dict[int, float], dict[int, int], dict[int, list[dict]]]:
     """Reconstruct indices with the exact same shared core used for live prediction."""
     target_date = pd.Timestamp(date_s)
@@ -347,9 +490,9 @@ def build_index_detail(
 
     if not math.isfinite(race_distance) or race_distance <= 0:
         race_distance = math.nan
-        quality_warnings.append("distance_m unavailable; course index used neutral fallback")
+        quality_warnings.append("distance_m unavailable; 今回走/コース適性 used neutral fallback")
     if not race_surface:
-        quality_warnings.append("surface unavailable; course index used neutral fallback")
+        quality_warnings.append("surface unavailable; 今回走/コース適性 used neutral fallback")
 
     venue = TRACKS.get(race_id[4:6], race_id[4:6])
     entries: list[dict] = []
@@ -376,6 +519,7 @@ def build_index_detail(
         venue=venue,
         surface=race_surface,
         distance_m=float(race_distance) if math.isfinite(race_distance) else None,
+        time_baselines=time_baselines,
     )
     horses = core["horses"]
     internal_totals = core["totals"]
@@ -460,7 +604,7 @@ def sanitize_card(card: pd.DataFrame) -> pd.DataFrame:
     ).copy()
 
 
-def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: pd.DataFrame) -> RaceModel:
+def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: pd.DataFrame, time_baselines: dict | None = None) -> RaceModel:
     race_id = pred_path.stem
     card_path = source_root / "data" / "race_cards" / date_s.replace("-", "") / f"{race_id}.csv"
     result_path = source_root / "data" / "race_results" / "2026" / f"{race_id}.csv"
@@ -498,7 +642,7 @@ def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: p
     p["horse_number"] = pd.to_numeric(p["horse_number"], errors="raise").astype(int)
 
     index_detail, total_internal, total_display, runs_by_no = build_index_detail(
-        race_id, date_s, card, p, result, history
+        race_id, date_s, card, p, result, history, time_baselines
     )
 
     detail_horses = index_detail.get("horses", [])
@@ -1006,6 +1150,7 @@ def main() -> int:
     parser.add_argument("--data-path", default="data/races.json", type=Path)
     parser.add_argument("--audit-path", default="data/rebuild_audit.json", type=Path)
     parser.add_argument("--pop-model-path", default="data/popularity_model.json", type=Path)
+    parser.add_argument("--time-baseline-path", default="data/time_baselines.json", type=Path)
     parser.add_argument("--diagnostic-path", default=DIAGNOSTIC_PATH_DEFAULT, type=Path)
     args = parser.parse_args()
 
@@ -1075,11 +1220,24 @@ def main() -> int:
         f"horses={history['horse_id'].nunique()}"
     )
 
+    time_baseline_races = prepare_time_baseline_races(history)
+    time_baselines_by_date = {
+        d: build_time_baselines(
+            time_baseline_races, pd.Timestamp(d), source_commit_value=source_sha
+        )
+        for d in target_dates
+    }
+    print(
+        "Time-baseline source races=", len(time_baseline_races),
+        " date-specific tables=", len(time_baselines_by_date),
+        sep=""
+    )
+
     build_errors = []
     for date_s, f in target_files:
         print(f"Rebuilding {f.stem} ({date_s})...")
         try:
-            race = build_race_model(source_root, date_s, f, history)
+            race = build_race_model(source_root, date_s, f, history, time_baselines_by_date.get(date_s))
             if race.race_id in races:
                 raise RuntimeError(f"duplicate race {race.race_id}")
             races[race.race_id] = race
@@ -1217,7 +1375,11 @@ def main() -> int:
                     "estimatedPopularity": {str(k): int(v) for k, v in est_pop.items()},
                     "totalIndex": {str(k): int(v) for k, v in race.total_display.items()},
                     "indexDetail": index_detail,
-                    "performanceSource": "pre-race historical reconstruction via shared prediction core",
+                    "performanceSource": (
+                        "pre-race historical reconstruction; per-run 走/展/力 0-100; "
+                        "走=target-date-prior median/MAD standard clock; 近走=35/25/18/13/9; "
+                        "今回=走40/展25/力35; 総合=近走55/今回45"
+                    ),
                     "popularityMethod": "market-memory v2 leave-one-race-out calibrated model",
                     "selectionRule": SELECTION_RULE_TEXT,
                     "logicSource": "scripts/prediction_logic_candidate.py",
@@ -1320,9 +1482,18 @@ def main() -> int:
             for h in horses:
                 if len(h.get("recent", [])) != 5:
                     raise RuntimeError(f"{r['raceId']}: recent index count invalid")
-                for key in ("recentIndex", "pace", "course", "today", "total", "rank"):
+                for key in (
+                    "recentIndex", "currentRun", "currentFlow", "currentPower",
+                    "todayParts", "today", "total", "rank",
+                ):
                     if key not in h:
                         raise RuntimeError(f"{r['raceId']}: index field {key} missing")
+                for key in ("recentIndex", "currentRun", "currentFlow", "currentPower", "today", "total"):
+                    value = float(h[key])
+                    if not (0 <= value <= 100):
+                        raise RuntimeError(f"{r['raceId']}: {key} out of 0-100 range: {value}")
+                if str(h["todayParts"]).count("/") != 2:
+                    raise RuntimeError(f"{r['raceId']}: todayParts invalid")
 
     summary_totals = {
         "dates": len(target_dates),
@@ -1392,7 +1563,7 @@ def main() -> int:
             ),
             "raceConditionMetadataFallback": (
                 "surface/distance may fall back to target result metadata or an authoritative "
-                "race-program override; if still missing, course index degrades neutrally "
+                "race-program override; if still missing, v3 今回走/コース適性 degrades neutrally "
                 "instead of aborting. Target result performance is never used"
             ),
             "indexDetailFailurePolicy": (
@@ -1442,9 +1613,17 @@ def main() -> int:
         ],
     }
 
+    live_cutoff = pd.Timestamp(max(target_dates)) + pd.Timedelta(days=1)
+    live_time_baselines = build_time_baselines(
+        time_baseline_races, live_cutoff, source_commit_value=source_sha
+    )
+    live_time_baselines["generatedAt"] = datetime.now(JST).isoformat(timespec="seconds")
+    live_time_baselines["throughDate"] = max(target_dates)
+
     args.data_path.parent.mkdir(parents=True, exist_ok=True)
     args.audit_path.parent.mkdir(parents=True, exist_ok=True)
     args.pop_model_path.parent.mkdir(parents=True, exist_ok=True)
+    args.time_baseline_path.parent.mkdir(parents=True, exist_ok=True)
     args.data_path.write_text(
         json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
@@ -1453,6 +1632,9 @@ def main() -> int:
     )
     args.pop_model_path.write_text(
         json.dumps(pop_model, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    args.time_baseline_path.write_text(
+        json.dumps(live_time_baselines, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     args.diagnostic_path.parent.mkdir(parents=True, exist_ok=True)
     args.diagnostic_path.write_text(

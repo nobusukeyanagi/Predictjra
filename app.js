@@ -201,7 +201,7 @@ let activeIndexRaceId = null;
 let lastIndexTrigger = null;
 
 
-const INDEX_LOGIC_HTML = `
+const INDEX_LOGIC_V2_HTML = `
   <section class="index-logic-item">
     <h3>評価</h3>
     <p>予想での役割を示します。まず想定1〜3番人気のうち総合評価が最も低い1頭を危険馬として選定対象から除外します。そのうえで、出走頭数の半数切り上げ・最大7頭を総合評価上位から選定対象馬とします。本命は選定対象馬の総合評価1位、対抗は選定対象馬のうち想定人気が最も低い馬、残りを相手とします。</p>
@@ -223,17 +223,51 @@ const INDEX_LOGIC_HTML = `
     <p>今回のレース条件に対する適合度です。「展開」50％＋「コース」50％を基本として算出します。「展開」は想定ペースと脚質・位置取りの適合度を評価し、「コース」は当該コース実績を最重視します。当該コース未経験の場合は、同距離の他場実績や類似条件への適応力で補完します。</p>
   </section>`;
 
+const INDEX_LOGIC_V3_HTML = `
+  <section class="index-logic-item">
+    <h3>基本</h3>
+    <p>能力評価はすべて0〜100点です。近5走は各レースを「走・展・力」で評価し、1走評価＝走40％＋展25％＋力35％。近走総合＝前走35％＋2走前25％＋3走前18％＋4走前13％＋5走前9％（不足時は取得できた走だけで再正規化）。今回評価も走40％＋展25％＋力35％。最終の総合指数＝近走55％＋今回45％です。表示値は整数、順位判定には丸め前の内部値を使います。</p>
+  </section>
+  <section class="index-logic-item">
+    <h3>近走「走」</h3>
+    <p>競走タイムそのものの強さです。4着以下で実走タイムが3着タイム＋1.0秒より遅い場合、評価用タイム＝3着タイム＋1.0秒として、それ以上の大敗差は付けません。過去データに3着タイムがない場合は、勝ち馬とのタイム差のうち1.0秒を超える部分を評価用タイムから除く代替処理を使います。評価用1000m秒＝評価用タイム×1000÷距離。標準時計は、予想対象日より前に終了したレースだけから「競馬場×芝/ダート/障害×距離×馬場状態」ごとの3着1000m秒を集め、その中央値Mを使います。MAD＝median(|各3着1000m秒−M|)、σ＝max(0.20, 1.4826×MAD)。標準化値Z＝(M−評価用1000m秒)÷σ、走＝clamp(50＋15×Z, 0, 100)。基準群は①同競馬場・同路面・同距離・同馬場、②同競馬場・同路面・同距離、③全競馬場・同路面・同距離・同馬場、④全競馬場・同路面・同距離の順で、まず5レース以上、なければ3レース以上を採用します。履歴不足時だけ固定公開式へフォールバックし、基準1000m秒＝芝58.4＋0.0015×max(距離−1000,0)、ダート60.6＋0.0018×max(距離−1000,0)、障害64.0＋0.0007×max(距離−2500,0)、馬場補正は芝:稍重+0.6/重+1.4/不良+2.4、ダート:稍重−0.2/重−0.4/不良−0.2、障害:稍重+0.3/重+0.7/不良+1.0、σ=1.25とします。</p>
+  </section>
+  <section class="index-logic-item">
+    <h3>近走「展」</h3>
+    <p>展開に対してどれだけ頑張ったかです。頭数補正した前方度＝最初の2つまでの通過順位について平均{1−(通過順位−1)÷(頭数−1)}、追上げ度＝(最終通過順位−着順)÷(頭数−1)。過去レース全体の通過順位が取れる場合、前方半分の平均着順強度−後方半分の平均着順強度をレース前方バイアス（−1〜+1）とします。恩恵＝前方バイアス×(2×前方度−1)、不利=max(0,−恩恵)、有利=max(0,恩恵)。着順強度＝1−(着順−1)÷(頭数−1)。展＝50＋30×追上げ度＋30×不利×着順強度＋15×(着順強度−0.5)−12×有利。通過順位がない場合は50＋10×(着順強度−0.5)で補完し、0〜100に収めます。前残りで差して健闘、差し決着で前に残る、といった内容を高く評価します。</p>
+  </section>
+  <section class="index-logic-item">
+    <h3>近走「力」</h3>
+    <p>着順とレースレベルだけで能力を評価します。レース格点は、新馬・未勝利45、1勝55、2勝64、3勝73、OP・L82、GIII 88、GII 94、GI 100。着順点＝100×{1−(着順−1)÷(頭数−1)}。力＝レース格点50％＋着順点50％で、0〜100に収めます。</p>
+  </section>
+  <section class="index-logic-item">
+    <h3>今回「走」</h3>
+    <p>過去5走の「走」から今回の想定競走タイムの強さを作ります。各走の基礎重みは35・25・18・13・9％。同じ芝/ダート/障害なら表面係数1.00、異なる場合0.35、不明0.75。距離係数＝max(0.40, 1−|過去距離−今回距離|÷1200)（距離不明は0.70）。条件加重平均を算出し、今回走＝条件加重平均80％＋過去5走の走最高点20％。データがない場合は50です。</p>
+  </section>
+  <section class="index-logic-item">
+    <h3>今回「展」</h3>
+    <p>各馬の過去通過順位から前方度を求め、前方度0.62以上の馬が3頭以上なら速い流れ、1頭以下なら遅い流れ、それ以外を平均と想定します。速い流れは今回展＝35＋65×(1−前方度)、遅い流れは35＋65×前方度、平均は50＋20×{1−|前方度−0.5|×2}。脚質データがない場合は50です。ここは能力ではなく「今回どれだけ展開の恩恵を受けそうか」を表します。</p>
+  </section>
+  <section class="index-logic-item">
+    <h3>今回「力」</h3>
+    <p>基礎力は過去5走の「力」を35・25・18・13・9％で集約します。コース実績は、①同競馬場＋同芝/ダート/障害＋今回距離±100m、②同競馬場＋同芝/ダート/障害、③同芝/ダート/障害＋今回距離±200mの順に探し、その条件での1走総合評価を直近重視で集約します。該当実績がなければ基礎力をそのまま使います。今回力＝基礎力75％＋コース実績25％です。</p>
+  </section>
+  <section class="index-logic-item">
+    <h3>想人・予想選定</h3>
+    <p>想人は当日オッズ・当日実人気・馬体重/増減を使わず、過去人気・近走評価・騎手/調教師など事前情報から市場人気を推定します。想定1〜3番人気のうち総合指数が最も低い1頭を危険馬として除外し、残りから出走頭数の半数切り上げ・最大7頭を総合指数順に選定。本命は総合指数1位、対抗は選定馬のうち想定人気が最も低い馬、残りを相手とします。</p>
+  </section>`;
+
 function raceDetail(race) {
   if (!race?.raceId) return null;
-  return RACE_INDEX_DETAILS[race.raceId]
-    || race?.modelMeta?.indexDetail
+  return race?.modelMeta?.indexDetail
     || RACE_DETAIL_CACHE[race.raceId]
+    || RACE_INDEX_DETAILS[race.raceId]
     || null;
 }
 
 function syncRaceDetailFromData(race) {
   if (!race?.raceId) return;
-  const detail = RACE_INDEX_DETAILS[race.raceId] || race?.modelMeta?.indexDetail;
+  const detail = race?.modelMeta?.indexDetail || RACE_INDEX_DETAILS[race.raceId];
   if (!detail) return;
 
   const popularity = race?.modelMeta?.estimatedPopularity || {};
@@ -244,6 +278,7 @@ function syncRaceDetailFromData(race) {
 
   detail.horseCount = Number(detail.horseCount || race.horseCount || detail.horses?.length || 0);
   detail.title = detail.title || `${race.venue}${race.raceNo}R`;
+  detail.logicVersion = race?.modelMeta?.version || detail.logicVersion || '';
 
   detail.horses.forEach(horse => {
     const rank = Number(popularity[String(horse.no)] ?? popularity[horse.no] ?? horse.expectedPopularity);
@@ -463,19 +498,35 @@ function selectionLabel(horse, detail) {
   return '<span class="index-eval-empty">—</span>';
 }
 
-function recentIndexMarkup(value) {
+function tripleIndexMarkup(value, labels = ['走', '展', '力']) {
   if (value == null || value === '' || value === '評価外') return '<span class="index-recent-na">評価外</span>';
   const parts = String(value).split('/');
   if (parts.length !== 3) return value;
-  return `<span class="index-recent-score"><span class="index-recent-part"><span class="index-recent-label">展</span>${parts[0]}</span><span class="index-recent-part"><span class="index-recent-label">時</span>${parts[1]}</span><span class="index-recent-part"><span class="index-recent-label">成</span>${parts[2]}</span></span>`;
+  return `<span class="index-recent-score">${parts.map((part, i) => `<span class="index-recent-part"><span class="index-recent-label">${labels[i]}</span>${part}</span>`).join('')}</span>`;
 }
 
+function recentIndexMarkup(value, detail) {
+  const v3 = String(detail?.logicVersion || '').includes('v3-run-flow-power');
+  return tripleIndexMarkup(value, v3 ? ['走', '展', '力'] : ['展', '時', '成']);
+}
 
-function recentSortValue(value) {
+function todayIndexMarkup(horse) {
+  if (horse?.todayParts) return tripleIndexMarkup(horse.todayParts, ['走', '展', '力']);
+  // Before v3 apply, keep legacy production data truthful instead of relabeling course as power.
+  if (Number.isFinite(Number(horse?.pace)) || Number.isFinite(Number(horse?.course))) {
+    return `<span class="index-recent-score"><span class="index-recent-part"><span class="index-recent-label">展</span>${horse?.pace ?? '—'}</span><span class="index-recent-part"><span class="index-recent-label">コ</span>${horse?.course ?? '—'}</span></span>`;
+  }
+  return '<span class="index-recent-na">評価外</span>';
+}
+
+function recentSortValue(value, detail) {
   if (value === '評価外') return -1;
   const parts = String(value).split('/').map(Number);
   if (parts.length !== 3 || parts.some(Number.isNaN)) return -1;
-  return parts[0] * 0.25 + parts[1] * 0.35 + parts[2] * 0.40;
+  const v3 = String(detail?.logicVersion || '').includes('v3-run-flow-power');
+  return v3
+    ? parts[0] * 0.40 + parts[1] * 0.25 + parts[2] * 0.35
+    : parts[0] * 0.25 + parts[1] * 0.35 + parts[2] * 0.40;
 }
 
 function evaluationSortValue(horse, detail) {
@@ -499,10 +550,9 @@ function indexHorseRow(horse, detail) {
       <td class="index-popularity" data-sort-value="${horse.expectedPopularity}">${horse.expectedPopularity}</td>
       <td class="index-total" data-sort-value="${horse.total}">${horse.total}</td>
       <td class="index-rank" data-sort-value="${horse.rank}">${horse.rank}</td>
-      ${horse.recent.map(value => `<td data-sort-value="${recentSortValue(value)}">${recentIndexMarkup(value)}</td>`).join('')}
+      ${horse.recent.map(value => `<td data-sort-value="${recentSortValue(value, detail)}">${recentIndexMarkup(value, detail)}</td>`).join('')}
       <td class="index-strong index-recent-total" data-sort-value="${horse.recentIndex}">${horse.recentIndex}</td>
-      <td data-sort-value="${horse.pace}">${horse.pace}</td>
-      <td data-sort-value="${horse.course}">${horse.course}</td>
+      <td data-sort-value="${horse.today}">${todayIndexMarkup(horse)}</td>
       <td class="index-strong index-today" data-sort-value="${horse.today}">${horse.today}</td>
     </tr>`;
 }
@@ -585,7 +635,7 @@ function renderIndexDetail(detail, raceId) {
           <table class="index-table">
             <thead>
               <tr>
-                <th class="index-sortable" tabindex="0" role="button" aria-sort="none">評価</th><th class="index-sortable" tabindex="0" role="button" aria-sort="ascending" data-sort-direction="asc">馬番</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">馬名</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">想人</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">総合</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">順位</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">前走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">2走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">3走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">4走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">5走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">近走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">展開</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">コース</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">今回</th>
+                <th class="index-sortable" tabindex="0" role="button" aria-sort="none">評価</th><th class="index-sortable" tabindex="0" role="button" aria-sort="ascending" data-sort-direction="asc">馬番</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">馬名</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">想人</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">総合</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">順位</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">前走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">2走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">3走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">4走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">5走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">近走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">今回</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">今回評価</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -594,6 +644,13 @@ function renderIndexDetail(detail, raceId) {
       </section>
     </div>`;
 }
+function activeLogicInfoHtml() {
+  const hasV3 = Object.values(RACE_DETAIL_CACHE).some(detail =>
+    String(detail?.logicVersion || '').includes('v3-run-flow-power')
+  );
+  return hasV3 ? INDEX_LOGIC_V3_HTML : INDEX_LOGIC_V2_HTML;
+}
+
 function renderLogicInfo() {
   return `
     <div class="logic-modal-backdrop" data-logic-close="true">
@@ -602,7 +659,7 @@ function renderLogicInfo() {
           <h2 id="logic-modal-title">指数・予想ロジック</h2>
           <button class="logic-modal-close" type="button" data-logic-close="true" aria-label="ロジック解説を閉じる">×</button>
         </div>
-        <div class="logic-modal-content">${INDEX_LOGIC_HTML}</div>
+        <div class="logic-modal-content">${activeLogicInfoHtml()}</div>
       </section>
     </div>`;
 }

@@ -509,15 +509,17 @@ body.index-modal-open { overflow: hidden; }
 
 .index-table th:nth-child(12),
 .index-table td:nth-child(12),
-.index-table th:nth-child(13),
-.index-table td:nth-child(13),
 .index-table th:nth-child(14),
-.index-table td:nth-child(14),
-.index-table th:nth-child(15),
-.index-table td:nth-child(15) {
+.index-table td:nth-child(14) {
   width: 58px;
   min-width: 58px;
   max-width: 58px;
+}
+.index-table th:nth-child(13),
+.index-table td:nth-child(13) {
+  width: 96px;
+  min-width: 96px;
+  max-width: 96px;
 }
 
 
@@ -639,21 +641,20 @@ body.index-modal-open { overflow: hidden; }
   min-width: 96px !important;
   max-width: 96px !important;
 }
-.index-table th:nth-child(12), .index-table td:nth-child(12),
-.index-table th:nth-child(13), .index-table td:nth-child(13) {
+.index-table th:nth-child(12), .index-table td:nth-child(12) {
   width: 58px !important;
   min-width: 58px !important;
   max-width: 58px !important;
+}
+.index-table th:nth-child(13), .index-table td:nth-child(13) {
+  width: 96px !important;
+  min-width: 96px !important;
+  max-width: 96px !important;
 }
 .index-table th:nth-child(14), .index-table td:nth-child(14) {
   width: 64px !important;
   min-width: 64px !important;
   max-width: 64px !important;
-}
-.index-table th:nth-child(15), .index-table td:nth-child(15) {
-  width: 58px !important;
-  min-width: 58px !important;
-  max-width: 58px !important;
 }
 .index-table .index-horse-name {
   width: 132px !important;
@@ -808,9 +809,8 @@ body.logic-modal-open { overflow: hidden; }
   .index-table th:nth-child(10), .index-table td:nth-child(10),
   .index-table th:nth-child(11), .index-table td:nth-child(11) { width: 8.6% !important; }
   .index-table th:nth-child(12), .index-table td:nth-child(12) { width: 5.2% !important; }
-  .index-table th:nth-child(13), .index-table td:nth-child(13) { width: 5.2% !important; }
-  .index-table th:nth-child(14), .index-table td:nth-child(14) { width: 5.8% !important; }
-  .index-table th:nth-child(15), .index-table td:nth-child(15) { width: 5.2% !important; }
+  .index-table th:nth-child(13), .index-table td:nth-child(13) { width: 9.0% !important; }
+  .index-table th:nth-child(14), .index-table td:nth-child(14) { width: 7.4% !important; }
 }
 
 /* SP: title row and index header row share the same height; modal buttons are larger. */
