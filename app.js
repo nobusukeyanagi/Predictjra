@@ -200,6 +200,29 @@ let INDEX_MODAL_RACE_ORDER = [];
 let activeIndexRaceId = null;
 let lastIndexTrigger = null;
 
+
+const INDEX_LOGIC_HTML = `
+  <section class="index-logic-item">
+    <h3>評価</h3>
+    <p>予想での役割を示します。まず想定1〜3番人気のうち総合評価が最も低い1頭を危険馬として選定対象から除外します。そのうえで、出走頭数の半数切り上げ・最大7頭を総合評価上位から選定対象馬とします。本命は選定対象馬の総合評価1位、対抗は選定対象馬のうち想定人気が最も低い馬、残りを相手とします。</p>
+  </section>
+  <section class="index-logic-item">
+    <h3>想人</h3>
+    <p>近走成績と馬情報から市場人気を推定した想定人気です。近走の着順・着差・レース格・安定度を中心に、騎手・調教師・レーティング・上昇度など事前に取得できる情報をレース区分に応じて評価します。当日オッズ、実際の人気、馬体重・馬体重増減は予測入力に使用しません。</p>
+  </section>
+  <section class="index-logic-item">
+    <h3>総合</h3>
+    <p>馬の近走能力と今回条件への適合度を統合した最終評価です。「近走」60％＋「今回」40％を基本として算出し、表示は小数点以下を丸めた整数とします。同点時の順位判定では、必要に応じて丸め前の内部値を使用します。</p>
+  </section>
+  <section class="index-logic-item">
+    <h3>近走</h3>
+    <p>近5走の能力評価です。各レースを「展開・タイム・成績」の3指数で個別評価し、直近を重視した基礎評価に、上位パフォーマンスから見た能力上限と再現性を加味します。長期休養明けや大幅な馬体重変動など、結果の信頼度を下げる客観的要因が重なった凡走は影響を抑え、一度の大敗だけで過度に評価を落とさないようにします。</p>
+  </section>
+  <section class="index-logic-item">
+    <h3>今回</h3>
+    <p>今回のレース条件に対する適合度です。「展開」50％＋「コース」50％を基本として算出します。「展開」は想定ペースと脚質・位置取りの適合度を評価し、「コース」は当該コース実績を最重視します。当該コース未経験の場合は、同距離の他場実績や類似条件への適応力で補完します。</p>
+  </section>`;
+
 function raceDetail(race) {
   if (!race?.raceId) return null;
   return RACE_INDEX_DETAILS[race.raceId]
@@ -290,18 +313,26 @@ function mainHorseWon(race, prediction) {
   return firstPlace.map(Number).includes(main);
 }
 
-function secondHorseTop3(race, prediction) {
-  const second = Number(prediction?.axes?.[1]);
-  if (!Number.isFinite(second)) return false;
+function horseTop3(race, horseNo) {
+  const no = Number(horseNo);
+  if (!Number.isFinite(no)) return false;
   const top3 = (race?.result?.places || [])
     .slice(0, 3)
     .flat()
     .map(Number);
-  return top3.includes(second);
+  return top3.includes(no);
+}
+
+function mainHorseTop3(race, prediction) {
+  return horseTop3(race, prediction?.axes?.[0]);
+}
+
+function secondHorseTop3(race, prediction) {
+  return horseTop3(race, prediction?.axes?.[1]);
 }
 
 function judgement(race, prediction) {
-  // 三連単的中時は「的中」を最優先し、本/対補助表示は出さない。
+  // 三連単的中時は「的中」を最優先し、補助判定は出さない。
   if (race?.status === 'hit') {
     return '<span class="judgement hit">的中</span>';
   }
@@ -309,7 +340,11 @@ function judgement(race, prediction) {
     return '<span class="judgement pending">未確定</span>';
   }
 
-  const mainMark = mainHorseWon(race, prediction) ? '本' : '';
+  // 単: 本命1着 / 本: 本命3着以内 / 対: 対抗3着以内。
+  // 本命1着時は「単」を優先するため、併記は「単対」「本対」のみになる。
+  const mainMark = mainHorseWon(race, prediction)
+    ? '単'
+    : (mainHorseTop3(race, prediction) ? '本' : '');
   const secondMark = secondHorseTop3(race, prediction) ? '対' : '';
   const mark = `${mainMark}${secondMark}`;
   return mark ? `<span class="prediction-result-mark">${mark}</span>` : '';
@@ -370,7 +405,7 @@ function renderDay(day, initiallyExpanded = true) {
       <div class="day-summary">
         <div class="summary-item"><span class="summary-label">的中数</span><span class="summary-value">${summary.hits} / ${races.length}</span></div>
         <div class="summary-item"><span class="summary-label">払戻総額</span><span class="summary-value">${yen(summary.payout)}</span></div>
-        <div class="summary-item"><span class="summary-label">総回収率</span><span class="summary-value">${percent(summary.recovery)}</span></div>
+        <div class="summary-item"><span class="summary-label">総回収率</span><span class="summary-value${summary.recovery > 100 ? ' summary-profit' : ''}">${percent(summary.recovery)}</span></div>
       </div>
       <button class="day-toggle" type="button" aria-label="${initiallyExpanded ? 'この日付を折りたたむ' : 'この日付を開く'}" aria-expanded="${initiallyExpanded ? 'true' : 'false'}">
         <span class="day-toggle-icon" aria-hidden="true"></span>
@@ -530,31 +565,57 @@ function renderIndexDetail(detail, raceId) {
             <tbody>${rows}</tbody>
           </table>
         </div>
-        <div class="index-logic">
-          <section class="index-logic-item">
-            <h3>評価</h3>
-            <p>予想での役割を示します。まず想定1〜3番人気のうち総合評価が最も低い1頭を危険馬として選定対象から除外します。そのうえで、出走頭数の半数切り上げ・最大7頭を総合評価上位から選定対象馬とします。本命は選定対象馬の総合評価1位、対抗は選定対象馬のうち想定人気が最も低い馬、残りを相手とします。</p>
-          </section>
-          <section class="index-logic-item">
-            <h3>想人</h3>
-            <p>近走成績と馬情報から市場人気を推定した想定人気です。近走の着順・着差・レース格・安定度を中心に、騎手・調教師・レーティング・上昇度など事前に取得できる情報をレース区分に応じて評価します。当日オッズ、実際の人気、馬体重・馬体重増減は予測入力に使用しません。</p>
-          </section>
-          <section class="index-logic-item">
-            <h3>総合</h3>
-            <p>馬の近走能力と今回条件への適合度を統合した最終評価です。「近走」60％＋「今回」40％を基本として算出し、表示は小数点以下を丸めた整数とします。同点時の順位判定では、必要に応じて丸め前の内部値を使用します。</p>
-          </section>
-          <section class="index-logic-item">
-            <h3>近走</h3>
-            <p>近5走の能力評価です。各レースを「展開・タイム・成績」の3指数で個別評価し、直近を重視した基礎評価に、上位パフォーマンスから見た能力上限と再現性を加味します。長期休養明けや大幅な馬体重変動など、結果の信頼度を下げる客観的要因が重なった凡走は影響を抑え、一度の大敗だけで過度に評価を落とさないようにします。</p>
-          </section>
-          <section class="index-logic-item">
-            <h3>今回</h3>
-            <p>今回のレース条件に対する適合度です。「展開」50％＋「コース」50％を基本として算出します。「展開」は想定ペースと脚質・位置取りの適合度を評価し、「コース」は当該コース実績を最重視します。当該コース未経験の場合は、同距離の他場実績や類似条件への適応力で補完します。</p>
-          </section>
-        </div>
       </section>
     </div>`;
 }
+function renderLogicInfo() {
+  return `
+    <div class="logic-modal-backdrop" data-logic-close="true">
+      <section class="logic-modal" role="dialog" aria-modal="true" aria-labelledby="logic-modal-title">
+        <div class="logic-modal-header">
+          <h2 id="logic-modal-title">指数・予想ロジック</h2>
+          <button class="logic-modal-close" type="button" data-logic-close="true" aria-label="ロジック解説を閉じる">×</button>
+        </div>
+        <div class="logic-modal-content">${INDEX_LOGIC_HTML}</div>
+      </section>
+    </div>`;
+}
+
+function openLogicInfo() {
+  if (document.querySelector('.logic-modal-backdrop')) return;
+  document.body.insertAdjacentHTML('beforeend', renderLogicInfo());
+  document.body.classList.add('logic-modal-open');
+  document.querySelector('.logic-modal-close')?.focus();
+}
+
+function closeLogicInfo() {
+  document.querySelector('.logic-modal-backdrop')?.remove();
+  document.body.classList.remove('logic-modal-open');
+  document.getElementById('logic-info-button')?.focus();
+}
+
+function bindLogicInfo() {
+  document.addEventListener('click', event => {
+    const infoButton = event.target instanceof Element ? event.target.closest('#logic-info-button') : null;
+    if (infoButton) {
+      openLogicInfo();
+      return;
+    }
+
+    const close = event.target instanceof Element ? event.target.closest('[data-logic-close="true"]') : null;
+    if (!close) return;
+    if (close.classList.contains('logic-modal-backdrop') && event.target !== close) return;
+    closeLogicInfo();
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && document.querySelector('.logic-modal-backdrop')) {
+      event.preventDefault();
+      closeLogicInfo();
+    }
+  });
+}
+
 function openIndexDetail(raceId, trigger = null, focusTarget = 'close') {
   const detail = RACE_DETAIL_CACHE[raceId] || RACE_INDEX_DETAILS[raceId];
   if (!detail) return;
@@ -793,6 +854,7 @@ function initializeApp() {
   });
   bindDayToggles();
   bindIndexDetails();
+  bindLogicInfo();
   lockHorizontalPull();
   window.addEventListener('resize', syncDesktopRaceCardWidths, { passive: true });
   boot();

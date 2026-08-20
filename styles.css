@@ -677,3 +677,175 @@ body.index-modal-open { overflow: hidden; }
     overscroll-behavior-y: auto;
   }
 }
+
+/* v36: title logic help */
+.site-title-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: calc(100% - 44px);
+}
+.site-info-button {
+  appearance: none;
+  position: absolute;
+  left: calc(100% + 7px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  border: 1px solid #9eaaa4;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--green);
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+.site-info-button:hover { background: #eef4f1; }
+.site-info-button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.summary-profit { color: var(--hit) !important; }
+
+body.logic-modal-open { overflow: hidden; }
+.logic-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(11, 20, 15, .46);
+}
+.logic-modal {
+  width: min(760px, 100%);
+  max-height: calc(100vh - 36px);
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 22px 60px rgba(0,0,0,.22);
+}
+.logic-modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 44px;
+  padding: 7px 10px 7px 14px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+.logic-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+}
+.logic-modal-close {
+  appearance: none;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--ink);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.logic-modal-close:hover { background: #f3f6f4; }
+.logic-modal-close:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.logic-modal-content { padding: 14px 16px 18px; }
+.logic-modal-content .index-logic-item + .index-logic-item { margin-top: 14px; }
+.logic-modal-content .index-logic-item h3 { font-size: 14px; }
+.logic-modal-content .index-logic-item p { font-size: 13px; line-height: 1.7; }
+
+/* PC: show every index column inside the modal without a horizontal scrollbar. */
+@media (min-width: 761px) {
+  .index-modal {
+    width: min(1240px, calc(100vw - 36px));
+  }
+  .index-table-scroll {
+    overflow-x: hidden;
+  }
+  .index-table {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    table-layout: fixed;
+  }
+  .index-table th,
+  .index-table td,
+  .index-table .index-horse-name {
+    min-width: 0 !important;
+    max-width: none !important;
+    padding-left: clamp(2px, .45vw, 7px) !important;
+    padding-right: clamp(2px, .45vw, 7px) !important;
+  }
+  .index-table th:nth-child(1), .index-table td:nth-child(1) { width: 5.2% !important; }
+  .index-table th:nth-child(2), .index-table td:nth-child(2) { width: 4.3% !important; }
+  .index-table th:nth-child(3), .index-table td:nth-child(3),
+  .index-table .index-horse-name { width: 11.9% !important; }
+  .index-table th:nth-child(4), .index-table td:nth-child(4) { width: 4.7% !important; }
+  .index-table th:nth-child(5), .index-table td:nth-child(5) { width: 5% !important; }
+  .index-table th:nth-child(6), .index-table td:nth-child(6) { width: 4.3% !important; }
+  .index-table th:nth-child(7), .index-table td:nth-child(7),
+  .index-table th:nth-child(8), .index-table td:nth-child(8),
+  .index-table th:nth-child(9), .index-table td:nth-child(9),
+  .index-table th:nth-child(10), .index-table td:nth-child(10),
+  .index-table th:nth-child(11), .index-table td:nth-child(11) { width: 8.6% !important; }
+  .index-table th:nth-child(12), .index-table td:nth-child(12) { width: 5.2% !important; }
+  .index-table th:nth-child(13), .index-table td:nth-child(13) { width: 5.2% !important; }
+  .index-table th:nth-child(14), .index-table td:nth-child(14) { width: 5.8% !important; }
+  .index-table th:nth-child(15), .index-table td:nth-child(15) { width: 5.2% !important; }
+}
+
+/* SP: title row and index header row share the same height; modal buttons are larger. */
+@media (max-width: 760px) {
+  .site-info-button { width: 27px; height: 27px; font-size: 17px; left: calc(100% + 6px); }
+  .index-modal-header {
+    height: 42px;
+    min-height: 42px;
+    padding: 4px 8px;
+  }
+  .index-modal-nav-button {
+    width: 34px;
+    height: 34px;
+    font-size: 17px;
+    border-radius: 7px;
+  }
+  .index-modal-close {
+    width: 34px;
+    height: 34px;
+    font-size: 21px;
+  }
+  .index-modal-header h2 { font-size: 18px; }
+  .index-table thead tr { height: 42px; }
+  .index-table th,
+  .index-table th.index-sortable {
+    height: 42px;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    vertical-align: middle !important;
+  }
+  .logic-modal-backdrop { align-items: stretch; padding: 6px; }
+  .logic-modal { max-height: calc(100vh - 12px); border-radius: 10px; }
+  .logic-modal-header { min-height: 44px; padding: 6px 8px 6px 12px; }
+  .logic-modal-close { width: 34px; height: 34px; }
+  .logic-modal-content { padding: 12px 12px 16px; }
+  .logic-modal-content .index-logic-item p { font-size: 12px; }
+}
+
