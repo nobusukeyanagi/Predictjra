@@ -8,7 +8,7 @@ production prediction path.
 
 Scheduled production operation:
   prepare: 13:00 JST; targets tomorrow and builds predictions through
-           update_races_v2.py -> predict_engine.py -> prediction_logic.py.
+           update_races_v2.py -> predict_engine.py -> prediction_logic_production.py.
   result:  19:00 JST; targets today and records results/trifecta payouts.
 
 Source priority

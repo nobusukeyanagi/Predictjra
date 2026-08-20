@@ -19,7 +19,7 @@ Historical snapshot source:
 
 The archived prediction CSVs are used only to prove that a clean pre-race snapshot
 existed and to verify the runner set. Archived model scores/ranks are never reused.
-All derived indices and selections are recalculated through scripts/prediction_logic.py.
+All derived indices and selections are recalculated through scripts/prediction_logic_candidate.py.
 """
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ from zoneinfo import ZoneInfo
 import numpy as np
 import pandas as pd
 
-from prediction_logic import (
+from prediction_logic_candidate import (
     FEATURE_COLS,
     MODEL_VERSION,
     SELECTION_RULE_TEXT,
@@ -59,7 +59,7 @@ TRACKS = {
 TRACK_ORDER = {name: i for i, name in enumerate(TRACKS.values(), start=1)}
 
 # Kept only for popularity-model case-study diagnostics.  No race-specific
-# prediction score override is allowed; all races use prediction_logic.py.
+# prediction score override is allowed; all races use prediction_logic_candidate.py.
 SAPPORO11_ID = "202601010811"
 
 REBUILD_VERSION = "predictjra-history-generic-v7-unified-logic"
@@ -491,7 +491,7 @@ def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: p
 
     # The archived prediction file is now used only as proof of a clean pre-race
     # snapshot and to verify the runner set.  Old model scores / predicted ranks are
-    # deliberately ignored: all derived values come from prediction_logic.py.
+    # deliberately ignored: all derived values come from prediction_logic_candidate.py.
     if "horse_number" not in pred.columns:
         raise ValueError(f"{race_id}: prediction missing horse_number")
     p = pred.copy()
@@ -1220,7 +1220,7 @@ def main() -> int:
                     "performanceSource": "pre-race historical reconstruction via shared prediction core",
                     "popularityMethod": "market-memory v2 leave-one-race-out calibrated model",
                     "selectionRule": SELECTION_RULE_TEXT,
-                    "logicSource": "scripts/prediction_logic.py",
+                    "logicSource": "scripts/prediction_logic_candidate.py",
                     "nonStarters": sorted(
                         set(int(x) for x in race.card["horse_number"])
                         - set(race.actual_popularity)
@@ -1357,7 +1357,7 @@ def main() -> int:
         },
         "sharedPredictionLogic": {
             "modelVersion": MODEL_VERSION,
-            "source": "scripts/prediction_logic.py",
+            "source": "scripts/prediction_logic_candidate.py",
             "selectionRule": SELECTION_RULE_TEXT,
         },
         "strictInputRules": {
@@ -1372,7 +1372,7 @@ def main() -> int:
             "legacySnapshotPolicy": (
                 "clean early snapshots without optional ml_win_prob/ml_rank remain eligible; "
                 "archived model scores/ranks are ignored and all derived indices are rebuilt "
-                "from immutable pre-race facts through scripts/prediction_logic.py"
+                "from immutable pre-race facts through scripts/prediction_logic_candidate.py"
             ),
             "raceResultUsedAsPerformanceFeature": False,
             "actualPopularityUse": (
@@ -1410,7 +1410,7 @@ def main() -> int:
 
     pop_model = {
         "version": "predictjra-popularity-calibration-generic-v4-unified-market-memory",
-        "logicSource": "scripts/prediction_logic.py",
+        "logicSource": "scripts/prediction_logic_candidate.py",
         "modelVersion": MODEL_VERSION,
         "trainedAt": datetime.now(JST).isoformat(timespec="seconds"),
         "teacherDates": target_dates,

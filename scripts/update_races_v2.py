@@ -3,8 +3,8 @@
 
 Race discovery, base entries, results, payouts, and persistence helpers come from
 update_races.py.  Pre-race prediction is built by predict_engine.py, which normalizes
-the live card and calls prediction_logic.py, the single source of truth shared with
-historical rebuild/backtest.
+the live card and calls prediction_logic_production.py, the explicitly applied production
+snapshot. Historical Rebuild/validate uses prediction_logic_candidate.py instead.
 """
 from __future__ import annotations
 

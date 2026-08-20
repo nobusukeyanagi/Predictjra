@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Predictjra live pre-race index engine.
 
+Live predictions always import the explicitly applied production logic snapshot.
+
 Rules fixed for future races:
 - No current odds / actual popularity / horse bodyweight/change in prediction inputs.
 - Previous-race popularity is allowed only in the separate market-popularity estimator.
@@ -30,7 +32,7 @@ from typing import Callable
 
 from bs4 import BeautifulSoup
 
-from prediction_logic import (
+from prediction_logic_production import (
     MODEL_VERSION,
     SELECTION_RULE_TEXT,
     build_index_core,
@@ -558,7 +560,7 @@ def build_prediction(card: dict) -> dict:
                 "current odds/actual popularity/bodyweight are not used"
             ),
             "selectionRule": SELECTION_RULE_TEXT,
-            "logicSource": "scripts/prediction_logic.py",
+            "logicSource": "scripts/prediction_logic_production.py",
             "prohibitedInputs": [
                 "current odds", "current actual popularity",
                 "horse bodyweight", "horse bodyweight change",
