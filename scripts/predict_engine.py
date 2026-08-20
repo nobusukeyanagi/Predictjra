@@ -176,14 +176,16 @@ def parse_class_level(text: str) -> int:
 
 
 def load_popularity_model() -> dict:
-    path = Path(__file__).resolve().parents[1] / "data" / "popularity_model_20260815_16.json"
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
-    if "coefficients" not in payload or "features" not in payload:
-        return {}
-    return payload
+    data_dir = Path(__file__).resolve().parents[1] / "data"
+    for filename in ("popularity_model.json", "popularity_model_20260815_16.json"):
+        path = data_dir / filename
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if "coefficients" in payload and "features" in payload:
+            return payload
+    return {}
 
 
 def entity_prior(model: dict, kind: str, entity_id: str, entity_name: str) -> float:
@@ -780,7 +782,7 @@ def build_prediction(card: dict) -> dict:
         }
 
         if (
-            popularity_model.get("version", "").endswith("v2-market-memory")
+            popularity_model.get("version", "").endswith("market-memory")
             and model_features.issubset(factors)
             and model_features
         ):

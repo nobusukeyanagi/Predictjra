@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rebuild Predictjra predictions/results for 2026-08-15 and 2026-08-16.
+"""Rebuild Predictjra historical predictions/results for an arbitrary date range.
 
 Goals
 -----
@@ -11,7 +11,7 @@ Goals
   Each race is estimated with a model trained while excluding that race itself.
 * Re-fetch archived final results and trifecta payouts and recalculate hit/miss, return,
   stake, and daily totals.
-* Refuse to write partial data: 72 races and all required validation checks must pass.
+* Refuse to write partial data: every selected race and all required validation checks must pass.
 
 Historical snapshot source:
   https://github.com/sugaimo15/keibayosoku
@@ -37,9 +37,6 @@ import numpy as np
 import pandas as pd
 
 JST = ZoneInfo("Asia/Tokyo")
-TARGET_DATES = ("2026-08-15", "2026-08-16")
-EXPECTED_RACES_PER_DAY = 36
-EXPECTED_TOTAL_RACES = 72
 
 TRACKS = {
     "01": "札幌", "02": "函館", "03": "福島", "04": "新潟", "05": "東京",
@@ -61,7 +58,7 @@ SAPPORO11_RANK = {
     9: 9, 11: 10, 5: 11, 16: 12, 6: 13, 1: 14, 2: 15, 3: 16,
 }
 
-REBUILD_VERSION = "predictjra-history-20260815-16-v3-market-memory"
+REBUILD_VERSION = "predictjra-history-generic-v4-market-memory"
 SOURCE_REPO = "sugaimo15/keibayosoku"
 SOURCE_REF = "claude/horse-racing-predictor-ak6crm"
 
@@ -71,7 +68,7 @@ RACE_METADATA_OVERRIDES = {
     "202604020709": {"surface": "障害", "distance_m": 3250.0},  # 新潟ジャンプS
 }
 
-DIAGNOSTIC_PATH_DEFAULT = Path("data/rebuild_diagnostics_20260815_16.json")
+DIAGNOSTIC_PATH_DEFAULT = Path("data/rebuild_diagnostics.json")
 
 
 def clean_str(v) -> str:
@@ -1110,7 +1107,7 @@ def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[i
                 ),
             }
 
-    # Final coefficients for future generalization (trained on all 72 races).
+    # Final coefficients for future generalization (trained on all selected races).
     final_beta = fit_ridge(teacher)
     metrics = {
         "method": "leave-one-race-out for historical estimates",
@@ -1133,12 +1130,12 @@ def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[i
     return estimates, metrics
 
 
-def build_future_entity_priors(history: pd.DataFrame) -> dict:
+def build_future_entity_priors(history: pd.DataFrame, target_dates: list[str]) -> dict:
     """Market priors for current jockey/trainer, trained only on past race popularity."""
     h = history[
         history["_market_strength"].notna()
         & history["_date"].notna()
-        & (history["_date"] <= pd.Timestamp(max(TARGET_DATES)))
+        & (history["_date"] <= pd.Timestamp(max(target_dates)))
     ].copy()
 
     def make_map(col: str, prior_weight: float) -> dict[str, float]:
@@ -1265,12 +1262,53 @@ def normalize_new_result(result: dict) -> tuple:
     return places, tris
 
 
+def discover_target_dates(
+    source_root: Path,
+    scope: str,
+    start_date: str,
+    end_date: str,
+) -> list[str]:
+    pred_root = source_root / "data" / "predictions"
+    available = []
+    for path in sorted(pred_root.iterdir() if pred_root.exists() else []):
+        if not path.is_dir() or not re.fullmatch(r"20\d{6}", path.name):
+            continue
+        if not any(path.glob("*.csv")):
+            continue
+        try:
+            dt = datetime.strptime(path.name, "%Y%m%d").date()
+        except ValueError:
+            continue
+        available.append(dt.isoformat())
+
+    if not available:
+        raise RuntimeError("No archived prediction dates are available")
+
+    if scope == "all":
+        return available
+
+    if not start_date or not end_date:
+        raise ValueError("range scope requires both --start-date and --end-date")
+    start = datetime.strptime(start_date, "%Y-%m-%d").date()
+    end = datetime.strptime(end_date, "%Y-%m-%d").date()
+    if start > end:
+        raise ValueError("start-date must be on or before end-date")
+
+    selected = [d for d in available if start.isoformat() <= d <= end.isoformat()]
+    if not selected:
+        raise RuntimeError(f"No archived prediction dates found in {start_date}..{end_date}")
+    return selected
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-root", required=True, type=Path)
+    parser.add_argument("--scope", choices=("all", "range"), default="range")
+    parser.add_argument("--start-date", default="")
+    parser.add_argument("--end-date", default="")
     parser.add_argument("--data-path", default="data/races.json", type=Path)
-    parser.add_argument("--audit-path", default="data/rebuild_audit_20260815_16.json", type=Path)
-    parser.add_argument("--pop-model-path", default="data/popularity_model_20260815_16.json", type=Path)
+    parser.add_argument("--audit-path", default="data/rebuild_audit.json", type=Path)
+    parser.add_argument("--pop-model-path", default="data/popularity_model.json", type=Path)
     parser.add_argument("--diagnostic-path", default=DIAGNOSTIC_PATH_DEFAULT, type=Path)
     args = parser.parse_args()
 
@@ -1280,18 +1318,23 @@ def main() -> int:
     if not args.data_path.exists():
         raise FileNotFoundError(args.data_path)
 
+    target_dates = discover_target_dates(
+        source_root, args.scope, args.start_date.strip(), args.end_date.strip()
+    )
+    print("Target dates:", ", ".join(target_dates))
+
     source_sha = source_commit(source_root)
     races: dict[str, RaceModel] = {}
     target_files: list[tuple[str, Path]] = []
     target_horse_ids: set[str] = set()
+    expected_by_date: dict[str, int] = {}
 
-    for date_s in TARGET_DATES:
+    for date_s in target_dates:
         pred_dir = source_root / "data" / "predictions" / date_s.replace("-", "")
         files = sorted(pred_dir.glob("*.csv"))
-        if len(files) != EXPECTED_RACES_PER_DAY:
-            raise RuntimeError(
-                f"{date_s}: expected {EXPECTED_RACES_PER_DAY} prediction files, got {len(files)}"
-            )
+        if not files:
+            raise RuntimeError(f"{date_s}: no prediction files")
+        expected_by_date[date_s] = len(files)
         for f in files:
             target_files.append((date_s, f))
             card_path = (
@@ -1301,6 +1344,12 @@ def main() -> int:
             card = read_csv(card_path)
             if "horse_id" in card.columns:
                 target_horse_ids.update(card["horse_id"].apply(clean_str))
+
+    expected_total_races = sum(expected_by_date.values())
+    print(
+        f"Selected {len(target_dates)} dates / {expected_total_races} races: "
+        + ", ".join(f"{d}={expected_by_date[d]}" for d in target_dates)
+    )
 
     print(f"Loading historical races for {len(target_horse_ids)} target horses...")
     history = load_target_history(source_root, target_horse_ids)
@@ -1329,11 +1378,12 @@ def main() -> int:
             })
             print(f"  ERROR {f.stem}: {type(exc).__name__}: {exc}")
 
-    if build_errors or len(races) != EXPECTED_TOTAL_RACES:
+    if build_errors or len(races) != expected_total_races:
         diagnostic = {
             "generatedAt": datetime.now(JST).isoformat(timespec="seconds"),
             "stage": "race-preflight",
-            "expectedRaces": EXPECTED_TOTAL_RACES,
+            "targetDates": target_dates,
+            "expectedRaces": expected_total_races,
             "builtRaces": len(races),
             "errorCount": len(build_errors),
             "errors": build_errors,
@@ -1349,22 +1399,20 @@ def main() -> int:
         )
         raise RuntimeError(
             f"Preflight found {len(build_errors)} critical race errors "
-            f"({len(races)}/{EXPECTED_TOTAL_RACES} built).\n{summary}"
+            f"({len(races)}/{expected_total_races} built).\n{summary}"
         )
 
     estimated_pops, pop_metrics = estimate_popularities(races)
-    future_entity_priors = build_future_entity_priors(history)
+    future_entity_priors = build_future_entity_priors(history, target_dates)
 
     data = json.loads(args.data_path.read_text(encoding="utf-8"))
-    existing_by_date = {
-        d.get("date"): d for d in data.get("days", [])
-    }
+    existing_by_date = {d.get("date"): d for d in data.get("days", [])}
 
     audit_races = []
     daily = {}
     old_result_mismatches = []
 
-    for date_s in TARGET_DATES:
+    for date_s in target_dates:
         day = existing_by_date.get(date_s)
         if day is None:
             day = {"date": date_s, "races": []}
@@ -1391,10 +1439,7 @@ def main() -> int:
             if old.get("result") and normalize_old_result(old) != normalize_new_result(result):
                 old_result_mismatches.append(rid)
 
-            winners = [
-                t for t in result["trifectas"]
-                if covered(prediction, t["horses"])
-            ]
+            winners = [t for t in result["trifectas"] if covered(prediction, t["horses"])]
             payout_return = sum(int(t["payout"]) for t in winners)
             stake = len(prediction["opponents"]) * 6 * 100
             status = "hit" if winners else "miss"
@@ -1421,7 +1466,6 @@ def main() -> int:
             for no, h in index_horses.items():
                 h["expectedPopularity"] = int(est_pop[no])
                 h["excluded"] = int(no) == int(danger)
-                # For Sapporo11 the frontend uses the separately reviewed hardcoded detail.
                 if (
                     rid == SAPPORO11_ID
                     and set(index_horses) == set(SAPPORO11_TOTAL)
@@ -1457,8 +1501,7 @@ def main() -> int:
                     "totalIndex": {str(k): int(v) for k, v in race.total_display.items()},
                     "indexDetail": index_detail,
                     "performanceSource": (
-                        "detailed-index-pilot"
-                        if rid == SAPPORO11_ID
+                        "detailed-index-pilot" if rid == SAPPORO11_ID
                         else "pre-race historical reconstruction"
                     ),
                     "popularityMethod": "market-memory v2 leave-one-race-out calibrated model",
@@ -1477,13 +1520,11 @@ def main() -> int:
 
             actual_pop = race.actual_popularity
             est_order = [
-                h for h, _ in sorted(est_pop.items(), key=lambda kv: kv[1])
-                if h in actual_pop
+                h for h, _ in sorted(est_pop.items(), key=lambda kv: kv[1]) if h in actual_pop
             ]
             est_pop_starters = {h: i + 1 for i, h in enumerate(est_order)}
             mae = float(np.mean([
-                abs(est_pop_starters[h] - actual_pop[h])
-                for h in est_pop_starters
+                abs(est_pop_starters[h] - actual_pop[h]) for h in est_pop_starters
             ]))
             audit_races.append({
                 "date": date_s,
@@ -1510,8 +1551,9 @@ def main() -> int:
                 "oldResultMatchedArchive": rid not in old_result_mismatches,
             })
 
-        if len(rebuilt) != EXPECTED_RACES_PER_DAY:
-            raise RuntimeError(f"{date_s}: rebuilt {len(rebuilt)} races")
+        expected_for_day = expected_by_date[date_s]
+        if len(rebuilt) != expected_for_day:
+            raise RuntimeError(f"{date_s}: rebuilt {len(rebuilt)} != {expected_for_day} races")
 
         day["races"] = rebuilt
         daily[date_s] = {
@@ -1527,16 +1569,13 @@ def main() -> int:
     for day in data["days"]:
         day["races"] = sorted(
             day.get("races", []),
-            key=lambda r: (
-                TRACK_ORDER.get(r.get("venue", ""), 99),
-                int(r.get("raceNo", 99)),
-            ),
+            key=lambda r: (TRACK_ORDER.get(r.get("venue", ""), 99), int(r.get("raceNo", 99))),
         )
 
-    # Final hard validations before writing.
-    for date_s in TARGET_DATES:
+    for date_s in target_dates:
         day = next(d for d in data["days"] if d.get("date") == date_s)
-        if len(day["races"]) != EXPECTED_RACES_PER_DAY:
+        expected_for_day = expected_by_date[date_s]
+        if len(day["races"]) != expected_for_day:
             raise RuntimeError(f"{date_s}: final race count invalid")
         ids = [r["raceId"] for r in day["races"]]
         if len(ids) != len(set(ids)):
@@ -1560,8 +1599,7 @@ def main() -> int:
             horses = detail.get("horses", [])
             if len(horses) != r["horseCount"]:
                 raise RuntimeError(
-                    f"{r['raceId']}: indexDetail horse count "
-                    f"{len(horses)} != {r['horseCount']}"
+                    f"{r['raceId']}: indexDetail horse count {len(horses)} != {r['horseCount']}"
                 )
             for h in horses:
                 if len(h.get("recent", [])) != 5:
@@ -1570,9 +1608,21 @@ def main() -> int:
                     if key not in h:
                         raise RuntimeError(f"{r['raceId']}: index field {key} missing")
 
+    summary_totals = {
+        "dates": len(target_dates),
+        "races": sum(v["races"] for v in daily.values()),
+        "hits": sum(v["hits"] for v in daily.values()),
+        "return": sum(v["return"] for v in daily.values()),
+        "stake": sum(v["stake"] for v in daily.values()),
+    }
+    summary_totals["recoveryRate"] = round(
+        summary_totals["return"] / summary_totals["stake"] * 100, 1
+    ) if summary_totals["stake"] else 0.0
+
     audit = {
         "version": REBUILD_VERSION,
         "generatedAt": datetime.now(JST).isoformat(timespec="seconds"),
+        "targetDates": target_dates,
         "sourceRepository": SOURCE_REPO,
         "sourceRef": SOURCE_REF,
         "sourceCommit": source_sha,
@@ -1601,6 +1651,7 @@ def main() -> int:
                 "critical race input errors are collected across all races and reported together"
             ),
         },
+        "summary": summary_totals,
         "raceCount": len(audit_races),
         "oldResultMismatchCount": len(old_result_mismatches),
         "oldResultMismatches": old_result_mismatches,
@@ -1610,9 +1661,9 @@ def main() -> int:
     }
 
     pop_model = {
-        "version": "predictjra-popularity-calibration-20260815-16-v2-market-memory",
+        "version": "predictjra-popularity-calibration-generic-v3-market-memory",
         "trainedAt": datetime.now(JST).isoformat(timespec="seconds"),
-        "teacherDates": list(TARGET_DATES),
+        "teacherDates": target_dates,
         "teacherRaces": pop_metrics["teacherRaces"],
         "teacherRows": pop_metrics["teacherRows"],
         "features": pop_metrics["features"],
@@ -1633,7 +1684,7 @@ def main() -> int:
             "previous-race popularity",
             "previous assigned weight",
             "historical jockey market tendency",
-            "historical trainer market tendency"
+            "historical trainer market tendency",
         ],
         "prohibitedInputs": [
             "current odds", "current actual popularity", "horse bodyweight", "horse bodyweight change"
@@ -1641,6 +1692,8 @@ def main() -> int:
     }
 
     args.data_path.parent.mkdir(parents=True, exist_ok=True)
+    args.audit_path.parent.mkdir(parents=True, exist_ok=True)
+    args.pop_model_path.parent.mkdir(parents=True, exist_ok=True)
     args.data_path.write_text(
         json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
@@ -1655,7 +1708,8 @@ def main() -> int:
         json.dumps({
             "generatedAt": datetime.now(JST).isoformat(timespec="seconds"),
             "stage": "complete",
-            "expectedRaces": EXPECTED_TOTAL_RACES,
+            "targetDates": target_dates,
+            "expectedRaces": expected_total_races,
             "builtRaces": len(audit_races),
             "errorCount": 0,
             "warnings": [
@@ -1664,7 +1718,7 @@ def main() -> int:
                     "qualityWarnings": r.get("modelMeta", {}).get("indexDetail", {}).get("qualityWarnings", []),
                 }
                 for d in data.get("days", [])
-                if d.get("date") in TARGET_DATES
+                if d.get("date") in target_dates
                 for r in d.get("races", [])
                 if r.get("modelMeta", {}).get("indexDetail", {}).get("qualityWarnings")
             ],
@@ -1673,7 +1727,8 @@ def main() -> int:
     )
 
     print(json.dumps({
-        "raceCount": len(audit_races),
+        "targetDates": target_dates,
+        "summary": summary_totals,
         "daily": daily,
         "oldResultMismatchCount": len(old_result_mismatches),
         "popularityMAE": pop_metrics["meanAbsolutePopularityRankError"],
