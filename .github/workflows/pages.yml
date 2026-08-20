@@ -5,16 +5,13 @@ on:
   push:
     branches: ['main']
 
-  # 手動再公開も可能
+  # 手動再公開、およびRebuild本番反映後の再公開
   workflow_dispatch:
 
-  # データ更新・過去レース再構築の完了後にも再公開する。
-  # GITHUB_TOKENによる自動commitは通常push workflowを連鎖起動しないため、
-  # workflow_runで完了を直接受ける。
+  # 通常の自動レース更新完了後に再公開
   workflow_run:
     workflows:
       - 'Update race data'
-      - 'Rebuild 2026-08-15 and 2026-08-16'
     types: [completed]
 
 permissions:
@@ -29,7 +26,6 @@ concurrency:
 
 jobs:
   build:
-    # workflow_run経由では、元ワークフローが成功した場合だけ公開する。
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
@@ -47,11 +43,18 @@ jobs:
           rm -rf _site
           mkdir -p _site
 
-          # 公開用ファイルをまとめてコピーする。
-          # 今後画像・JSON・JS等を差分追加してもpages.ymlの個別修正は不要。
-          rsync -a ./ _site/             --exclude '.git/'             --exclude '.github/'             --exclude '_site/'             --exclude 'scripts/'             --exclude 'requirements.txt'             --exclude 'README.md'             --exclude '*.zip'             --exclude '__pycache__/'             --exclude '*.pyc'             --exclude '.DS_Store'
+          rsync -a ./ _site/ \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude '_site/' \
+            --exclude 'scripts/' \
+            --exclude 'requirements.txt' \
+            --exclude 'README.md' \
+            --exclude '*.zip' \
+            --exclude '__pycache__/' \
+            --exclude '*.pyc' \
+            --exclude '.DS_Store'
 
-          # ソース側に.nojekyllが無くても必ず生成する。
           touch _site/.nojekyll
 
       - name: Upload Pages artifact
@@ -72,7 +75,7 @@ jobs:
 
   notify-discord:
     # Discord通知は通常のレースデータ更新を受けた公開時だけ。
-    # 過去レースRebuildや通常の差分アップロードでは送信しない。
+    # 手動公開・過去レースRebuildでは送信しない。
     if: >-
       github.event_name == 'workflow_run' &&
       github.event.workflow_run.name == 'Update race data' &&
@@ -109,4 +112,8 @@ jobs:
           CONTENT="$(jq -r '.content' "$FILE")"
           jq -n --arg content "$CONTENT" '{content: $content}' > "$RUNNER_TEMP/discord-payload.json"
 
-          curl --fail-with-body --silent --show-error             -H 'Content-Type: application/json'             -X POST             --data-binary "@$RUNNER_TEMP/discord-payload.json"             "$DISCORD_WEBHOOK_URL"
+          curl --fail-with-body --silent --show-error \
+            -H 'Content-Type: application/json' \
+            -X POST \
+            --data-binary "@$RUNNER_TEMP/discord-payload.json" \
+            "$DISCORD_WEBHOOK_URL"

@@ -1,19 +1,39 @@
-name: Rebuild 2026-08-15 and 2026-08-16
+name: Rebuild historical predictions
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'scripts/rebuild_history_20260815_16.py'
-      - '.github/workflows/rebuild-history-20260815-16.yml'
   workflow_dispatch:
+    inputs:
+      scope:
+        description: '対象範囲'
+        required: true
+        type: choice
+        options:
+          - range
+          - all
+        default: range
+      start_date:
+        description: '開始日 YYYY-MM-DD（scope=range のとき必須）'
+        required: false
+        type: string
+      end_date:
+        description: '終了日 YYYY-MM-DD（scope=range のとき必須）'
+        required: false
+        type: string
+      mode:
+        description: 'validate = 検証のみ / apply = 本番反映'
+        required: true
+        type: choice
+        options:
+          - validate
+          - apply
+        default: validate
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
-  group: rebuild-history-20260815-16
+  group: rebuild-historical-predictions
   cancel-in-progress: false
 
 jobs:
@@ -22,6 +42,8 @@ jobs:
     steps:
       - name: Checkout Predictjra
         uses: actions/checkout@v7
+        with:
+          ref: main
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -39,53 +61,156 @@ jobs:
             https://github.com/sugaimo15/keibayosoku.git \
             "$RUNNER_TEMP/keibayosoku"
 
-      - name: Rebuild and validate 72 races
+      - name: Resolve mode, range and output paths
+        id: args
+        shell: bash
+        env:
+          SCOPE: ${{ inputs.scope }}
+          START_DATE: ${{ inputs.start_date }}
+          END_DATE: ${{ inputs.end_date }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          if [[ "$SCOPE" == "range" ]]; then
+            if [[ ! "$START_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || \
+               [[ ! "$END_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+              echo "::error::scope=range の場合、start_date/end_date を YYYY-MM-DD で指定してください。"
+              exit 1
+            fi
+          fi
+
+          if [[ "$MODE" == "validate" ]]; then
+            cp data/races.json "$RUNNER_TEMP/races-validation.json"
+            DATA_PATH="$RUNNER_TEMP/races-validation.json"
+            AUDIT_PATH="$RUNNER_TEMP/rebuild-audit.json"
+            POP_MODEL_PATH="$RUNNER_TEMP/popularity-model.json"
+            DIAGNOSTIC_PATH="$RUNNER_TEMP/rebuild-diagnostics.json"
+          else
+            DATA_PATH="data/races.json"
+            AUDIT_PATH="data/rebuild_audit.json"
+            POP_MODEL_PATH="data/popularity_model.json"
+            DIAGNOSTIC_PATH="data/rebuild_diagnostics.json"
+          fi
+
+          echo "scope=$SCOPE" >> "$GITHUB_OUTPUT"
+          echo "start_date=$START_DATE" >> "$GITHUB_OUTPUT"
+          echo "end_date=$END_DATE" >> "$GITHUB_OUTPUT"
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "data_path=$DATA_PATH" >> "$GITHUB_OUTPUT"
+          echo "audit_path=$AUDIT_PATH" >> "$GITHUB_OUTPUT"
+          echo "pop_model_path=$POP_MODEL_PATH" >> "$GITHUB_OUTPUT"
+          echo "diagnostic_path=$DIAGNOSTIC_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Rebuild and validate historical races
         shell: bash
         run: |
           python scripts/rebuild_history_20260815_16.py \
-            --source-root "$RUNNER_TEMP/keibayosoku"
+            --source-root "$RUNNER_TEMP/keibayosoku" \
+            --scope "${{ steps.args.outputs.scope }}" \
+            --start-date "${{ steps.args.outputs.start_date }}" \
+            --end-date "${{ steps.args.outputs.end_date }}" \
+            --data-path "${{ steps.args.outputs.data_path }}" \
+            --audit-path "${{ steps.args.outputs.audit_path }}" \
+            --pop-model-path "${{ steps.args.outputs.pop_model_path }}" \
+            --diagnostic-path "${{ steps.args.outputs.diagnostic_path }}"
 
-      - name: Upload rebuild diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: rebuild-diagnostics-20260815-16
-          path: |
-            data/rebuild_diagnostics_20260815_16.json
-            data/rebuild_audit_20260815_16.json
-            data/popularity_model_20260815_16.json
-          if-no-files-found: ignore
-          retention-days: 14
-
-      - name: Show rebuild summary
+      - name: Write result to Actions Summary
         shell: bash
+        env:
+          AUDIT_PATH: ${{ steps.args.outputs.audit_path }}
+          MODE: ${{ steps.args.outputs.mode }}
+          SCOPE: ${{ steps.args.outputs.scope }}
         run: |
           python - <<'PY'
           import json
+          import os
           from pathlib import Path
-          p = Path("data/rebuild_audit_20260815_16.json")
-          a = json.loads(p.read_text(encoding="utf-8"))
-          print("raceCount:", a["raceCount"])
-          print("daily:", json.dumps(a["daily"], ensure_ascii=False, indent=2))
-          print("popularity:", json.dumps(a["popularityModel"], ensure_ascii=False, indent=2))
-          print("oldResultMismatchCount:", a["oldResultMismatchCount"])
+
+          audit = json.loads(Path(os.environ["AUDIT_PATH"]).read_text(encoding="utf-8"))
+          summary = audit["summary"]
+          daily = audit["daily"]
+          mode_label = "検証のみ（サイト未反映）" if os.environ["MODE"] == "validate" else "本番反映"
+          dates = audit.get("targetDates", [])
+          period = f"{dates[0]} ～ {dates[-1]}" if dates else "-"
+
+          lines = [
+              "# Predictjra 過去レース再計算",
+              "",
+              f"- モード: **{mode_label}**",
+              f"- 対象: **{period}**（{summary['dates']}開催日 / {summary['races']}レース）",
+              "",
+              "## 回収率",
+              "",
+              "| 日付 | レース | 的中 | 投資 | 払戻 | 回収率 |",
+              "|---|---:|---:|---:|---:|---:|",
+          ]
+          for date_s in sorted(daily):
+              row = daily[date_s]
+              lines.append(
+                  f"| {date_s} | {row['races']} | {row['hits']} | "
+                  f"{row['stake']:,}円 | {row['return']:,}円 | **{row['recoveryRate']:.1f}%** |"
+              )
+          lines.extend([
+              f"| **合計** | **{summary['races']}** | **{summary['hits']}** | "
+              f"**{summary['stake']:,}円** | **{summary['return']:,}円** | "
+              f"**{summary['recoveryRate']:.1f}%** |",
+              "",
+              "## 想定人気モデル検証",
+              "",
+              f"- 平均人気順位誤差: **{audit['popularityModel']['meanAbsolutePopularityRankError']:.4f}**",
+              f"- 想定人気Top3一致率: **{audit['popularityModel']['meanTop3OverlapRate'] * 100:.1f}%**",
+              "",
+              "> validate モードでは data/races.json を変更せず、この結果だけを確認できます。",
+          ])
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
+              f.write("\n".join(lines) + "\n")
           PY
 
-      - name: Commit rebuilt data
+      - name: Upload validation/rebuild report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: historical-rebuild-${{ steps.args.outputs.mode }}
+          path: |
+            ${{ steps.args.outputs.audit_path }}
+            ${{ steps.args.outputs.pop_model_path }}
+            ${{ steps.args.outputs.diagnostic_path }}
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Detect apply changes
+        if: steps.args.outputs.mode == 'apply'
+        id: changes
         shell: bash
         run: |
           if git diff --quiet -- \
             data/races.json \
-            data/rebuild_audit_20260815_16.json \
-            data/popularity_model_20260815_16.json; then
-            echo "No rebuild changes."
-            exit 0
+            data/rebuild_audit.json \
+            data/popularity_model.json \
+            data/rebuild_diagnostics.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No production changes."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Production data changed."
           fi
+
+      - name: Commit rebuilt production data
+        if: steps.args.outputs.mode == 'apply' && steps.changes.outputs.changed == 'true'
+        shell: bash
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
             data/races.json \
-            data/rebuild_audit_20260815_16.json \
-            data/popularity_model_20260815_16.json
-          git commit -m "Rebuild JRA predictions for 2026-08-15 and 2026-08-16"
+            data/rebuild_audit.json \
+            data/popularity_model.json \
+            data/rebuild_diagnostics.json
+          git commit -m "Rebuild historical JRA predictions"
           git push
+
+      - name: Redeploy Pages after apply
+        if: steps.args.outputs.mode == 'apply' && steps.changes.outputs.changed == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run pages.yml --ref main
