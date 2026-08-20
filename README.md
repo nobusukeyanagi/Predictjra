@@ -71,7 +71,7 @@ GitHub Pages + GitHub Actions で、JRAの出走情報を取得し、予想・�
 
 採用するときだけ `mode = apply` を実行します。`apply` では、候補版を本番版へ昇格させ、同じロジックで過去データを再計算してcommitします。本番データが変わった場合はGitHub Pagesも再公開されます。Rebuildによる公開ではDiscord通知を送りません。
 
-過去の出走情報・結果などの事実データは `data/history_cache/` に保存し、通常は `cache_policy = auto` で再利用します。`refresh` はキャッシュを元アーカイブから強制作成し直したい場合だけ使用します。
+過去の出走情報・結果などの事実データは `data/history_cache/` に保存し、通常は `cache_policy = auto` で再利用します。旧prediction CSVに当日オッズ・実人気・馬体重や旧モデルの `score` / `predicted_rank` / `ml_*` が残っていても、それらをキャッシュ前に物理削除できる日程は検証対象に含めます。削除後のCSVは出走馬集合の確認だけに使い、旧予想値は再利用しません。`refresh` はキャッシュを元アーカイブから強制作成し直したい場合に使用します。
 
 ### Deploy GitHub Pages
 

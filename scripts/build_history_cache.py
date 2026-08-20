@@ -2,12 +2,15 @@
 """Build a durable local cache of immutable historical source data for Predictjra.
 
 The rebuild/backtest workflow should not repeatedly scan the remote archive. This script
-copies only the safe pre-race dates plus the historical result files required by those
-horses, then packs them into data/history_cache/history-source.tar.gz.
+copies eligible historical dates plus the historical result files required by those horses,
+then packs them into data/history_cache/history-source.tar.gz.
 
-The cache intentionally stores source facts/snapshots, not calculated Predictjra indices.
-Changing the prediction logic therefore reuses the same cached inputs while recalculating
-all derived features and predictions.
+Archived prediction CSVs are used only to prove the runner set. If an old snapshot contains
+current-race odds/popularity/bodyweight or legacy model outputs, those columns are physically
+removed before the file enters the cache. The cache therefore stores only source facts needed
+for a leakage-safe rebuild, never calculated Predictjra indices or old selections.
+Changing the prediction logic reuses the same cached inputs while recalculating all derived
+features and predictions.
 """
 from __future__ import annotations
 
@@ -26,9 +29,31 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 
 JST = ZoneInfo("Asia/Tokyo")
-CACHE_VERSION = "predictjra-historical-facts-v1"
+CACHE_VERSION = "predictjra-historical-facts-v2-sanitized-snapshots"
 SOURCE_REPO = "sugaimo15/keibayosoku"
 SOURCE_REF = "claude/horse-racing-predictor-ak6crm"
+
+
+# Columns that must never survive in a cached target-race prediction snapshot.
+# The first group is post/start-time information. The second group is output from the
+# historical model and is deliberately ignored so every rebuild uses today's candidate logic.
+PROHIBITED_CURRENT_COLUMNS = {"win_odds", "horse_weight", "popularity"}
+LEGACY_DERIVED_COLUMNS = {"score", "predicted_rank", "ml_win_prob", "ml_ev", "ml_rank"}
+
+
+def prediction_columns_to_strip(pred: pd.DataFrame) -> list[str]:
+    return sorted(
+        c for c in pred.columns
+        if c in PROHIBITED_CURRENT_COLUMNS
+        or c in LEGACY_DERIVED_COLUMNS
+        or c.startswith("ml_")
+    )
+
+
+def sanitize_prediction_snapshot(pred: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
+    """Keep runner/program facts while physically removing leakage/legacy-output columns."""
+    removed = prediction_columns_to_strip(pred)
+    return pred.drop(columns=removed, errors="ignore").copy(), removed
 
 
 def clean_str(value) -> str:
@@ -69,9 +94,11 @@ def prediction_snapshot_issues(pred: pd.DataFrame) -> list[str]:
 
 
 def inspect_prediction_date(pred_dir: Path) -> dict:
+    """Classify one archived date and record files that can be safely sanitized."""
     valid_files: list[str] = []
     ignored_files: list[str] = []
     contaminated_files: list[dict] = []
+    sanitized_files: list[dict] = []
     schema_errors: list[dict] = []
 
     for path in sorted(pred_dir.glob("*.csv")):
@@ -84,7 +111,7 @@ def inspect_prediction_date(pred_dir: Path) -> dict:
             schema_errors.append({"file": path.name, "reason": f"{type(exc).__name__}: {exc}"})
             continue
 
-        missing = {"horse_number"} - set(pred.columns)
+        missing = {"race_id", "horse_number"} - set(pred.columns)
         if missing:
             schema_errors.append({
                 "file": path.name,
@@ -93,18 +120,21 @@ def inspect_prediction_date(pred_dir: Path) -> dict:
             continue
 
         issues = prediction_snapshot_issues(pred)
+        removed = prediction_columns_to_strip(pred)
         if issues:
             contaminated_files.append({"file": path.name, "issues": issues})
-            continue
+        if removed:
+            sanitized_files.append({
+                "file": path.name,
+                "removedColumns": removed,
+                "postRaceFieldsDetected": bool(issues),
+            })
+
+        # Contamination is no longer a reason to discard the race because the cache
+        # writes a sanitized copy and rebuild_history re-validates that cached copy.
         valid_files.append(path.name)
 
-    if contaminated_files:
-        safe = False
-        reason = (
-            f"{len(contaminated_files)} prediction files contain current-race "
-            "odds/bodyweight/popularity"
-        )
-    elif schema_errors:
+    if schema_errors:
         safe = False
         reason = f"{len(schema_errors)} prediction files have unsupported schema/read errors"
     elif not valid_files:
@@ -119,6 +149,7 @@ def inspect_prediction_date(pred_dir: Path) -> dict:
         "validRaceFiles": valid_files,
         "ignoredFiles": ignored_files,
         "contaminatedFiles": contaminated_files,
+        "sanitizedFiles": sanitized_files,
         "schemaErrors": schema_errors,
         "reason": reason,
     }
@@ -151,6 +182,7 @@ def build_cache(source_root: Path, cache_dir: Path) -> dict:
     safe_dates: list[str] = []
     skipped_dates: list[dict] = []
     ignored_files: list[dict] = []
+    sanitized_dates: list[dict] = []
     inspections: dict[str, dict] = {}
 
     for pred_dir in sorted(pred_root.iterdir()):
@@ -167,6 +199,21 @@ def build_cache(source_root: Path, cache_dir: Path) -> dict:
         inspections[date_s] = inspection
         if inspection["ignoredFiles"]:
             ignored_files.append({"date": date_s, "files": inspection["ignoredFiles"]})
+        if inspection["sanitizedFiles"]:
+            removed_columns = sorted({
+                col
+                for item in inspection["sanitizedFiles"]
+                for col in item["removedColumns"]
+            })
+            sanitized_dates.append({
+                "date": date_s,
+                "files": len(inspection["sanitizedFiles"]),
+                "postRaceFieldFiles": sum(
+                    1 for item in inspection["sanitizedFiles"]
+                    if item["postRaceFieldsDetected"]
+                ),
+                "removedColumns": removed_columns,
+            })
         if inspection["safe"]:
             safe_dates.append(date_s)
         else:
@@ -234,8 +281,14 @@ def build_cache(source_root: Path, cache_dir: Path) -> dict:
                     if not path.exists():
                         raise FileNotFoundError(f"cache source missing: {path}")
 
-                # Prediction CSV is already validated as a clean pre-race snapshot.
-                copy_file(pred_path, source_root, staging)
+                # The archived prediction CSV is only runner-set evidence. Old snapshots
+                # may contain post/start-time values or historical model outputs, so write
+                # a physically sanitized copy into the cache before rebuild sees it.
+                pred = read_csv(pred_path)
+                pred_sanitized, _removed = sanitize_prediction_snapshot(pred)
+                pred_dst = staging / pred_path.relative_to(source_root)
+                pred_dst.parent.mkdir(parents=True, exist_ok=True)
+                pred_sanitized.to_csv(pred_dst, index=False, encoding="utf-8-sig")
                 copied_paths.add(str(pred_path.relative_to(source_root)))
 
                 # race_cards may have been refreshed after the race. Persist only stable
@@ -323,6 +376,7 @@ def build_cache(source_root: Path, cache_dir: Path) -> dict:
             "safeDates": safe_dates,
             "skippedDates": skipped_dates,
             "ignoredFiles": ignored_files,
+            "sanitizedDates": [x for x in sanitized_dates if x["date"] in safe_dates],
             "dateRaceCounts": date_race_counts,
             "targetHorseCount": len(target_horse_ids),
             "historicalResultFiles": history_files,
@@ -334,9 +388,10 @@ def build_cache(source_root: Path, cache_dir: Path) -> dict:
                 "sha256": archive_sha,
             },
             "policy": {
-                "stored": "sanitized pre-race program cards, clean prediction snapshots, final results, trifecta payouts, and required historical race result files",
-                "notStored": "Predictjra derived indices, axes/opponents/danger selections, hit judgement, or recovery-rate calculations",
-                "unsafeDates": "prediction dates containing current odds/bodyweight/actual popularity are excluded",
+                "stored": "sanitized program/runner facts, final results, trifecta payouts, and required historical race result files",
+                "notStored": "target-race current odds/actual popularity/bodyweight, archived model outputs, Predictjra derived indices, axes/opponents/danger selections, hit judgement, or recovery-rate calculations",
+                "sanitization": "target-race prediction snapshots have current odds/bodyweight/actual popularity and legacy score/rank/ml_* columns physically removed before caching",
+                "unsafeDates": "dates are excluded only when canonical prediction snapshots are unreadable/unsupported or required card/result/payout files are incomplete",
             },
         }
         (cache_dir / "manifest.json").write_text(
@@ -357,6 +412,7 @@ def main() -> int:
         "cacheVersion": manifest["cacheVersion"],
         "sourceCommit": manifest["sourceCommit"],
         "safeDates": manifest["safeDates"],
+        "sanitizedDates": [x["date"] for x in manifest.get("sanitizedDates", [])],
         "skippedDates": [x["date"] for x in manifest["skippedDates"]],
         "targetHorseCount": manifest["targetHorseCount"],
         "historicalResultFiles": manifest["historicalResultFiles"],

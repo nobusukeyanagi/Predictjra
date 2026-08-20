@@ -1365,13 +1365,14 @@ def main() -> int:
             "currentPopularityUsedAsPredictionFeature": False,
             "horseWeightOrChangeUsed": False,
             "predictionSnapshotPolicy": (
-                "dates whose prediction CSVs contain current odds, current actual "
-                "popularity, or horse bodyweight are excluded as unsafe; post-race "
-                "market/bodyweight columns in race_cards are dropped and never used"
+                "historical cache physically strips target-race current odds, actual popularity, "
+                "horse bodyweight and archived score/rank/ml_* outputs before rebuild; any residual "
+                "post/start-time field in a cached prediction snapshot is rejected; race_cards are "
+                "also stripped of current market/bodyweight fields"
             ),
             "legacySnapshotPolicy": (
-                "clean early snapshots without optional ml_win_prob/ml_rank remain eligible; "
-                "archived model scores/ranks are ignored and all derived indices are rebuilt "
+                "old snapshots remain eligible after leakage/legacy-output columns are sanitized; "
+                "archived model scores/ranks are never reused and all derived indices are rebuilt "
                 "from immutable pre-race facts through scripts/prediction_logic_candidate.py"
             ),
             "raceResultUsedAsPerformanceFeature": False,
