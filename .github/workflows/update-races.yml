@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: '0 13 * * *'
       timezone: 'Asia/Tokyo'
-    - cron: '0 18 * * *'
+    - cron: '0 19 * * *'
       timezone: 'Asia/Tokyo'
   workflow_dispatch:
     inputs:
@@ -91,7 +91,7 @@ jobs:
 
       - name: Upload update diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: update-race-diagnostics-${{ steps.args.outputs.mode }}-${{ steps.args.outputs.date }}
           path: ${{ runner.temp }}/update-race-diagnostics.json
@@ -127,8 +127,7 @@ jobs:
           if [[ "${{ steps.changes.outputs.changed }}" == "true" ]]; then
             python scripts/build_discord_notification.py               --mode "${{ steps.args.outputs.mode }}"               --date "${{ steps.args.outputs.date }}"               --output "$RUNNER_TEMP/discord-notification/notification.json"
           else
-            printf '%s
-' '{"send": false}' > "$RUNNER_TEMP/discord-notification/notification.json"
+            printf '%s\n' '{"send": false}' > "$RUNNER_TEMP/discord-notification/notification.json"
           fi
 
       - name: Upload Discord notification payload

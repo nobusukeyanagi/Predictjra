@@ -8,11 +8,13 @@ on:
   # 手動再公開も可能
   workflow_dispatch:
 
-  # 前日15時・当日18時の自動データ更新完了後にも再公開
+  # データ更新・過去レース再構築の完了後にも再公開する。
   # GITHUB_TOKENによる自動commitは通常push workflowを連鎖起動しないため、
-  # workflow_runでUpdate race dataの完了を直接受ける。
+  # workflow_runで完了を直接受ける。
   workflow_run:
-    workflows: ['Update race data']
+    workflows:
+      - 'Update race data'
+      - 'Rebuild 2026-08-15 and 2026-08-16'
     types: [completed]
 
 permissions:
@@ -27,7 +29,7 @@ concurrency:
 
 jobs:
   build:
-    # データ更新に失敗した場合だけは公開しない。
+    # workflow_run経由では、元ワークフローが成功した場合だけ公開する。
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
@@ -47,17 +49,7 @@ jobs:
 
           # 公開用ファイルをまとめてコピーする。
           # 今後画像・JSON・JS等を差分追加してもpages.ymlの個別修正は不要。
-          rsync -a ./ _site/ \
-            --exclude '.git/' \
-            --exclude '.github/' \
-            --exclude '_site/' \
-            --exclude 'scripts/' \
-            --exclude 'requirements.txt' \
-            --exclude 'README.md' \
-            --exclude '*.zip' \
-            --exclude '__pycache__/' \
-            --exclude '*.pyc' \
-            --exclude '.DS_Store'
+          rsync -a ./ _site/             --exclude '.git/'             --exclude '.github/'             --exclude '_site/'             --exclude 'scripts/'             --exclude 'requirements.txt'             --exclude 'README.md'             --exclude '*.zip'             --exclude '__pycache__/'             --exclude '*.pyc'             --exclude '.DS_Store'
 
           # ソース側に.nojekyllが無くても必ず生成する。
           touch _site/.nojekyll
@@ -79,9 +71,11 @@ jobs:
         uses: actions/deploy-pages@v5
 
   notify-discord:
-    # Discord通知はレースデータ更新を受けた公開時だけ。通常の差分アップロードでは送信しない。
+    # Discord通知は通常のレースデータ更新を受けた公開時だけ。
+    # 過去レースRebuildや通常の差分アップロードでは送信しない。
     if: >-
       github.event_name == 'workflow_run' &&
+      github.event.workflow_run.name == 'Update race data' &&
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     needs: deploy
@@ -115,8 +109,4 @@ jobs:
           CONTENT="$(jq -r '.content' "$FILE")"
           jq -n --arg content "$CONTENT" '{content: $content}' > "$RUNNER_TEMP/discord-payload.json"
 
-          curl --fail-with-body --silent --show-error \
-            -H 'Content-Type: application/json' \
-            -X POST \
-            --data-binary "@$RUNNER_TEMP/discord-payload.json" \
-            "$DISCORD_WEBHOOK_URL"
+          curl --fail-with-body --silent --show-error             -H 'Content-Type: application/json'             -X POST             --data-binary "@$RUNNER_TEMP/discord-payload.json"             "$DISCORD_WEBHOOK_URL"
