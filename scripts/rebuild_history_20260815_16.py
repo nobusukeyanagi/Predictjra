@@ -58,7 +58,7 @@ SAPPORO11_RANK = {
     9: 9, 11: 10, 5: 11, 16: 12, 6: 13, 1: 14, 2: 15, 3: 16,
 }
 
-REBUILD_VERSION = "predictjra-history-generic-v4-market-memory"
+REBUILD_VERSION = "predictjra-history-generic-v5-safe-snapshots"
 SOURCE_REPO = "sugaimo15/keibayosoku"
 SOURCE_REF = "claude/horse-racing-predictor-ak6crm"
 
@@ -705,23 +705,50 @@ def build_fallback_index_detail(
     return detail, totals, total_display, tie_order
 
 
-def validate_no_market_input(card: pd.DataFrame, pred: pd.DataFrame, race_id: str) -> None:
-    """Fail if the archived prediction snapshot contains current odds/bodyweight.
+def prediction_snapshot_issues(pred: pd.DataFrame) -> list[str]:
+    """Return reasons why a prediction CSV is not a clean pre-race snapshot."""
+    issues: list[str] = []
 
-    We deliberately do not merely drop these values because the precomputed score could
-    already have incorporated them. A contaminated snapshot must not be used.
+    if "win_odds" in pred.columns:
+        odds = pd.to_numeric(pred["win_odds"], errors="coerce")
+        if (odds > 0).any():
+            issues.append("current odds populated")
+
+    if "horse_weight" in pred.columns:
+        nonblank = pred["horse_weight"].apply(clean_str)
+        if nonblank.ne("").any():
+            issues.append("current horse bodyweight populated")
+
+    # Historical prediction files from some dates were saved after final popularity
+    # had been populated. Those snapshots are not valid backtest inputs.
+    if "popularity" in pred.columns:
+        popularity = pd.to_numeric(pred["popularity"], errors="coerce")
+        if popularity.notna().any():
+            issues.append("current actual popularity populated")
+
+    return issues
+
+
+def validate_prediction_snapshot(pred: pd.DataFrame, race_id: str) -> None:
+    """Fail if the prediction snapshot contains current-race market/bodyweight data."""
+    issues = prediction_snapshot_issues(pred)
+    if issues:
+        raise ValueError(
+            f"{race_id}: contaminated prediction snapshot ({', '.join(issues)})"
+        )
+
+
+def sanitize_card(card: pd.DataFrame) -> pd.DataFrame:
+    """Remove post-snapshot fields that are never allowed as prediction features.
+
+    race_cards in the archive may have been refreshed after a race, even when the
+    prediction CSV itself is a clean pre-race snapshot. The model only needs stable
+    program fields (horse id/name, assigned weight, jockey/trainer, surface/distance).
     """
-    for label, df in (("card", card), ("prediction", pred)):
-        if "win_odds" in df.columns:
-            odds = pd.to_numeric(df["win_odds"], errors="coerce")
-            if (odds > 0).any():
-                bad = df.loc[odds > 0, ["horse_number", "win_odds"]].to_dict("records")
-                raise ValueError(f"{race_id} {label}: numeric current odds found: {bad[:4]}")
-        if "horse_weight" in df.columns:
-            nonblank = df["horse_weight"].apply(clean_str)
-            if nonblank.ne("").any():
-                bad = df.loc[nonblank.ne(""), ["horse_number", "horse_weight"]].to_dict("records")
-                raise ValueError(f"{race_id} {label}: current horse weight found: {bad[:4]}")
+    return card.drop(
+        columns=["win_odds", "horse_weight", "popularity"],
+        errors="ignore",
+    ).copy()
 
 
 def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: pd.DataFrame) -> RaceModel:
@@ -730,12 +757,12 @@ def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: p
     result_path = source_root / "data" / "race_results" / "2026" / f"{race_id}.csv"
     payout_path = source_root / "data" / "race_payouts" / f"{race_id}.csv"
 
-    card = read_csv(card_path)
+    card = sanitize_card(read_csv(card_path))
     pred = read_csv(pred_path)
     result = read_csv(result_path)
     payout = read_csv(payout_path)
 
-    validate_no_market_input(card, pred, race_id)
+    validate_prediction_snapshot(pred, race_id)
 
     for df_name, df in (("card", card), ("pred", pred), ("result", result)):
         if df.empty:
@@ -753,15 +780,22 @@ def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: p
     if len(card_nums) < 5:
         raise ValueError(f"{race_id}: only {len(card_nums)} horses")
 
-    required_pred = {"horse_number", "score", "ml_win_prob", "predicted_rank", "ml_rank"}
+    # Older clean snapshots (2026-07-18/19) predate the optional ML columns.
+    # They are still valid because the live performance/index path uses `score`.
+    required_pred = {"horse_number", "score", "predicted_rank"}
     missing = required_pred - set(pred.columns)
     if missing:
-        raise ValueError(f"{race_id}: prediction missing columns {sorted(missing)}")
+        raise ValueError(f"{race_id}: prediction missing core columns {sorted(missing)}")
 
     p = pred.copy()
     p["horse_number"] = pd.to_numeric(p["horse_number"], errors="raise").astype(int)
     p["rule_norm"] = minmax(p["score"])
-    p["ml_norm"] = minmax(p["ml_win_prob"])
+    if "ml_win_prob" in p.columns and pd.to_numeric(p["ml_win_prob"], errors="coerce").notna().any():
+        p["ml_norm"] = minmax(p["ml_win_prob"])
+    else:
+        # ML was not recorded in the earliest snapshots. Use the validated rule
+        # score as the fallback proxy rather than rejecting the whole date.
+        p["ml_norm"] = p["rule_norm"]
 
     try:
         index_detail, total_internal, total_display, tie_order = build_index_detail(
@@ -1262,14 +1296,82 @@ def normalize_new_result(result: dict) -> tuple:
     return places, tris
 
 
+def inspect_prediction_date(pred_dir: Path) -> dict:
+    """Classify one archived date before any race is rebuilt."""
+    valid_files: list[str] = []
+    ignored_files: list[str] = []
+    contaminated_files: list[dict] = []
+    schema_errors: list[dict] = []
+
+    for path in sorted(pred_dir.glob("*.csv")):
+        # Ignore scratch/test files that are not a real 12-digit JRA race id.
+        if not re.fullmatch(r"\d{12}\.csv", path.name):
+            ignored_files.append(path.name)
+            continue
+
+        try:
+            pred = read_csv(path)
+        except Exception as exc:
+            schema_errors.append({
+                "file": path.name,
+                "reason": f"{type(exc).__name__}: {exc}",
+            })
+            continue
+
+        missing = {"horse_number", "score", "predicted_rank"} - set(pred.columns)
+        if missing:
+            schema_errors.append({
+                "file": path.name,
+                "reason": "missing core columns: " + ", ".join(sorted(missing)),
+            })
+            continue
+
+        issues = prediction_snapshot_issues(pred)
+        if issues:
+            contaminated_files.append({
+                "file": path.name,
+                "issues": issues,
+            })
+            continue
+
+        valid_files.append(path.name)
+
+    if contaminated_files:
+        reason = (
+            f"{len(contaminated_files)} prediction files contain current-race "
+            "odds/bodyweight/popularity"
+        )
+        safe = False
+    elif schema_errors:
+        reason = f"{len(schema_errors)} prediction files have unsupported schema/read errors"
+        safe = False
+    elif not valid_files:
+        reason = "no valid 12-digit race prediction files"
+        safe = False
+    else:
+        reason = ""
+        safe = True
+
+    return {
+        "safe": safe,
+        "validRaceFiles": valid_files,
+        "ignoredFiles": ignored_files,
+        "contaminatedFiles": contaminated_files,
+        "schemaErrors": schema_errors,
+        "reason": reason,
+    }
+
+
 def discover_target_dates(
     source_root: Path,
     scope: str,
     start_date: str,
     end_date: str,
-) -> list[str]:
+) -> tuple[list[str], dict]:
     pred_root = source_root / "data" / "predictions"
-    available = []
+    available: list[str] = []
+    date_dirs: dict[str, Path] = {}
+
     for path in sorted(pred_root.iterdir() if pred_root.exists() else []):
         if not path.is_dir() or not re.fullmatch(r"20\d{6}", path.name):
             continue
@@ -1279,28 +1381,63 @@ def discover_target_dates(
             dt = datetime.strptime(path.name, "%Y%m%d").date()
         except ValueError:
             continue
-        available.append(dt.isoformat())
+        date_s = dt.isoformat()
+        available.append(date_s)
+        date_dirs[date_s] = path
 
     if not available:
         raise RuntimeError("No archived prediction dates are available")
 
     if scope == "all":
-        return available
+        requested = list(available)
+    else:
+        if not start_date or not end_date:
+            raise ValueError("range scope requires both --start-date and --end-date")
+        start = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end = datetime.strptime(end_date, "%Y-%m-%d").date()
+        if start > end:
+            raise ValueError("start-date must be on or before end-date")
+        requested = [d for d in available if start.isoformat() <= d <= end.isoformat()]
+        if not requested:
+            raise RuntimeError(
+                f"No archived prediction dates found in {start_date}..{end_date}. "
+                f"Available dates: {', '.join(available)}"
+            )
 
-    if not start_date or not end_date:
-        raise ValueError("range scope requires both --start-date and --end-date")
-    start = datetime.strptime(start_date, "%Y-%m-%d").date()
-    end = datetime.strptime(end_date, "%Y-%m-%d").date()
-    if start > end:
-        raise ValueError("start-date must be on or before end-date")
+    selected: list[str] = []
+    skipped: list[dict] = []
+    ignored_files: list[dict] = []
 
-    selected = [d for d in available if start.isoformat() <= d <= end.isoformat()]
+    for date_s in requested:
+        inspection = inspect_prediction_date(date_dirs[date_s])
+        if inspection["ignoredFiles"]:
+            ignored_files.append({
+                "date": date_s,
+                "files": inspection["ignoredFiles"],
+            })
+        if inspection["safe"]:
+            selected.append(date_s)
+        else:
+            skipped.append({
+                "date": date_s,
+                "reason": inspection["reason"],
+                "contaminatedFiles": inspection["contaminatedFiles"],
+                "schemaErrors": inspection["schemaErrors"],
+            })
+
     if not selected:
+        detail = "; ".join(f"{x['date']}: {x['reason']}" for x in skipped)
         raise RuntimeError(
-            f"No archived prediction dates found in {start_date}..{end_date}. "
-            f"Available dates: {', '.join(available)}"
+            "No safe pre-race prediction dates remain after snapshot validation. "
+            + detail
         )
-    return selected
+
+    return selected, {
+        "availableDates": available,
+        "requestedDates": requested,
+        "skippedDates": skipped,
+        "ignoredFiles": ignored_files,
+    }
 
 
 def main() -> int:
@@ -1321,10 +1458,18 @@ def main() -> int:
     if not args.data_path.exists():
         raise FileNotFoundError(args.data_path)
 
-    target_dates = discover_target_dates(
+    target_dates, discovery = discover_target_dates(
         source_root, args.scope, args.start_date.strip(), args.end_date.strip()
     )
     print("Target dates:", ", ".join(target_dates))
+    if discovery["skippedDates"]:
+        print("Skipped unsafe dates:")
+        for item in discovery["skippedDates"]:
+            print(f"  - {item['date']}: {item['reason']}")
+    if discovery["ignoredFiles"]:
+        print("Ignored non-race CSV files:")
+        for item in discovery["ignoredFiles"]:
+            print(f"  - {item['date']}: {', '.join(item['files'])}")
 
     source_sha = source_commit(source_root)
     races: dict[str, RaceModel] = {}
@@ -1334,9 +1479,12 @@ def main() -> int:
 
     for date_s in target_dates:
         pred_dir = source_root / "data" / "predictions" / date_s.replace("-", "")
-        files = sorted(pred_dir.glob("*.csv"))
+        files = sorted(
+            f for f in pred_dir.glob("*.csv")
+            if re.fullmatch(r"\d{12}\.csv", f.name)
+        )
         if not files:
-            raise RuntimeError(f"{date_s}: no prediction files")
+            raise RuntimeError(f"{date_s}: no valid 12-digit race prediction files")
         expected_by_date[date_s] = len(files)
         for f in files:
             target_files.append((date_s, f))
@@ -1386,6 +1534,10 @@ def main() -> int:
             "generatedAt": datetime.now(JST).isoformat(timespec="seconds"),
             "stage": "race-preflight",
             "targetDates": target_dates,
+            "availableDates": discovery["availableDates"],
+            "requestedDates": discovery["requestedDates"],
+            "skippedDates": discovery["skippedDates"],
+            "ignoredFiles": discovery["ignoredFiles"],
             "expectedRaces": expected_total_races,
             "builtRaces": len(races),
             "errorCount": len(build_errors),
@@ -1626,6 +1778,10 @@ def main() -> int:
         "version": REBUILD_VERSION,
         "generatedAt": datetime.now(JST).isoformat(timespec="seconds"),
         "targetDates": target_dates,
+        "availableDates": discovery["availableDates"],
+        "requestedDates": discovery["requestedDates"],
+        "skippedDates": discovery["skippedDates"],
+        "ignoredFiles": discovery["ignoredFiles"],
         "sourceRepository": SOURCE_REPO,
         "sourceRef": SOURCE_REF,
         "sourceCommit": source_sha,
@@ -1633,6 +1789,15 @@ def main() -> int:
             "currentOddsUsed": False,
             "currentPopularityUsedAsPredictionFeature": False,
             "horseWeightOrChangeUsed": False,
+            "predictionSnapshotPolicy": (
+                "dates whose prediction CSVs contain current odds, current actual "
+                "popularity, or horse bodyweight are excluded as unsafe; post-race "
+                "market/bodyweight columns in race_cards are dropped and never used"
+            ),
+            "legacySnapshotPolicy": (
+                "clean early snapshots without optional ml_win_prob/ml_rank remain eligible; "
+                "their validated rule score is used as the ML fallback proxy"
+            ),
             "raceResultUsedAsPerformanceFeature": False,
             "actualPopularityUse": (
                 "teacher label only; each race excluded from its own estimator training"
@@ -1712,6 +1877,10 @@ def main() -> int:
             "generatedAt": datetime.now(JST).isoformat(timespec="seconds"),
             "stage": "complete",
             "targetDates": target_dates,
+            "availableDates": discovery["availableDates"],
+            "requestedDates": discovery["requestedDates"],
+            "skippedDates": discovery["skippedDates"],
+            "ignoredFiles": discovery["ignoredFiles"],
             "expectedRaces": expected_total_races,
             "builtRaces": len(audit_races),
             "errorCount": 0,
@@ -1731,6 +1900,8 @@ def main() -> int:
 
     print(json.dumps({
         "targetDates": target_dates,
+        "skippedDates": discovery["skippedDates"],
+        "ignoredFiles": discovery["ignoredFiles"],
         "summary": summary_totals,
         "daily": daily,
         "oldResultMismatchCount": len(old_result_mismatches),
