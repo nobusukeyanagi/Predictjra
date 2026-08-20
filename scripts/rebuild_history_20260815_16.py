@@ -58,7 +58,7 @@ SAPPORO11_RANK = {
     9: 9, 11: 10, 5: 11, 16: 12, 6: 13, 1: 14, 2: 15, 3: 16,
 }
 
-REBUILD_VERSION = "predictjra-history-generic-v5-safe-snapshots"
+REBUILD_VERSION = "predictjra-history-generic-v6-fact-cache"
 SOURCE_REPO = "sugaimo15/keibayosoku"
 SOURCE_REF = "claude/horse-racing-predictor-ak6crm"
 
@@ -1443,6 +1443,8 @@ def discover_target_dates(
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-root", required=True, type=Path)
+    parser.add_argument("--source-commit", default="")
+    parser.add_argument("--cache-manifest", default="", type=Path)
     parser.add_argument("--scope", choices=("all", "range"), default="range")
     parser.add_argument("--start-date", default="")
     parser.add_argument("--end-date", default="")
@@ -1471,7 +1473,14 @@ def main() -> int:
         for item in discovery["ignoredFiles"]:
             print(f"  - {item['date']}: {', '.join(item['files'])}")
 
-    source_sha = source_commit(source_root)
+    cache_manifest = {}
+    if args.cache_manifest and args.cache_manifest.is_file():
+        try:
+            cache_manifest = json.loads(args.cache_manifest.read_text(encoding="utf-8"))
+        except Exception as exc:
+            raise RuntimeError(f"Failed to read cache manifest: {exc}") from exc
+
+    source_sha = args.source_commit.strip() or cache_manifest.get("sourceCommit", "") or source_commit(source_root)
     races: dict[str, RaceModel] = {}
     target_files: list[tuple[str, Path]] = []
     target_horse_ids: set[str] = set()
@@ -1785,6 +1794,15 @@ def main() -> int:
         "sourceRepository": SOURCE_REPO,
         "sourceRef": SOURCE_REF,
         "sourceCommit": source_sha,
+        "historicalFactsCache": {
+            "enabled": bool(cache_manifest),
+            "cacheVersion": cache_manifest.get("cacheVersion"),
+            "generatedAt": cache_manifest.get("generatedAt"),
+            "archiveSha256": (cache_manifest.get("archive") or {}).get("sha256"),
+            "cachedSafeDates": cache_manifest.get("safeDates", []),
+            "cachedFileCount": cache_manifest.get("cachedFileCount"),
+            "historicalResultFiles": cache_manifest.get("historicalResultFiles"),
+        },
         "strictInputRules": {
             "currentOddsUsed": False,
             "currentPopularityUsedAsPredictionFeature": False,
@@ -1807,7 +1825,11 @@ def main() -> int:
                 "but omitted from final-popularity teacher rows and validation metrics"
             ),
             "indexDetailHistoryCutoff": (
-                "previous-run/detail indices use only archived race results with date < target race date"
+                "previous-run/detail indices use only cached archived race results with date < target race date"
+            ),
+            "historicalFactsCachePolicy": (
+                "immutable source facts are cached once; derived indices and prediction selections "
+                "are recalculated on every rebuild so logic changes take effect immediately"
             ),
             "raceConditionMetadataFallback": (
                 "surface/distance may fall back to target result metadata or an authoritative "
@@ -1907,6 +1929,11 @@ def main() -> int:
         "oldResultMismatchCount": len(old_result_mismatches),
         "popularityMAE": pop_metrics["meanAbsolutePopularityRankError"],
         "top3Overlap": pop_metrics["meanTop3OverlapRate"],
+        "historicalFactsCache": {
+            "enabled": bool(cache_manifest),
+            "cacheVersion": cache_manifest.get("cacheVersion"),
+            "sourceCommit": source_sha,
+        },
     }, ensure_ascii=False, indent=2))
     return 0
 
