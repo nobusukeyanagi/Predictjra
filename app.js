@@ -331,23 +331,49 @@ function secondHorseTop3(race, prediction) {
   return horseTop3(race, prediction?.axes?.[1]);
 }
 
+function dangerHorseTop3(race, prediction) {
+  const dangerNumbers = [
+    ...(Array.isArray(race?.danger) ? race.danger : []),
+    ...(Array.isArray(race?.prediction?.excluded) ? race.prediction.excluded : []),
+    ...(Array.isArray(prediction?.excluded) ? prediction.excluded : [])
+  ]
+    .map(Number)
+    .filter(Number.isFinite);
+
+  return [...new Set(dangerNumbers)].some(no => horseTop3(race, no));
+}
+
+function dangerJudgementMarkup(race, prediction) {
+  return dangerHorseTop3(race, prediction)
+    ? '<span class="prediction-danger-mark">危</span>'
+    : '';
+}
+
 function judgement(race, prediction) {
-  // 三連単的中時は「的中」を最優先し、補助判定は出さない。
-  if (race?.status === 'hit') {
-    return '<span class="judgement hit">的中</span>';
-  }
-  if (race?.status !== 'miss') {
+  if (race?.status !== 'hit' && race?.status !== 'miss') {
     return '<span class="judgement pending">未確定</span>';
   }
 
+  const dangerMark = dangerJudgementMarkup(race, prediction);
+
+  // 三連単的中時は「的中」を最優先しつつ、
+  // 危険馬が3着以内なら紫字の「危」だけを横に併記する。
+  if (race?.status === 'hit') {
+    return `<span class="judgement-combo"><span class="judgement hit">的中</span>${dangerMark}</span>`;
+  }
+
   // 単: 本命1着 / 本: 本命3着以内 / 対: 対抗3着以内。
-  // 本命1着時は「単」を優先するため、併記は「単対」「本対」のみになる。
+  // 本命1着時は「単」を優先するため、通常の併記は「単対」「本対」のみ。
   const mainMark = mainHorseWon(race, prediction)
     ? '単'
     : (mainHorseTop3(race, prediction) ? '本' : '');
   const secondMark = secondHorseTop3(race, prediction) ? '対' : '';
   const mark = `${mainMark}${secondMark}`;
-  return mark ? `<span class="prediction-result-mark">${mark}</span>` : '';
+  const resultMark = mark ? `<span class="prediction-result-mark">${mark}</span>` : '';
+
+  return (resultMark || dangerMark)
+    ? `<span class="judgement-combo">${resultMark}${dangerMark}</span>`
+    : '';
 }
 
 function daySummary(day) {

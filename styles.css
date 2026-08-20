@@ -849,3 +849,82 @@ body.logic-modal-open { overflow: hidden; }
   .logic-modal-content .index-logic-item p { font-size: 12px; }
 }
 
+
+
+/* v37: header / race table / danger judgement / desktop modal placement */
+
+/* 本命・対抗・相手の項目行も他列と同じ緑地・白字に統一 */
+.race-table thead .column-row th:nth-child(2),
+.race-table thead .column-row th:nth-child(3),
+.race-table thead .column-row th:nth-child(4) {
+  color: #fff;
+  background: var(--green);
+}
+
+/* レース名（場R）はリンク風の下線を付けない */
+.race-detail-trigger {
+  border-bottom: 0;
+  padding-bottom: 0;
+  text-decoration: none;
+}
+
+/* 危険馬3着以内の補助判定 */
+.judgement-combo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  white-space: nowrap;
+}
+.prediction-danger-mark {
+  color: #6f42c1;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* PC: モーダルの開始位置を画面上部で固定し、レースごとの上下ズレをなくす */
+@media (min-width: 761px) {
+  .index-modal-backdrop {
+    align-items: flex-start;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  .index-modal {
+    max-height: calc(100vh - 20px);
+  }
+}
+
+/* SP: タイトル＋！を必ずブラウザ幅内に収める */
+@media (max-width: 760px) {
+  .site-title-wrap {
+    position: static;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 0 4px;
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .site-title {
+    min-width: 0;
+    max-width: calc(100% - 37px);
+    flex: 0 1 auto;
+    font-size: clamp(19px, 6vw, 26px);
+    letter-spacing: -.025em;
+  }
+
+  .site-info-button {
+    position: static;
+    left: auto;
+    top: auto;
+    transform: none;
+    flex: 0 0 27px;
+    width: 27px;
+    height: 27px;
+    margin: 0;
+  }
+}
