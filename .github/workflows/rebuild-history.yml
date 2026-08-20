@@ -159,6 +159,15 @@ jobs:
                       reason = "cache manifest is unreadable"
 
           if not refresh and manifest is not None:
+              expected_cache_version = "predictjra-historical-facts-v2-sanitized-snapshots"
+              if manifest.get("cacheVersion") != expected_cache_version:
+                  refresh = True
+                  reason = (
+                      "historical cache format changed: "
+                      f"{manifest.get('cacheVersion') or 'unknown'} -> {expected_cache_version}"
+                  )
+
+          if not refresh and manifest is not None:
               archive = manifest.get("archive") or {}
               path = archive.get("path")
               parts = archive.get("parts") or []
@@ -352,6 +361,7 @@ jobs:
                   f"- 対象: **{period}**（{summary['dates']}開催日 / {summary['races']}レース）",
                   f"- 過去事実データ: **{cache_label}**",
                   f"- キャッシュ: **{len(manifest.get('safeDates') or [])}開催日 / {archive_mb:.1f} MB**",
+                  f"- サニタイズ: **{len(manifest.get('sanitizedDates') or [])}開催日 / {sum(int(x.get('files') or 0) for x in (manifest.get('sanitizedDates') or []))}ファイル**（当日オッズ・実人気・馬体重・旧モデル出力をキャッシュ前に除去）",
                   f"- ロジック状態: **{logic_state}**",
                   f"- 候補SHA: `{candidate_sha}` / 本番SHA: `{production_sha}`",
                   "",
