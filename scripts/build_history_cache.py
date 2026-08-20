@@ -84,7 +84,7 @@ def inspect_prediction_date(pred_dir: Path) -> dict:
             schema_errors.append({"file": path.name, "reason": f"{type(exc).__name__}: {exc}"})
             continue
 
-        missing = {"horse_number", "score", "predicted_rank"} - set(pred.columns)
+        missing = {"horse_number"} - set(pred.columns)
         if missing:
             schema_errors.append({
                 "file": path.name,

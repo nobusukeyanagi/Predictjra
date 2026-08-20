@@ -61,6 +61,7 @@ def main():
     base = [{"horse": n, "frame": 1+(n-1)//2, "name": f"馬{n}"} for n in range(1, 15)]
     card = parse_rich_card(fixture_html(), "202601010901", base)
     built = build_prediction(card)
+    assert built["modelMeta"]["logicSource"] == "scripts/prediction_logic.py"
     prediction = built["prediction"]
     assert len(prediction["axes"]) == 2
     assert len(prediction["opponents"]) == 5

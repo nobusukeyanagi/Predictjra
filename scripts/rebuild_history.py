@@ -17,8 +17,9 @@ Historical snapshot source:
   https://github.com/sugaimo15/keibayosoku
   ref: claude/horse-racing-predictor-ak6crm
 
-The archived prediction CSVs were created before odds/bodyweight were populated. This
-script verifies that condition again before using their non-market pre-race score fields.
+The archived prediction CSVs are used only to prove that a clean pre-race snapshot
+existed and to verify the runner set. Archived model scores/ranks are never reused.
+All derived indices and selections are recalculated through scripts/prediction_logic.py.
 """
 from __future__ import annotations
 
@@ -36,6 +37,19 @@ from zoneinfo import ZoneInfo
 import numpy as np
 import pandas as pd
 
+from prediction_logic import (
+    FEATURE_COLS,
+    MODEL_VERSION,
+    SELECTION_RULE_TEXT,
+    build_index_core,
+    build_market_profile,
+    market_context_adjustment,
+    parse_class_level,
+    prediction_target_count,
+    rank_strengths,
+    select_prediction,
+)
+
 JST = ZoneInfo("Asia/Tokyo")
 
 TRACKS = {
@@ -44,21 +58,11 @@ TRACKS = {
 }
 TRACK_ORDER = {name: i for i, name in enumerate(TRACKS.values(), start=1)}
 
-# This race already has the fully hand-reviewed Predictjra detailed index.
-# Keep its "総合" ordering from the modal; only 想人 is replaced by the
-# cross-race calibrated popularity estimator.
+# Kept only for popularity-model case-study diagnostics.  No race-specific
+# prediction score override is allowed; all races use prediction_logic.py.
 SAPPORO11_ID = "202601010811"
-SAPPORO11_TOTAL = {
-    1: 65, 2: 65, 3: 64, 4: 80, 5: 75, 6: 74, 7: 79, 8: 87,
-    9: 75, 10: 83, 11: 75, 12: 75, 13: 81, 14: 79, 15: 78, 16: 74,
-}
-# Secondary ordering used by the current detailed index when displayed totals tie.
-SAPPORO11_RANK = {
-    8: 1, 10: 2, 13: 3, 4: 4, 7: 5, 14: 6, 15: 7, 12: 8,
-    9: 9, 11: 10, 5: 11, 16: 12, 6: 13, 1: 14, 2: 15, 3: 16,
-}
 
-REBUILD_VERSION = "predictjra-history-generic-v6-fact-cache"
+REBUILD_VERSION = "predictjra-history-generic-v7-unified-logic"
 SOURCE_REPO = "sugaimo15/keibayosoku"
 SOURCE_REF = "claude/horse-racing-predictor-ak6crm"
 
@@ -79,17 +83,6 @@ def clean_str(v) -> str:
 
 def numeric_or_nan(v) -> float:
     return pd.to_numeric(pd.Series([v]), errors="coerce").iloc[0]
-
-
-def minmax(series: pd.Series) -> pd.Series:
-    s = pd.to_numeric(series, errors="coerce").astype(float)
-    if s.notna().sum() == 0:
-        return pd.Series(0.5, index=series.index, dtype=float)
-    s = s.fillna(s.mean())
-    lo, hi = float(s.min()), float(s.max())
-    if hi - lo < 1e-12:
-        return pd.Series(0.5, index=series.index, dtype=float)
-    return (s - lo) / (hi - lo)
 
 
 def parse_age(sex_age) -> float:
@@ -114,15 +107,6 @@ def shrunk_market_mean(values: pd.Series | list[float], prior: float = 0.5, prio
     if vals.empty:
         return float(prior)
     return clipped01((float(vals.sum()) + prior * prior_weight) / (len(vals) + prior_weight))
-
-
-def market_recency(values: list[float], limit: int = 5) -> float:
-    vals = [float(v) for v in values[:limit] if math.isfinite(float(v))]
-    if not vals:
-        return 0.5
-    weights = [0.40, 0.25, 0.16, 0.11, 0.08][:len(vals)]
-    sw = sum(weights)
-    return clipped01(sum(v * w for v, w in zip(vals, weights)) / sw)
 
 
 def read_csv(path: Path) -> pd.DataFrame:
@@ -202,12 +186,6 @@ def passing_positions(value) -> list[int]:
     return [int(x) for x in re.findall(r"\d+", s)]
 
 
-def clamp_index(value: float, lo: int = 45, hi: int = 98) -> float:
-    if not math.isfinite(float(value)):
-        return float((lo + hi) / 2)
-    return float(np.clip(value, lo, hi))
-
-
 def load_target_history(source_root: Path, target_horse_ids: set[str]) -> pd.DataFrame:
     """Load full race files containing at least one target horse.
 
@@ -253,7 +231,6 @@ def load_target_history(source_root: Path, target_horse_ids: set[str]) -> pd.Dat
     hist["_date"] = pd.to_datetime(hist.get("date"), errors="coerce")
     hist["_finish"] = pd.to_numeric(hist.get("finish_position"), errors="coerce")
     hist["_time_sec"] = hist.get("time", pd.Series(index=hist.index, dtype=object)).apply(parse_time_seconds)
-    hist["_last3f"] = pd.to_numeric(hist.get("last_3f"), errors="coerce")
 
     numeric_finish = hist["_finish"].notna()
     hist["_field_size"] = (
@@ -263,8 +240,6 @@ def load_target_history(source_root: Path, target_horse_ids: set[str]) -> pd.Dat
         .replace(0, np.nan)
     )
     hist["_winner_time"] = hist["_time_sec"].groupby(hist["race_id"]).transform("min")
-    hist["_last3f_min"] = hist["_last3f"].groupby(hist["race_id"]).transform("min")
-    hist["_last3f_max"] = hist["_last3f"].groupby(hist["race_id"]).transform("max")
 
     # Historical market-memory fields. These are all known before a future race:
     # previous-race popularity, assigned weight, jockey and trainer.
@@ -293,148 +268,55 @@ def load_target_history(source_root: Path, target_horse_ids: set[str]) -> pd.Dat
         "trainer", pd.Series(index=hist.index, dtype=object)
     ).apply(clean_str)
 
-    denom = (hist["_field_size"] - 1).replace(0, 1)
-    hist["_finish_strength"] = (1 - (hist["_finish"] - 1) / denom).clip(0, 1)
-
-    # 成績指数: 着順を頭数で補正。
-    hist["_result_index"] = (48 + 50 * hist["_finish_strength"]).clip(45, 98)
-
-    # タイム指数: 勝ち馬とのタイム差を中心に、上がり3Fの相対値を補助。
-    gap = (hist["_time_sec"] - hist["_winner_time"]).clip(lower=0)
-    gap_score = (96 - 6.0 * gap).clip(45, 98)
-    last_span = (hist["_last3f_max"] - hist["_last3f_min"]).replace(0, np.nan)
-    last_strength = 1 - (hist["_last3f"] - hist["_last3f_min"]) / last_span
-    last_score = (55 + 40 * last_strength).clip(50, 96)
-    hist["_time_index"] = (
-        0.75 * gap_score + 0.25 * last_score.fillna(gap_score)
-    ).clip(45, 98)
-
-    # 各過去走の展開指数: 位置取りからの前進度と上がりを加味。
-    pace_values = []
-    front_values = []
-    for _, row in hist.iterrows():
-        finish = row.get("_finish")
-        field = row.get("_field_size")
-        pos = passing_positions(row.get("passing_order"))
-        finish_strength = row.get("_finish_strength")
-        l3min, l3max, l3 = row.get("_last3f_min"), row.get("_last3f_max"), row.get("_last3f")
-
-        if pd.notna(field) and field > 1 and pos:
-            first = pos[0]
-            last = pos[-1]
-            front = 1 - (first - 1) / max(field - 1, 1)
-            improvement = (last - finish) / max(field, 1) if pd.notna(finish) else 0.0
-        else:
-            front = math.nan
-            improvement = 0.0
-
-        if pd.notna(l3) and pd.notna(l3min) and pd.notna(l3max) and l3max > l3min:
-            l3s = 1 - (l3 - l3min) / (l3max - l3min)
-        else:
-            l3s = 0.5
-
-        fs = float(finish_strength) if pd.notna(finish_strength) else 0.5
-        if math.isfinite(float(front)):
-            score = 64 + 18 * fs + 10 * np.clip(improvement, -1, 1) + 8 * l3s
-        else:
-            score = 62 + 26 * fs + 7 * l3s
-        pace_values.append(clamp_index(score))
-        front_values.append(front)
-
-    hist["_pace_index"] = pace_values
-    hist["_front_strength"] = front_values
-    hist["_run_composite"] = (
-        0.25 * hist["_pace_index"]
-        + 0.35 * hist["_time_index"]
-        + 0.40 * hist["_result_index"]
-    )
 
     return hist
 
 
-def recency_weighted(values: list[float]) -> float:
-    if not values:
-        return 70.0
-    # 近走指数は「直近5走」が定義。呼び出し側から5件超が渡っても
-    # 6要素×5重みの形状不一致を起こさないよう、この関数自身でも防御する。
-    values = list(values)[:5]
-    base_weights = [0.34, 0.25, 0.18, 0.13, 0.10]
-    weights = np.array(base_weights[:len(values)], dtype=float)
-    weights = weights / weights.sum()
-    return float(np.dot(np.array(values, dtype=float), weights))
+def normalize_historical_run(row: pd.Series) -> dict:
+    """Convert one archived result row to the same normalized run shape as live parsing."""
+    race_id = clean_str(row.get("race_id"))
+    finish_raw = row.get("_finish")
+    field_raw = row.get("_field_size")
+    pop_raw = row.get("_popularity")
+    carried_raw = row.get("_weight_carried_num")
+    time_raw = row.get("_time_sec")
+    winner_raw = row.get("_winner_time")
 
+    finish = int(finish_raw) if pd.notna(finish_raw) else None
+    field = int(field_raw) if pd.notna(field_raw) else None
+    popularity = int(pop_raw) if pd.notna(pop_raw) else None
+    carried = float(carried_raw) if pd.notna(carried_raw) else math.nan
+    if pd.notna(time_raw) and pd.notna(winner_raw):
+        margin = max(0.0, float(time_raw) - float(winner_raw))
+    else:
+        margin = math.nan
 
-def course_index_for_horse(
-    horse_hist: pd.DataFrame,
-    current_race_id: str,
-    surface: str,
-    distance_m: float,
-    proxy: float,
-) -> float:
-    """Course suitability with graceful degradation for incomplete metadata.
+    surface_raw = clean_str(row.get("surface"))
+    if "障" in surface_raw:
+        surface = "障害"
+    elif "芝" in surface_raw:
+        surface = "芝"
+    elif "ダ" in surface_raw:
+        surface = "ダート"
+    else:
+        surface = surface_raw
 
-    Missing distance/surface is not grounds to abort an otherwise valid race.
-    Exact-course evidence is used when available; otherwise venue/distance history
-    is used, and finally the pre-race proxy is returned as a neutral fallback.
-    """
-    if horse_hist.empty:
-        return clamp_index(min(78, 0.82 * proxy + 0.18 * 72))
+    distance = parse_distance_m(row.get("distance_m"))
+    race_name = clean_str(row.get("race_name")) or clean_str(row.get("race_title"))
 
-    track_code = current_race_id[4:6]
-    h = horse_hist.copy()
-    h["_track_code"] = h["race_id"].astype(str).str[4:6]
-    h["_distance"] = pd.to_numeric(h.get("distance_m"), errors="coerce")
-    h["_surface"] = h.get(
-        "surface", pd.Series(index=h.index, dtype=object)
-    ).apply(clean_str)
-
-    valid_distance = math.isfinite(float(distance_m)) and float(distance_m) > 0
-    valid_surface = bool(clean_str(surface))
-
-    def score(frame: pd.DataFrame, cap: float) -> float | None:
-        if frame.empty:
-            return None
-        vals = (
-            pd.to_numeric(frame["_run_composite"], errors="coerce")
-            .dropna()
-            .tail(5)
-            .tolist()
-        )
-        if not vals:
-            return None
-        value = 0.72 * recency_weighted(list(reversed(vals))) + 0.28 * max(vals)
-        return min(cap, value)
-
-    # Best case: same venue + same surface + nearly same distance.
-    if valid_distance and valid_surface:
-        exact = h[
-            (h["_track_code"] == track_code)
-            & (h["_surface"] == surface)
-            & ((h["_distance"] - float(distance_m)).abs() <= 100)
-        ]
-        exact_score = score(exact, 98)
-        if exact_score is not None:
-            return clamp_index(0.84 * exact_score + 0.16 * proxy)
-
-    # Same venue; retain surface filter when known.
-    venue = h[h["_track_code"] == track_code]
-    if valid_surface:
-        venue = venue[venue["_surface"] == surface]
-    venue_score = score(venue, 86 if valid_surface else 82)
-    if venue_score is not None:
-        return clamp_index(0.78 * venue_score + 0.22 * proxy)
-
-    # Same/similar distance elsewhere; retain surface filter when known.
-    if valid_distance:
-        distance = h[(h["_distance"] - float(distance_m)).abs() <= 200]
-        if valid_surface:
-            distance = distance[distance["_surface"] == surface]
-        distance_score = score(distance, 82 if valid_surface else 79)
-        if distance_score is not None:
-            return clamp_index(0.76 * distance_score + 0.24 * proxy)
-
-    # No trustworthy course metadata/history: neutral pre-race fallback.
-    return clamp_index(min(78, 0.88 * proxy + 0.12 * 72))
+    return {
+        "date": row.get("_date").strftime("%Y-%m-%d") if pd.notna(row.get("_date")) else "",
+        "venue": TRACKS.get(race_id[4:6], race_id[4:6]) if len(race_id) >= 6 else "",
+        "finish": finish,
+        "field": field,
+        "popularity": popularity,
+        "classLevel": parse_class_level(race_name),
+        "carriedWeight": carried,
+        "surface": surface,
+        "distance": distance,
+        "positions": passing_positions(row.get("passing_order")),
+        "margin": margin,
+    }
 
 
 def build_index_detail(
@@ -444,17 +326,13 @@ def build_index_detail(
     pred: pd.DataFrame,
     result: pd.DataFrame,
     history: pd.DataFrame,
-) -> tuple[dict, dict[int, float], dict[int, int], dict[int, float]]:
+) -> tuple[dict, dict[int, float], dict[int, int], dict[int, list[dict]]]:
+    """Reconstruct indices with the exact same shared core used for live prediction."""
     target_date = pd.Timestamp(date_s)
     card2 = card.copy()
     card2["horse_number"] = pd.to_numeric(card2["horse_number"], errors="raise").astype(int)
     card2["horse_id"] = card2["horse_id"].apply(clean_str)
 
-    pmap = pred.set_index("horse_number")
-
-    # Race conditions are known before the race. Prefer archived pre-race metadata,
-    # then result metadata strictly for condition fields, then an authoritative
-    # per-race override. If still missing, continue with a neutral course fallback.
     quality_warnings: list[str] = []
     race_distance = first_race_distance(card2, pred, result)
     race_surface = first_race_surface(card2, pred, result)
@@ -473,133 +351,42 @@ def build_index_detail(
     if not race_surface:
         quality_warnings.append("surface unavailable; course index used neutral fallback")
 
-    horse_context = {}
-    front_type_count = 0
-
+    venue = TRACKS.get(race_id[4:6], race_id[4:6])
+    entries: list[dict] = []
     for _, row in card2.iterrows():
         no = int(row["horse_number"])
         horse_id = clean_str(row.get("horse_id"))
         h = history[
             (history["horse_id"] == horse_id)
-            & (history["_date"].notna())
+            & history["_date"].notna()
             & (history["_date"] < target_date)
-            & (history["_finish"].notna())
+            & history["_finish"].notna()
         ].sort_values("_date")
-        recent5 = h.tail(5).iloc[::-1].copy()
-
-        fronts = pd.to_numeric(recent5.get("_front_strength"), errors="coerce").dropna()
-        front_ratio = float(fronts.mean()) if len(fronts) else math.nan
-        if math.isfinite(front_ratio) and front_ratio >= 0.58:
-            front_type_count += 1
-
-        proxy = 55 + 40 * float(pmap.loc[no, "rule_norm"])
-        horse_context[no] = {
-            "row": row,
-            "history": h,
-            "recent5": recent5,
-            "front_ratio": front_ratio,
-            "proxy": proxy,
-        }
-
-    if front_type_count >= 3:
-        pace_regime = "fast"
-    elif front_type_count <= 1:
-        pace_regime = "slow"
-    else:
-        pace_regime = "medium"
-
-    horses = []
-    internal_totals = {}
-
-    for no in sorted(horse_context):
-        ctx = horse_context[no]
-        row = ctx["row"]
-        recent5 = ctx["recent5"]
-        proxy = float(ctx["proxy"])
-        front_ratio = ctx["front_ratio"]
-
-        recent_strings = []
-        composites = []
-        for _, rr in recent5.iterrows():
-            pace = int(round(clamp_index(rr["_pace_index"])))
-            timing = int(round(clamp_index(rr["_time_index"])))
-            result_i = int(round(clamp_index(rr["_result_index"])))
-            recent_strings.append(f"{pace}/{timing}/{result_i}")
-            composites.append(0.25 * pace + 0.35 * timing + 0.40 * result_i)
-        while len(recent_strings) < 5:
-            recent_strings.append("評価外")
-
-        if composites:
-            base = recency_weighted(composites)
-            ceiling = max(composites)
-            consistency = clamp_index(96 - 1.8 * float(np.std(composites)), 55, 96)
-            hist_recent = 0.70 * base + 0.20 * ceiling + 0.10 * consistency
-            history_weight = min(len(composites) / 5.0, 1.0) * 0.84
-            recent_index = history_weight * hist_recent + (1 - history_weight) * proxy
-        else:
-            recent_index = proxy
-        recent_index = clamp_index(recent_index)
-
-        if math.isfinite(float(front_ratio)):
-            if pace_regime == "fast":
-                style = 70 + 20 * (1 - front_ratio)
-            elif pace_regime == "slow":
-                style = 70 + 20 * front_ratio
-            else:
-                style = 76 + 10 * (1 - abs(front_ratio - 0.5) * 2)
-            pace_index = clamp_index(0.78 * style + 0.22 * proxy)
-        else:
-            pace_index = clamp_index(0.78 * proxy + 0.22 * 75)
-
-        surface = clean_str(row.get("surface")) or race_surface
-        row_distance = parse_distance_m(row.get("distance_m"))
-        distance = (
-            float(row_distance)
-            if math.isfinite(row_distance) and row_distance > 0
-            else float(race_distance)
-        )
-
-        course_index = course_index_for_horse(
-            ctx["history"], race_id, surface, distance, proxy
-        )
-        today_index = clamp_index(0.50 * pace_index + 0.50 * course_index)
-        total_internal = 0.60 * recent_index + 0.40 * today_index
-        total_display = int(round(clamp_index(total_internal)))
-
-        internal_totals[no] = float(total_internal)
-        horses.append({
+        recent5 = h.tail(5).iloc[::-1]
+        histories = [normalize_historical_run(rr) for _, rr in recent5.iterrows()]
+        entries.append({
             "no": no,
             "name": clean_str(row.get("horse_name")),
-            "recent": recent_strings,
-            "recentIndex": int(round(recent_index)),
-            "pace": int(round(pace_index)),
-            "course": int(round(course_index)),
-            "today": int(round(today_index)),
-            "total": total_display,
+            "histories": histories,
+            "age": parse_age(row.get("sex_age")),
         })
 
-    # Rank uses unrounded internal totals, then current pre-race proxy, then horse number.
-    ordered = sorted(
-        horses,
-        key=lambda h: (
-            -internal_totals[h["no"]],
-            -horse_context[h["no"]]["proxy"],
-            h["no"],
-        ),
+    core = build_index_core(
+        entries,
+        venue=venue,
+        surface=race_surface,
+        distance_m=float(race_distance) if math.isfinite(race_distance) else None,
     )
-    rank_map = {h["no"]: i + 1 for i, h in enumerate(ordered)}
-    for h in horses:
-        h["rank"] = rank_map[h["no"]]
+    horses = core["horses"]
+    internal_totals = core["totals"]
 
-    venue = TRACKS.get(race_id[4:6], race_id[4:6])
     race_no = int(race_id[-2:])
     race_name = clean_str(card2.get("race_name", pd.Series([""])).iloc[0])
     title = f"{venue}{race_no}R" + (f" {race_name}" if race_name else "")
-
     detail = {
         "title": title,
         "horseCount": len(horses),
-        "paceRegime": pace_regime,
+        "paceRegime": core["paceRegime"],
         "raceConditions": {
             "surface": race_surface or None,
             "distanceM": int(race_distance) if math.isfinite(race_distance) else None,
@@ -608,8 +395,7 @@ def build_index_detail(
         "horses": horses,
     }
     total_display_map = {h["no"]: int(h["total"]) for h in horses}
-    tie_order = {h["no"]: float(h["rank"]) for h in horses}
-    return detail, internal_totals, total_display_map, tie_order
+    return detail, internal_totals, total_display_map, core["runsByNo"]
 
 
 @dataclass
@@ -622,87 +408,10 @@ class RaceModel:
     payout: pd.DataFrame
     total_internal: dict[int, float]
     total_display: dict[int, int]
-    tie_order: dict[int, float]
     popularity_features: pd.DataFrame
     actual_popularity: dict[int, int]
     index_detail: dict
 
-
-
-def build_fallback_index_detail(
-    race_id: str,
-    card: pd.DataFrame,
-    pred: pd.DataFrame,
-    reason: str,
-) -> tuple[dict, dict[int, float], dict[int, int], dict[int, float]]:
-    """Last-resort modal data from validated pre-race model scores only.
-
-    This prevents a non-critical display-index issue from blocking all 72 races.
-    The fallback is explicitly marked in qualityWarnings and never uses target results.
-    """
-    card2 = card.copy()
-    card2["horse_number"] = pd.to_numeric(
-        card2["horse_number"], errors="coerce"
-    )
-    card2 = card2[card2["horse_number"].notna()].copy()
-    card2["horse_number"] = card2["horse_number"].astype(int)
-
-    p = pred.copy()
-    p["horse_number"] = pd.to_numeric(p["horse_number"], errors="coerce")
-    p = p[p["horse_number"].notna()].copy()
-    p["horse_number"] = p["horse_number"].astype(int)
-    if "rule_norm" not in p.columns:
-        p["rule_norm"] = minmax(p.get("score", pd.Series(0.5, index=p.index)))
-    if "ml_norm" not in p.columns:
-        p["ml_norm"] = minmax(p.get("ml_win_prob", pd.Series(0.5, index=p.index)))
-    p["fallback_raw"] = 0.65 * p["rule_norm"] + 0.35 * p["ml_norm"]
-    pmap = p.set_index("horse_number")
-
-    horses = []
-    totals = {}
-    for _, row in card2.iterrows():
-        no = int(row["horse_number"])
-        if no in pmap.index:
-            raw = float(pmap.loc[no, "fallback_raw"])
-        else:
-            raw = 0.5
-        total = clamp_index(55 + 40 * raw)
-        recent_i = clamp_index(53 + 42 * raw)
-        pace_i = clamp_index(58 + 34 * raw)
-        course_i = clamp_index(0.88 * total + 0.12 * 72)
-        today_i = clamp_index(0.50 * pace_i + 0.50 * course_i)
-        internal = 0.60 * recent_i + 0.40 * today_i
-        totals[no] = float(internal)
-        horses.append({
-            "no": no,
-            "name": clean_str(row.get("horse_name")),
-            "recent": ["評価外"] * 5,
-            "recentIndex": int(round(recent_i)),
-            "pace": int(round(pace_i)),
-            "course": int(round(course_i)),
-            "today": int(round(today_i)),
-            "total": int(round(clamp_index(internal))),
-        })
-
-    ordered = sorted(horses, key=lambda h: (-totals[h["no"]], h["no"]))
-    rank_map = {h["no"]: i + 1 for i, h in enumerate(ordered)}
-    for h in horses:
-        h["rank"] = rank_map[h["no"]]
-
-    venue = TRACKS.get(race_id[4:6], race_id[4:6])
-    race_no = int(race_id[-2:])
-    race_name = clean_str(card2.get("race_name", pd.Series([""])).iloc[0]) if len(card2) else ""
-    detail = {
-        "title": f"{venue}{race_no}R" + (f" {race_name}" if race_name else ""),
-        "horseCount": len(horses),
-        "paceRegime": "unknown",
-        "raceConditions": {"surface": None, "distanceM": None},
-        "qualityWarnings": [f"fallback index detail used: {reason}"],
-        "horses": horses,
-    }
-    total_display = {h["no"]: h["total"] for h in horses}
-    tie_order = {h["no"]: float(h["rank"]) for h in horses}
-    return detail, totals, total_display, tie_order
 
 
 def prediction_snapshot_issues(pred: pd.DataFrame) -> list[str]:
@@ -780,151 +489,48 @@ def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: p
     if len(card_nums) < 5:
         raise ValueError(f"{race_id}: only {len(card_nums)} horses")
 
-    # Older clean snapshots (2026-07-18/19) predate the optional ML columns.
-    # They are still valid because the live performance/index path uses `score`.
-    required_pred = {"horse_number", "score", "predicted_rank"}
-    missing = required_pred - set(pred.columns)
-    if missing:
-        raise ValueError(f"{race_id}: prediction missing core columns {sorted(missing)}")
-
+    # The archived prediction file is now used only as proof of a clean pre-race
+    # snapshot and to verify the runner set.  Old model scores / predicted ranks are
+    # deliberately ignored: all derived values come from prediction_logic.py.
+    if "horse_number" not in pred.columns:
+        raise ValueError(f"{race_id}: prediction missing horse_number")
     p = pred.copy()
     p["horse_number"] = pd.to_numeric(p["horse_number"], errors="raise").astype(int)
-    p["rule_norm"] = minmax(p["score"])
-    if "ml_win_prob" in p.columns and pd.to_numeric(p["ml_win_prob"], errors="coerce").notna().any():
-        p["ml_norm"] = minmax(p["ml_win_prob"])
-    else:
-        # ML was not recorded in the earliest snapshots. Use the validated rule
-        # score as the fallback proxy rather than rejecting the whole date.
-        p["ml_norm"] = p["rule_norm"]
 
-    try:
-        index_detail, total_internal, total_display, tie_order = build_index_detail(
-            race_id, date_s, card, p, result, history
-        )
-    except Exception as exc:
-        index_detail, total_internal, total_display, tie_order = build_fallback_index_detail(
-            race_id, card, p, f"{type(exc).__name__}: {exc}"
-        )
-
-    # 札幌記念は既に個別検証済みの詳細指数があるため、選定用の総合値は
-    # その手作業レビュー値を優先する。画面も app.js の詳細表を優先表示する。
-    if race_id == SAPPORO11_ID and set(card_nums) == set(SAPPORO11_TOTAL):
-        total_internal = {n: float(v) for n, v in SAPPORO11_TOTAL.items()}
-        total_display = dict(SAPPORO11_TOTAL)
-        tie_order = {n: float(v) for n, v in SAPPORO11_RANK.items()}
-
-    # Popularity model v2: separate "ability" from "how the market tends to buy".
-    # Target-race actual popularity/odds/bodyweight never enter X.
-    n = len(p)
-    denom = max(n - 1, 1)
-
-    # Current total/recent rank strengths are reproducible by the live engine.
-    total_order = sorted(
-        total_internal,
-        key=lambda no: (-total_internal[no], tie_order.get(no, 999), no),
+    index_detail, total_internal, total_display, runs_by_no = build_index_detail(
+        race_id, date_s, card, p, result, history
     )
-    total_rank_strength = {
-        no: 1.0 - (rank - 1) / denom
-        for rank, no in enumerate(total_order, start=1)
-    }
+
+    detail_horses = index_detail.get("horses", [])
+    total_rank_strength, recent_rank_strength = rank_strengths(
+        detail_horses, total_internal
+    )
     recent_map = {
-        int(h["no"]): float(h.get("recentIndex", 72))
-        for h in index_detail.get("horses", [])
-    }
-    recent_order = sorted(
-        total_internal,
-        key=lambda no: (-recent_map.get(no, 72.0), -total_internal[no], no),
-    )
-    recent_rank_strength = {
-        no: 1.0 - (rank - 1) / denom
-        for rank, no in enumerate(recent_order, start=1)
+        int(h["no"]): float(h.get("recentIndex", 72)) for h in detail_horses
     }
 
     target_date = pd.Timestamp(date_s)
+    eligible_hist = history[
+        history["_date"].notna()
+        & (history["_date"] < target_date)
+        & history["_market_strength"].notna()
+    ]
+    card2 = card.copy()
+    card2["horse_number"] = pd.to_numeric(
+        card2["horse_number"], errors="raise"
+    ).astype(int)
+
+    race_name = clean_str(card2.get("race_name", pd.Series([""])).iloc[0])
+    current_class_level = parse_class_level(race_name)
     market_rows = []
-    for _, row in p.iterrows():
+    for _, row in card2.iterrows():
         no = int(row["horse_number"])
-        horse_id = clean_str(row.get("horse_id"))
-        h = history[
-            (history["horse_id"] == horse_id)
-            & history["_date"].notna()
-            & (history["_date"] < target_date)
-        ].sort_values("_date", ascending=False)
-
-        hp = h[h["_market_strength"].notna()].head(5)
-        market_values = hp["_market_strength"].astype(float).tolist()
-        last_market = market_values[0] if market_values else 0.5
-        recent3_market = market_recency(market_values, 3)
-        recent5_market = market_recency(market_values, 5)
-
-        if not hp.empty:
-            last_hist = hp.iloc[0]
-            last_finish = (
-                float(last_hist["_finish_strength"])
-                if pd.notna(last_hist.get("_finish_strength"))
-                else 0.5
-            )
-            last_weight = (
-                float(last_hist["_weight_carried_num"])
-                if pd.notna(last_hist.get("_weight_carried_num"))
-                else math.nan
-            )
-            last_pop = (
-                float(last_hist["_popularity"])
-                if pd.notna(last_hist.get("_popularity"))
-                else math.nan
-            )
-            last_field = (
-                float(last_hist["_field_size"])
-                if pd.notna(last_hist.get("_field_size"))
-                else math.nan
-            )
-            last_finish_pos = (
-                float(last_hist["_finish"])
-                if pd.notna(last_hist.get("_finish"))
-                else math.nan
-            )
-        else:
-            last_finish = 0.5
-            last_weight = math.nan
-            last_pop = math.nan
-            last_field = math.nan
-            last_finish_pos = math.nan
-
-        surprise_strength = clipped01(0.5 + (last_finish - last_market) / 2.0)
-
-        lowpop_threshold = (
-            max(6.0, math.ceil(last_field / 2.0))
-            if math.isfinite(last_field)
-            else 7.0
-        )
-        last_lowpop_win = float(
-            math.isfinite(last_finish_pos)
-            and int(last_finish_pos) == 1
-            and math.isfinite(last_pop)
-            and last_pop >= lowpop_threshold
-        )
-
-        current_weight = numeric_or_nan(row.get("weight_carried"))
-        if math.isfinite(current_weight) and math.isfinite(last_weight):
-            weight_delta = current_weight - last_weight
-            carried_change_strength = clipped01(0.5 - weight_delta / 12.0)
-            handicap_rebound_risk = clipped01(
-                last_lowpop_win * max(weight_delta - 1.0, 0.0) / 5.0
-            )
-        else:
-            carried_change_strength = 0.5
-            handicap_rebound_risk = 0.0
 
         jockey_id = normalize_entity_id(row.get("jockey_id"))
         trainer_id = normalize_entity_id(row.get("trainer_id"))
         jockey_name = clean_str(row.get("jockey"))
         trainer_name = clean_str(row.get("trainer"))
-        eligible_hist = history[
-            history["_date"].notna()
-            & (history["_date"] < target_date)
-            & history["_market_strength"].notna()
-        ]
+
         if jockey_id:
             jockey_values = eligible_hist.loc[
                 eligible_hist["_jockey_id_norm"] == jockey_id, "_market_strength"
@@ -935,6 +541,7 @@ def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: p
             ]
         else:
             jockey_values = pd.Series(dtype=float)
+
         if trainer_id:
             trainer_values = eligible_hist.loc[
                 eligible_hist["_trainer_id_norm"] == trainer_id, "_market_strength"
@@ -946,28 +553,29 @@ def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: p
         else:
             trainer_values = pd.Series(dtype=float)
 
-        age = parse_age(row.get("sex_age"))
-        age_strength = clipped01((10.0 - age) / 8.0)
-
-        market_rows.append({
-            "horse_number": no,
-            "total_rank_strength": clipped01(total_rank_strength.get(no, 0.5)),
-            "recent_rank_strength": clipped01(recent_rank_strength.get(no, 0.5)),
-            "last_market_strength": clipped01(last_market),
-            "recent3_market_strength": clipped01(recent3_market),
-            "recent5_market_strength": clipped01(recent5_market),
-            "last_finish_strength": clipped01(last_finish),
-            "surprise_strength": clipped01(surprise_strength),
-            "jockey_market_strength": shrunk_market_mean(
+        factors, context = build_market_profile(
+            runs_by_no.get(no, []),
+            total_rank_strength=total_rank_strength.get(no, 0.5),
+            recent_rank_strength=recent_rank_strength.get(no, 0.5),
+            current_carried_weight=numeric_or_nan(row.get("weight_carried")),
+            jockey_market_strength=shrunk_market_mean(
                 jockey_values, prior=0.5, prior_weight=20.0
             ),
-            "trainer_market_strength": shrunk_market_mean(
+            trainer_market_strength=shrunk_market_mean(
                 trainer_values, prior=0.5, prior_weight=30.0
             ),
-            "age_strength": age_strength,
-            "carried_change_strength": clipped01(carried_change_strength),
-            "last_lowpop_win": last_lowpop_win,
-            "handicap_rebound_risk": clipped01(handicap_rebound_risk),
+            age=parse_age(row.get("sex_age")),
+            current_class_level=current_class_level,
+        )
+        market_rows.append({
+            "horse_number": no,
+            **factors,
+            "_current_class_level": int(context["classLevel"]),
+            "_last_class_level": int(context["lastClassLevel"]),
+            "_max_recent_class_level": int(context["maxRecentClassLevel"]),
+            "_assigned_weight_delta": float(context["assignedWeightDelta"]),
+            "_recent_index": float(recent_map.get(no, 72.0)),
+            "_total_display": int(total_display[no]),
         })
 
     features = pd.DataFrame(market_rows)
@@ -1007,28 +615,10 @@ def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: p
         payout=payout,
         total_internal=total_internal,
         total_display=total_display,
-        tie_order=tie_order,
         popularity_features=features,
         actual_popularity=actual_popularity,
         index_detail=index_detail,
     )
-
-
-FEATURE_COLS = [
-    "total_rank_strength",
-    "recent_rank_strength",
-    "last_market_strength",
-    "recent3_market_strength",
-    "recent5_market_strength",
-    "last_finish_strength",
-    "surprise_strength",
-    "jockey_market_strength",
-    "trainer_market_strength",
-    "age_strength",
-    "carried_change_strength",
-    "last_lowpop_win",
-    "handicap_rebound_risk",
-]
 
 
 def target_market_strength(pop: int, field_size: int) -> float:
@@ -1084,11 +674,24 @@ def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[i
         beta = fit_ridge(train)
         feats = race.popularity_features.copy()
         feats["_pred_market"] = predict_strength(feats, beta)
-        # Stable deterministic tie break: performance proxy, then horse number.
-        feats["_total"] = feats["horse_number"].map(race.total_internal)
+        # The live engine adds the same class/handicap context adjustment after
+        # the calibrated linear market score.  Apply it here as well.
+        adjustments = []
+        for _, row in feats.iterrows():
+            factors = {name: float(row[name]) for name in FEATURE_COLS}
+            context = {
+                "classLevel": int(row["_current_class_level"]),
+                "lastClassLevel": int(row["_last_class_level"]),
+                "maxRecentClassLevel": int(row["_max_recent_class_level"]),
+                "assignedWeightDelta": float(row["_assigned_weight_delta"]),
+            }
+            adjustments.append(market_context_adjustment(factors, context))
+        feats["_pred_market"] = feats["_pred_market"] + np.asarray(adjustments)
+
+        # Identical tie break to prediction_logic.expected_popularity_from_scores.
         feats = feats.sort_values(
-            ["_pred_market", "_total", "horse_number"],
-            ascending=[False, False, True],
+            ["_pred_market", "_recent_index", "_total_display", "horse_number"],
+            ascending=[False, False, False, True],
         ).reset_index(drop=True)
         feats["estimated_popularity"] = np.arange(1, len(feats) + 1)
         est = dict(zip(
@@ -1191,54 +794,6 @@ def build_future_entity_priors(history: pd.DataFrame, target_dates: list[str]) -
     }
 
 
-def prediction_target_count(field_size: int) -> int:
-    return min((field_size + 1) // 2, 7)
-
-
-def build_prediction(race: RaceModel, estimated_popularity: dict[int, int]) -> tuple[dict, int]:
-    horses = sorted(race.total_internal)
-
-    # 危険: 想定1〜3番人気のうち総合評価最下位.
-    top3 = [h for h in horses if estimated_popularity[h] <= 3]
-    if len(top3) != 3:
-        raise ValueError(f"{race.race_id}: estimated top3 count={len(top3)}")
-    danger = min(
-        top3,
-        key=lambda h: (
-            race.total_internal[h],
-            -race.tie_order.get(h, 999),
-            -h,
-        ),
-    )
-
-    target_n = prediction_target_count(len(horses))
-    eligible = [h for h in horses if h != danger]
-    selected = sorted(
-        eligible,
-        key=lambda h: (
-            -race.total_internal[h],
-            race.tie_order.get(h, 999),
-            h,
-        ),
-    )[:target_n]
-    if len(selected) != target_n:
-        raise ValueError(f"{race.race_id}: selected {len(selected)} != {target_n}")
-
-    main = selected[0]
-    # 対抗: selection target with the lowest estimated popularity (= largest rank).
-    second = max(
-        (h for h in selected if h != main),
-        key=lambda h: (estimated_popularity[h], race.total_internal[h], -h),
-    )
-    opponents = [
-        h for h in selected if h not in {main, second}
-    ]
-    opponents.sort(
-        key=lambda h: (-race.total_internal[h], race.tie_order.get(h, 999), h)
-    )
-
-    return {"axes": [main, second], "opponents": opponents}, danger
-
 
 def build_result(race: RaceModel) -> tuple[dict, list[int]]:
     r = race.result.copy()
@@ -1318,7 +873,7 @@ def inspect_prediction_date(pred_dir: Path) -> dict:
             })
             continue
 
-        missing = {"horse_number", "score", "predicted_rank"} - set(pred.columns)
+        missing = {"horse_number"} - set(pred.columns)
         if missing:
             schema_errors.append({
                 "file": path.name,
@@ -1596,7 +1151,11 @@ def main() -> int:
         for race in day_races:
             rid = race.race_id
             est_pop = estimated_pops[rid]
-            prediction, danger = build_prediction(race, est_pop)
+            prediction, danger, _target_count = select_prediction(
+                race.index_detail.get("horses", []),
+                race.total_internal,
+                est_pop,
+            )
             result, tri_payouts = build_result(race)
 
             old = old_by_id.get(rid, {})
@@ -1630,13 +1189,6 @@ def main() -> int:
             for no, h in index_horses.items():
                 h["expectedPopularity"] = int(est_pop[no])
                 h["excluded"] = int(no) == int(danger)
-                if (
-                    rid == SAPPORO11_ID
-                    and set(index_horses) == set(SAPPORO11_TOTAL)
-                    and no in SAPPORO11_TOTAL
-                ):
-                    h["total"] = int(SAPPORO11_TOTAL[no])
-                    h["rank"] = int(SAPPORO11_RANK[no])
             index_detail["prediction"] = {
                 "axes": list(prediction["axes"]),
                 "opponents": list(prediction["opponents"]),
@@ -1660,15 +1212,15 @@ def main() -> int:
                 "trifectaPayouts": [int(x) for x in tri_payouts],
                 "stake": int(stake),
                 "modelMeta": {
-                    "version": REBUILD_VERSION,
+                    "version": MODEL_VERSION,
+                    "rebuildVersion": REBUILD_VERSION,
                     "estimatedPopularity": {str(k): int(v) for k, v in est_pop.items()},
                     "totalIndex": {str(k): int(v) for k, v in race.total_display.items()},
                     "indexDetail": index_detail,
-                    "performanceSource": (
-                        "detailed-index-pilot" if rid == SAPPORO11_ID
-                        else "pre-race historical reconstruction"
-                    ),
+                    "performanceSource": "pre-race historical reconstruction via shared prediction core",
                     "popularityMethod": "market-memory v2 leave-one-race-out calibrated model",
+                    "selectionRule": SELECTION_RULE_TEXT,
+                    "logicSource": "scripts/prediction_logic.py",
                     "nonStarters": sorted(
                         set(int(x) for x in race.card["horse_number"])
                         - set(race.actual_popularity)
@@ -1803,6 +1355,11 @@ def main() -> int:
             "cachedFileCount": cache_manifest.get("cachedFileCount"),
             "historicalResultFiles": cache_manifest.get("historicalResultFiles"),
         },
+        "sharedPredictionLogic": {
+            "modelVersion": MODEL_VERSION,
+            "source": "scripts/prediction_logic.py",
+            "selectionRule": SELECTION_RULE_TEXT,
+        },
         "strictInputRules": {
             "currentOddsUsed": False,
             "currentPopularityUsedAsPredictionFeature": False,
@@ -1814,7 +1371,8 @@ def main() -> int:
             ),
             "legacySnapshotPolicy": (
                 "clean early snapshots without optional ml_win_prob/ml_rank remain eligible; "
-                "their validated rule score is used as the ML fallback proxy"
+                "archived model scores/ranks are ignored and all derived indices are rebuilt "
+                "from immutable pre-race facts through scripts/prediction_logic.py"
             ),
             "raceResultUsedAsPerformanceFeature": False,
             "actualPopularityUse": (
@@ -1837,8 +1395,8 @@ def main() -> int:
                 "instead of aborting. Target result performance is never used"
             ),
             "indexDetailFailurePolicy": (
-                "non-critical modal-index exceptions fall back to validated pre-race scores; "
-                "critical race input errors are collected across all races and reported together"
+                "no legacy score fallback is allowed; every race must be derivable through the "
+                "shared prediction core, otherwise the rebuild reports the input error"
             ),
         },
         "summary": summary_totals,
@@ -1851,7 +1409,9 @@ def main() -> int:
     }
 
     pop_model = {
-        "version": "predictjra-popularity-calibration-generic-v3-market-memory",
+        "version": "predictjra-popularity-calibration-generic-v4-unified-market-memory",
+        "logicSource": "scripts/prediction_logic.py",
+        "modelVersion": MODEL_VERSION,
         "trainedAt": datetime.now(JST).isoformat(timespec="seconds"),
         "teacherDates": target_dates,
         "teacherRaces": pop_metrics["teacherRaces"],
