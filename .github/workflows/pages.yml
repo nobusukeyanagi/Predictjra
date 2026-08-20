@@ -1,11 +1,21 @@
 name: Deploy GitHub Pages
 
 on:
-  # GitHub上で差分ファイルをmainへアップロード／コミットしたら即時反映
+  # デザイン・公開UIをmainへアップロード／コミットしたときだけ即時反映。
+  # 予想ロジックやテストコードだけの変更ではDeployしない。
   push:
     branches: ['main']
+    paths:
+      - 'index.html'
+      - 'app.js'
+      - 'styles.css'
+      - 'assets/**'
+      - 'images/**'
+      - 'favicon.ico'
+      - 'favicon.svg'
+      - 'CNAME'
 
-  # 手動再公開、およびRebuild本番反映後の再公開
+  # 手動再公開、およびRebuildのapply後の再公開
   workflow_dispatch:
 
   # 通常の自動レース更新完了後に再公開
@@ -76,7 +86,7 @@ jobs:
 
   notify-discord:
     # Discord通知は通常のレースデータ更新を受けた公開時だけ。
-    # 手動公開・過去レースRebuildでは送信しない。
+    # デザイン変更・手動公開・過去レースRebuildでは送信しない。
     if: >-
       github.event_name == 'workflow_run' &&
       github.event.workflow_run.name == 'Update race data' &&
