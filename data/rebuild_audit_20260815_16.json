@@ -1,9 +1,9 @@
 {
-  "version": "predictjra-history-20260815-16-v2-robust",
-  "generatedAt": "2026-08-19T15:58:45+09:00",
+  "version": "predictjra-history-20260815-16-v3-market-memory",
+  "generatedAt": "2026-08-20T09:28:10+09:00",
   "sourceRepository": "sugaimo15/keibayosoku",
   "sourceRef": "claude/horse-racing-predictor-ak6crm",
-  "sourceCommit": "8d887b701ea1b225fdd74c8a9ce20d3c3d004a09",
+  "sourceCommit": "a59cb88028f607bf337eedd670820b11eba1d779",
   "strictInputRules": {
     "currentOddsUsed": false,
     "currentPopularityUsedAsPredictionFeature": false,
@@ -20,25 +20,58 @@
   "oldResultMismatches": [],
   "popularityModel": {
     "method": "leave-one-race-out for historical estimates",
-    "ridge": 2.0,
+    "ridge": 3.0,
     "features": [
-      "rule_norm",
-      "ml_norm",
-      "rule_rank_strength",
-      "ml_rank_strength",
+      "total_rank_strength",
+      "recent_rank_strength",
+      "last_market_strength",
+      "recent3_market_strength",
+      "recent5_market_strength",
+      "last_finish_strength",
+      "surprise_strength",
+      "jockey_market_strength",
+      "trainer_market_strength",
       "age_strength",
-      "carried_strength"
+      "carried_change_strength",
+      "last_lowpop_win",
+      "handicap_rebound_risk"
     ],
-    "meanAbsolutePopularityRankError": 2.1744,
-    "meanTop3OverlapRate": 0.6065,
+    "meanAbsolutePopularityRankError": 1.8564,
+    "medianAbsolutePopularityRankError": 1.0,
+    "maxAbsolutePopularityRankError": 11,
+    "largeError5PlusRate": 0.0821,
+    "meanTop3OverlapRate": 0.6528,
+    "top1Accuracy": 0.4167,
+    "sapporo11CaseStudy": {
+      "zendanHayabusaHorseNumber": 12,
+      "zendanHayabusaEstimatedPopularity": 6,
+      "zendanHayabusaActualPopularity": 13,
+      "estimatedTop3": [
+        10,
+        8,
+        13
+      ],
+      "actualTop3": [
+        7,
+        10,
+        15
+      ]
+    },
     "futureModelCoefficients": {
-      "intercept": 0.07727120742165683,
-      "rule_norm": 0.19911853343828148,
-      "ml_norm": -0.015500300550644079,
-      "rule_rank_strength": 0.5294978715240622,
-      "ml_rank_strength": 0.08467372241984625,
-      "age_strength": 0.06268549025867218,
-      "carried_strength": -0.05453512237299465
+      "intercept": -0.3313700165194655,
+      "total_rank_strength": 0.2712178605843565,
+      "recent_rank_strength": 0.1590385058635171,
+      "last_market_strength": 0.14134380116671708,
+      "recent3_market_strength": 0.02556994348132561,
+      "recent5_market_strength": 0.10925534623789473,
+      "last_finish_strength": 0.16839881409088786,
+      "surprise_strength": 0.013527506462031838,
+      "jockey_market_strength": 0.2792972835260969,
+      "trainer_market_strength": 0.21982299222190987,
+      "age_strength": 0.12335657109334744,
+      "carried_change_strength": 0.055935919780699346,
+      "last_lowpop_win": 0.014834897282822652,
+      "handicap_rebound_risk": -0.09000354089207542
     },
     "teacherRows": 975,
     "teacherRaces": 72
@@ -47,16 +80,16 @@
     "2026-08-15": {
       "races": 36,
       "hits": 2,
-      "return": 43910,
+      "return": 18230,
       "stake": 94800,
-      "recoveryRate": 46.3
+      "recoveryRate": 19.2
     },
     "2026-08-16": {
       "races": 36,
-      "hits": 2,
-      "return": 214150,
+      "hits": 1,
+      "return": 197490,
       "stake": 96000,
-      "recoveryRate": 223.1
+      "recoveryRate": 205.7
     }
   },
   "races": [
@@ -74,12 +107,12 @@
         "opponents": [
           3,
           7,
+          12,
           1,
-          9,
           4
         ]
       },
-      "danger": 12,
+      "danger": 9,
       "result": [
         [
           3
@@ -105,7 +138,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.5,
+      "popularityMAE": 1.333,
       "indexDetailGenerated": true,
       "indexHorseCount": 14,
       "indexQualityWarnings": [],
@@ -158,7 +191,7 @@
       "return": 0,
       "stake": 1800,
       "recoveryRate": 0.0,
-      "popularityMAE": 0.4,
+      "popularityMAE": 0.6,
       "indexDetailGenerated": true,
       "indexHorseCount": 10,
       "indexQualityWarnings": [],
@@ -174,13 +207,13 @@
       "prediction": {
         "axes": [
           1,
-          11
+          3
         ],
         "opponents": [
           10,
           12,
           9,
-          3
+          11
         ]
       },
       "danger": 6,
@@ -205,10 +238,10 @@
           "payout": 36470
         }
       ],
-      "status": "hit",
-      "return": 36470,
+      "status": "miss",
+      "return": 0,
       "stake": 2400,
-      "recoveryRate": 1519.6,
+      "recoveryRate": 0.0,
       "popularityMAE": 2.667,
       "indexDetailGenerated": true,
       "indexHorseCount": 12,
@@ -229,12 +262,12 @@
         ],
         "opponents": [
           1,
-          3,
+          12,
           4,
           10
         ]
       },
-      "danger": 12,
+      "danger": 3,
       "result": [
         [
           12
@@ -260,7 +293,7 @@
       "return": 0,
       "stake": 2400,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.5,
+      "popularityMAE": 0.833,
       "indexDetailGenerated": true,
       "indexHorseCount": 12,
       "indexQualityWarnings": [],
@@ -331,13 +364,13 @@
         ],
         "opponents": [
           7,
-          10,
           11,
           9,
+          13,
           5
         ]
       },
-      "danger": 13,
+      "danger": 10,
       "result": [
         [
           7
@@ -363,7 +396,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.857,
+      "popularityMAE": 1.429,
       "indexDetailGenerated": true,
       "indexHorseCount": 14,
       "indexQualityWarnings": [],
@@ -383,13 +416,13 @@
         ],
         "opponents": [
           11,
+          6,
           5,
-          9,
           1,
           8
         ]
       },
-      "danger": 6,
+      "danger": 9,
       "result": [
         [
           4
@@ -415,7 +448,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.867,
+      "popularityMAE": 1.733,
       "indexDetailGenerated": true,
       "indexHorseCount": 15,
       "indexQualityWarnings": [],
@@ -431,13 +464,13 @@
       "prediction": {
         "axes": [
           9,
-          6
+          5
         ],
         "opponents": [
           10,
           3,
           2,
-          5
+          6
         ]
       },
       "danger": 7,
@@ -466,7 +499,7 @@
       "return": 0,
       "stake": 2400,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.636,
+      "popularityMAE": 1.091,
       "indexDetailGenerated": true,
       "indexHorseCount": 11,
       "indexQualityWarnings": [],
@@ -486,10 +519,10 @@
         ],
         "opponents": [
           5,
-          6
+          3
         ]
       },
-      "danger": 3,
+      "danger": 6,
       "result": [
         [
           8
@@ -515,7 +548,7 @@
       "return": 0,
       "stake": 1200,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.0,
+      "popularityMAE": 1.5,
       "indexDetailGenerated": true,
       "indexHorseCount": 8,
       "indexQualityWarnings": [],
@@ -531,17 +564,17 @@
       "prediction": {
         "axes": [
           12,
-          6
+          9
         ],
         "opponents": [
           2,
+          8,
           10,
-          14,
-          11,
-          9
+          6,
+          11
         ]
       },
-      "danger": 8,
+      "danger": 14,
       "result": [
         [
           12
@@ -567,7 +600,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 3.125,
+      "popularityMAE": 2.125,
       "indexDetailGenerated": true,
       "indexHorseCount": 16,
       "indexQualityWarnings": [],
@@ -583,17 +616,17 @@
       "prediction": {
         "axes": [
           7,
-          8
+          6
         ],
         "opponents": [
           11,
           3,
-          13,
+          2,
           14,
-          6
+          8
         ]
       },
-      "danger": 2,
+      "danger": 13,
       "result": [
         [
           11
@@ -619,7 +652,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.286,
+      "popularityMAE": 2.0,
       "indexDetailGenerated": true,
       "indexHorseCount": 14,
       "indexQualityWarnings": [],
@@ -639,13 +672,13 @@
         ],
         "opponents": [
           8,
-          12,
+          5,
           2,
           4,
           10
         ]
       },
-      "danger": 5,
+      "danger": 12,
       "result": [
         [
           9
@@ -671,7 +704,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.857,
+      "popularityMAE": 1.714,
       "indexDetailGenerated": true,
       "indexHorseCount": 14,
       "indexQualityWarnings": [],
@@ -721,7 +754,7 @@
       "return": 0,
       "stake": 1800,
       "recoveryRate": 0.0,
-      "popularityMAE": 0.889,
+      "popularityMAE": 0.667,
       "indexDetailGenerated": true,
       "indexHorseCount": 9,
       "indexQualityWarnings": [],
@@ -773,7 +806,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 3.067,
+      "popularityMAE": 2.8,
       "indexDetailGenerated": true,
       "indexHorseCount": 15,
       "indexQualityWarnings": [],
@@ -844,13 +877,13 @@
         ],
         "opponents": [
           9,
-          12,
+          8,
           15,
           7,
           14
         ]
       },
-      "danger": 8,
+      "danger": 12,
       "result": [
         [
           12
@@ -876,7 +909,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.133,
+      "popularityMAE": 2.267,
       "indexDetailGenerated": true,
       "indexHorseCount": 15,
       "indexQualityWarnings": [],
@@ -892,14 +925,14 @@
       "prediction": {
         "axes": [
           4,
-          18
+          16
         ],
         "opponents": [
           7,
           13,
+          18,
           5,
-          14,
-          16
+          14
         ]
       },
       "danger": 15,
@@ -928,7 +961,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 3.333,
+      "popularityMAE": 2.556,
       "indexDetailGenerated": true,
       "indexHorseCount": 18,
       "indexQualityWarnings": [],
@@ -944,14 +977,14 @@
       "prediction": {
         "axes": [
           12,
-          11
+          14
         ],
         "opponents": [
           6,
           9,
           7,
-          14,
-          1
+          1,
+          11
         ]
       },
       "danger": 5,
@@ -980,7 +1013,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.143,
+      "popularityMAE": 1.286,
       "indexDetailGenerated": true,
       "indexHorseCount": 14,
       "indexQualityWarnings": [],
@@ -996,14 +1029,14 @@
       "prediction": {
         "axes": [
           15,
-          5
+          8
         ],
         "opponents": [
           4,
           7,
           6,
           9,
-          8
+          5
         ]
       },
       "danger": 13,
@@ -1032,7 +1065,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 3.467,
+      "popularityMAE": 2.667,
       "indexDetailGenerated": true,
       "indexHorseCount": 15,
       "indexQualityWarnings": [],
@@ -1048,14 +1081,14 @@
       "prediction": {
         "axes": [
           9,
-          4
+          3
         ],
         "opponents": [
           8,
           6,
           5,
-          3,
-          2
+          2,
+          4
         ]
       },
       "danger": 11,
@@ -1080,11 +1113,11 @@
           "payout": 10790
         }
       ],
-      "status": "miss",
-      "return": 0,
+      "status": "hit",
+      "return": 10790,
       "stake": 3000,
-      "recoveryRate": 0.0,
-      "popularityMAE": 1.867,
+      "recoveryRate": 359.7,
+      "popularityMAE": 1.733,
       "indexDetailGenerated": true,
       "indexHorseCount": 15,
       "indexQualityWarnings": [],
@@ -1100,16 +1133,16 @@
       "prediction": {
         "axes": [
           1,
-          11
+          10
         ],
         "opponents": [
           6,
-          10,
           2,
+          9,
           8
         ]
       },
-      "danger": 9,
+      "danger": 11,
       "result": [
         [
           8
@@ -1135,7 +1168,7 @@
       "return": 0,
       "stake": 2400,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.182,
+      "popularityMAE": 1.636,
       "indexDetailGenerated": true,
       "indexHorseCount": 11,
       "indexQualityWarnings": [
@@ -1158,13 +1191,13 @@
         ],
         "opponents": [
           5,
-          1,
+          12,
           2,
           13,
           15
         ]
       },
-      "danger": 12,
+      "danger": 1,
       "result": [
         [
           9
@@ -1190,7 +1223,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 3.2,
+      "popularityMAE": 2.933,
       "indexDetailGenerated": true,
       "indexHorseCount": 15,
       "indexQualityWarnings": [],
@@ -1242,7 +1275,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 3.444,
+      "popularityMAE": 3.333,
       "indexDetailGenerated": true,
       "indexHorseCount": 18,
       "indexQualityWarnings": [],
@@ -1264,11 +1297,11 @@
           4,
           1,
           13,
-          15,
-          17
+          17,
+          6
         ]
       },
-      "danger": 5,
+      "danger": 15,
       "result": [
         [
           4
@@ -1294,7 +1327,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.556,
+      "popularityMAE": 1.889,
       "indexDetailGenerated": true,
       "indexHorseCount": 18,
       "indexQualityWarnings": [],
@@ -1314,13 +1347,13 @@
         ],
         "opponents": [
           15,
+          16,
           7,
           14,
-          10,
-          13
+          10
         ]
       },
-      "danger": 16,
+      "danger": 13,
       "result": [
         [
           16
@@ -1346,7 +1379,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.75,
+      "popularityMAE": 1.75,
       "indexDetailGenerated": true,
       "indexHorseCount": 16,
       "indexQualityWarnings": [],
@@ -1366,13 +1399,13 @@
         ],
         "opponents": [
           7,
-          6,
           14,
+          9,
           13,
           3
         ]
       },
-      "danger": 9,
+      "danger": 6,
       "result": [
         [
           7
@@ -1398,7 +1431,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.733,
+      "popularityMAE": 1.333,
       "indexDetailGenerated": true,
       "indexHorseCount": 15,
       "indexQualityWarnings": [],
@@ -1463,17 +1496,17 @@
       "prediction": {
         "axes": [
           14,
-          12
+          11
         ],
         "opponents": [
           2,
           6,
+          12,
           1,
-          10,
-          11
+          4
         ]
       },
-      "danger": 4,
+      "danger": 10,
       "result": [
         [
           14
@@ -1499,7 +1532,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.857,
+      "popularityMAE": 1.714,
       "indexDetailGenerated": true,
       "indexHorseCount": 14,
       "indexQualityWarnings": [],
@@ -1519,13 +1552,13 @@
         ],
         "opponents": [
           7,
-          13,
+          16,
           11,
           9,
           2
         ]
       },
-      "danger": 16,
+      "danger": 13,
       "result": [
         [
           6
@@ -1551,7 +1584,7 @@
       "return": 7440,
       "stake": 3000,
       "recoveryRate": 248.0,
-      "popularityMAE": 1.875,
+      "popularityMAE": 1.75,
       "indexDetailGenerated": true,
       "indexHorseCount": 16,
       "indexQualityWarnings": [],
@@ -1567,16 +1600,16 @@
       "prediction": {
         "axes": [
           1,
-          5
+          2
         ],
         "opponents": [
           7,
-          4,
+          9,
           3,
-          2
+          5
         ]
       },
-      "danger": 9,
+      "danger": 4,
       "result": [
         [
           10
@@ -1602,7 +1635,7 @@
       "return": 0,
       "stake": 2400,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.455,
+      "popularityMAE": 2.182,
       "indexDetailGenerated": true,
       "indexHorseCount": 11,
       "indexQualityWarnings": [],
@@ -1622,10 +1655,10 @@
         ],
         "opponents": [
           4,
-          7
+          5
         ]
       },
-      "danger": 5,
+      "danger": 7,
       "result": [
         [
           5
@@ -1651,7 +1684,7 @@
       "return": 0,
       "stake": 1200,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.25,
+      "popularityMAE": 1.75,
       "indexDetailGenerated": true,
       "indexHorseCount": 8,
       "indexQualityWarnings": [],
@@ -1667,15 +1700,15 @@
       "prediction": {
         "axes": [
           8,
-          4
+          2
         ],
         "opponents": [
           6,
-          7,
+          4,
           1
         ]
       },
-      "danger": 2,
+      "danger": 7,
       "result": [
         [
           8
@@ -1717,13 +1750,13 @@
       "prediction": {
         "axes": [
           2,
-          1
+          5
         ],
         "opponents": [
           10,
           14,
           16,
-          5,
+          1,
           7
         ]
       },
@@ -1805,7 +1838,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.375,
+      "popularityMAE": 2.0,
       "indexDetailGenerated": true,
       "indexHorseCount": 16,
       "indexQualityWarnings": [],
@@ -1825,13 +1858,13 @@
         ],
         "opponents": [
           2,
-          13,
+          11,
           4,
           5,
           10
         ]
       },
-      "danger": 11,
+      "danger": 13,
       "result": [
         [
           4
@@ -1857,7 +1890,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.867,
+      "popularityMAE": 1.467,
       "indexDetailGenerated": true,
       "indexHorseCount": 15,
       "indexQualityWarnings": [],
@@ -1873,14 +1906,14 @@
       "prediction": {
         "axes": [
           5,
-          9
+          1
         ],
         "opponents": [
           15,
           7,
           16,
-          8,
-          1
+          9,
+          8
         ]
       },
       "danger": 6,
@@ -1909,7 +1942,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.75,
+      "popularityMAE": 1.375,
       "indexDetailGenerated": true,
       "indexHorseCount": 16,
       "indexQualityWarnings": [],
@@ -1961,7 +1994,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 0.857,
+      "popularityMAE": 1.0,
       "indexDetailGenerated": true,
       "indexHorseCount": 14,
       "indexQualityWarnings": [],
@@ -2026,14 +2059,14 @@
       "prediction": {
         "axes": [
           5,
-          11
+          14
         ],
         "opponents": [
           6,
           2,
           9,
-          7,
-          14
+          11,
+          7
         ]
       },
       "danger": 10,
@@ -2062,7 +2095,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.0,
+      "popularityMAE": 1.857,
       "indexDetailGenerated": true,
       "indexHorseCount": 14,
       "indexQualityWarnings": [],
@@ -2114,7 +2147,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.286,
+      "popularityMAE": 1.714,
       "indexDetailGenerated": true,
       "indexHorseCount": 14,
       "indexQualityWarnings": [],
@@ -2181,16 +2214,16 @@
       "prediction": {
         "axes": [
           10,
-          4
+          7
         ],
         "opponents": [
           8,
-          3,
-          7,
-          11
+          5,
+          11,
+          4
         ]
       },
-      "danger": 5,
+      "danger": 3,
       "result": [
         [
           11
@@ -2212,11 +2245,11 @@
           "payout": 16660
         }
       ],
-      "status": "hit",
-      "return": 16660,
+      "status": "miss",
+      "return": 0,
       "stake": 2400,
-      "recoveryRate": 694.2,
-      "popularityMAE": 2.833,
+      "recoveryRate": 0.0,
+      "popularityMAE": 1.5,
       "indexDetailGenerated": true,
       "indexHorseCount": 12,
       "indexQualityWarnings": [],
@@ -2268,7 +2301,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.125,
+      "popularityMAE": 1.0,
       "indexDetailGenerated": true,
       "indexHorseCount": 16,
       "indexQualityWarnings": [],
@@ -2288,12 +2321,12 @@
         ],
         "opponents": [
           10,
-          5,
+          7,
           2,
           4
         ]
       },
-      "danger": 7,
+      "danger": 5,
       "result": [
         [
           7
@@ -2319,7 +2352,7 @@
       "return": 0,
       "stake": 2400,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.636,
+      "popularityMAE": 2.0,
       "indexDetailGenerated": true,
       "indexHorseCount": 11,
       "indexQualityWarnings": [],
@@ -2339,13 +2372,13 @@
         ],
         "opponents": [
           5,
-          16,
+          13,
           2,
           8,
           14
         ]
       },
-      "danger": 13,
+      "danger": 16,
       "result": [
         [
           16
@@ -2371,7 +2404,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.875,
+      "popularityMAE": 1.875,
       "indexDetailGenerated": true,
       "indexHorseCount": 16,
       "indexQualityWarnings": [],
@@ -2391,12 +2424,12 @@
         ],
         "opponents": [
           10,
-          6,
+          2,
           7,
           3
         ]
       },
-      "danger": 2,
+      "danger": 6,
       "result": [
         [
           12
@@ -2422,7 +2455,7 @@
       "return": 0,
       "stake": 2400,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.0,
+      "popularityMAE": 1.5,
       "indexDetailGenerated": true,
       "indexHorseCount": 12,
       "indexQualityWarnings": [],
@@ -2438,17 +2471,17 @@
       "prediction": {
         "axes": [
           8,
-          14
+          15
         ],
         "opponents": [
           10,
-          13,
           4,
           7,
-          15
+          14,
+          12
         ]
       },
-      "danger": 12,
+      "danger": 13,
       "result": [
         [
           15
@@ -2474,7 +2507,7 @@
       "return": 197490,
       "stake": 3000,
       "recoveryRate": 6583.0,
-      "popularityMAE": 3.75,
+      "popularityMAE": 2.75,
       "indexDetailGenerated": true,
       "indexHorseCount": 16,
       "indexQualityWarnings": [],
@@ -2494,13 +2527,13 @@
         ],
         "opponents": [
           6,
-          2,
           3,
           9,
+          4,
           1
         ]
       },
-      "danger": 4,
+      "danger": 2,
       "result": [
         [
           2
@@ -2526,7 +2559,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.714,
+      "popularityMAE": 1.143,
       "indexDetailGenerated": true,
       "indexHorseCount": 14,
       "indexQualityWarnings": [],
@@ -2598,13 +2631,13 @@
         ],
         "opponents": [
           14,
-          5,
+          11,
           3,
           12,
           6
         ]
       },
-      "danger": 11,
+      "danger": 5,
       "result": [
         [
           5
@@ -2630,7 +2663,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.765,
+      "popularityMAE": 1.412,
       "indexDetailGenerated": true,
       "indexHorseCount": 17,
       "indexQualityWarnings": [],
@@ -2646,14 +2679,14 @@
       "prediction": {
         "axes": [
           6,
-          3
+          7
         ],
         "opponents": [
           1,
           8,
           14,
-          7,
-          4
+          4,
+          3
         ]
       },
       "danger": 10,
@@ -2682,7 +2715,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.933,
+      "popularityMAE": 2.533,
       "indexDetailGenerated": true,
       "indexHorseCount": 15,
       "indexQualityWarnings": [],
@@ -2754,12 +2787,12 @@
         ],
         "opponents": [
           10,
-          11,
           8,
+          12,
           9
         ]
       },
-      "danger": 12,
+      "danger": 11,
       "result": [
         [
           10
@@ -2785,7 +2818,7 @@
       "return": 0,
       "stake": 2400,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.333,
+      "popularityMAE": 1.167,
       "indexDetailGenerated": true,
       "indexHorseCount": 12,
       "indexQualityWarnings": [],
@@ -2807,11 +2840,11 @@
           8,
           6,
           13,
-          10,
+          12,
           9
         ]
       },
-      "danger": 12,
+      "danger": 10,
       "result": [
         [
           8
@@ -2837,7 +2870,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.692,
+      "popularityMAE": 0.769,
       "indexDetailGenerated": true,
       "indexHorseCount": 13,
       "indexQualityWarnings": [],
@@ -2853,14 +2886,14 @@
       "prediction": {
         "axes": [
           9,
-          14
+          3
         ],
         "opponents": [
           5,
+          14,
           7,
           12,
-          10,
-          3
+          10
         ]
       },
       "danger": 2,
@@ -2889,7 +2922,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.333,
+      "popularityMAE": 1.467,
       "indexDetailGenerated": true,
       "indexHorseCount": 15,
       "indexQualityWarnings": [],
@@ -2909,13 +2942,13 @@
         ],
         "opponents": [
           13,
-          12,
           1,
+          6,
           2,
           4
         ]
       },
-      "danger": 6,
+      "danger": 12,
       "result": [
         [
           8
@@ -2941,7 +2974,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.923,
+      "popularityMAE": 2.615,
       "indexDetailGenerated": true,
       "indexHorseCount": 13,
       "indexQualityWarnings": [],
@@ -2957,13 +2990,13 @@
       "prediction": {
         "axes": [
           6,
-          3
+          8
         ],
         "opponents": [
           4,
           2,
           5,
-          8
+          3
         ]
       },
       "danger": 11,
@@ -2992,7 +3025,7 @@
       "return": 0,
       "stake": 2400,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.167,
+      "popularityMAE": 1.667,
       "indexDetailGenerated": true,
       "indexHorseCount": 12,
       "indexQualityWarnings": [
@@ -3011,17 +3044,17 @@
       "prediction": {
         "axes": [
           9,
-          3
+          8
         ],
         "opponents": [
           15,
           13,
-          10,
+          1,
           4,
-          8
+          3
         ]
       },
-      "danger": 1,
+      "danger": 10,
       "result": [
         [
           4
@@ -3047,7 +3080,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.667,
+      "popularityMAE": 2.0,
       "indexDetailGenerated": true,
       "indexHorseCount": 15,
       "indexQualityWarnings": [],
@@ -3097,7 +3130,7 @@
       "return": 0,
       "stake": 1800,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.333,
+      "popularityMAE": 1.778,
       "indexDetailGenerated": true,
       "indexHorseCount": 9,
       "indexQualityWarnings": [],
@@ -3113,17 +3146,17 @@
       "prediction": {
         "axes": [
           13,
-          3
+          15
         ],
         "opponents": [
           10,
-          11,
-          15,
+          7,
+          3,
           2,
           6
         ]
       },
-      "danger": 7,
+      "danger": 11,
       "result": [
         [
           13
@@ -3149,7 +3182,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.533,
+      "popularityMAE": 1.867,
       "indexDetailGenerated": true,
       "indexHorseCount": 15,
       "indexQualityWarnings": [],
@@ -3199,7 +3232,7 @@
       "return": 0,
       "stake": 1800,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.8,
+      "popularityMAE": 1.6,
       "indexDetailGenerated": true,
       "indexHorseCount": 10,
       "indexQualityWarnings": [],
@@ -3351,7 +3384,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.889,
+      "popularityMAE": 2.333,
       "indexDetailGenerated": true,
       "indexHorseCount": 18,
       "indexQualityWarnings": [],
@@ -3372,12 +3405,12 @@
         "opponents": [
           6,
           11,
-          9,
+          14,
           15,
           7
         ]
       },
-      "danger": 14,
+      "danger": 9,
       "result": [
         [
           8
@@ -3403,7 +3436,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.5,
+      "popularityMAE": 2.25,
       "indexDetailGenerated": true,
       "indexHorseCount": 16,
       "indexQualityWarnings": [],
@@ -3423,10 +3456,10 @@
         ],
         "opponents": [
           1,
-          6
+          5
         ]
       },
-      "danger": 5,
+      "danger": 6,
       "result": [
         [
           6
@@ -3474,11 +3507,11 @@
           12,
           10,
           16,
-          7,
+          9,
           11
         ]
       },
-      "danger": 9,
+      "danger": 7,
       "result": [
         [
           3
@@ -3504,7 +3537,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 3.375,
+      "popularityMAE": 3.25,
       "indexDetailGenerated": true,
       "indexHorseCount": 16,
       "indexQualityWarnings": [],
@@ -3520,14 +3553,14 @@
       "prediction": {
         "axes": [
           12,
-          11
+          3
         ],
         "opponents": [
           14,
           6,
+          11,
           5,
-          1,
-          3
+          1
         ]
       },
       "danger": 10,
@@ -3572,14 +3605,14 @@
       "prediction": {
         "axes": [
           3,
-          4
+          9
         ],
         "opponents": [
           6,
           5,
           16,
           14,
-          9
+          4
         ]
       },
       "danger": 11,
@@ -3608,7 +3641,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.444,
+      "popularityMAE": 1.556,
       "indexDetailGenerated": true,
       "indexHorseCount": 18,
       "indexQualityWarnings": [],
@@ -3624,17 +3657,17 @@
       "prediction": {
         "axes": [
           8,
-          15
+          10
         ],
         "opponents": [
           4,
-          1,
+          7,
           14,
           16,
-          10
+          15
         ]
       },
-      "danger": 7,
+      "danger": 1,
       "result": [
         [
           10
@@ -3660,7 +3693,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 3.625,
+      "popularityMAE": 3.25,
       "indexDetailGenerated": true,
       "indexHorseCount": 16,
       "indexQualityWarnings": [],
@@ -3676,17 +3709,17 @@
       "prediction": {
         "axes": [
           7,
-          6
+          9
         ],
         "opponents": [
           5,
           12,
-          8,
-          11,
-          9
+          6,
+          13,
+          11
         ]
       },
-      "danger": 13,
+      "danger": 8,
       "result": [
         [
           5,
@@ -3718,7 +3751,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 2.25,
+      "popularityMAE": 2.125,
       "indexDetailGenerated": true,
       "indexHorseCount": 16,
       "indexQualityWarnings": [],
@@ -3738,13 +3771,13 @@
         ],
         "opponents": [
           12,
-          11,
+          8,
           1,
           10,
           5
         ]
       },
-      "danger": 8,
+      "danger": 11,
       "result": [
         [
           13
@@ -3770,7 +3803,7 @@
       "return": 0,
       "stake": 3000,
       "recoveryRate": 0.0,
-      "popularityMAE": 1.75,
+      "popularityMAE": 1.625,
       "indexDetailGenerated": true,
       "indexHorseCount": 16,
       "indexQualityWarnings": [],
