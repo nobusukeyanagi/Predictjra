@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""Unified Predictjra prediction-rule implementation.
+"""Predictjra v3 candidate prediction rules: 走・展・力.
 
-The same implementation is stored in two snapshots:
+Candidate/production isolation remains unchanged:
 - prediction_logic_candidate.py: editable experiment used by Rebuild/validate
 - prediction_logic_production.py: applied snapshot used by live Update race data
 
-A successful Rebuild/apply copies the candidate file byte-for-byte over the production
-file and commits it. Keep source adapters free of duplicate prediction rules.
+A successful Rebuild/apply copies this candidate byte-for-byte over production.
+All performance scores are 0-100 and use only facts available before the target race.
 """
 from __future__ import annotations
 
 import math
-from statistics import mean, pstdev
+from statistics import mean
 from typing import Iterable
 
-MODEL_VERSION = "predictjra-live-index-v2-market-memory"
+MODEL_VERSION = "predictjra-live-index-v3-run-flow-power"
 
 FEATURE_COLS = [
     "total_rank_strength",
@@ -38,8 +38,15 @@ SELECTION_RULE_TEXT = (
     "main=top total; second=lowest estimated popularity among selected"
 )
 
+# Public scoring contract. These exact weights are also documented in the ! logic modal.
+PER_RUN_WEIGHTS = {"run": 0.40, "flow": 0.25, "power": 0.35}
+RECENCY_WEIGHTS = [0.35, 0.25, 0.18, 0.13, 0.09]
+RECENT_TOTAL_WEIGHT = 0.55
+CURRENT_TOTAL_WEIGHT = 0.45
+CLASS_SCORES = {0: 45.0, 1: 55.0, 2: 64.0, 3: 73.0, 4: 82.0, 5: 88.0, 6: 94.0, 7: 100.0}
 
-def clamp(value: float, lo: float = 45, hi: float = 98) -> float:
+
+def clamp(value: float, lo: float = 0.0, hi: float = 100.0) -> float:
     try:
         x = float(value)
     except (TypeError, ValueError):
@@ -57,6 +64,31 @@ def clamp01(value: float, default: float = 0.5) -> float:
     if not math.isfinite(x):
         return default
     return max(0.0, min(1.0, x))
+
+
+def _float_or_nan(value) -> float:
+    try:
+        x = float(value)
+    except (TypeError, ValueError):
+        return math.nan
+    return x if math.isfinite(x) else math.nan
+
+
+def _time_seconds(value) -> float:
+    if value is None:
+        return math.nan
+    if isinstance(value, (int, float)):
+        return _float_or_nan(value)
+    s = str(value).strip()
+    if not s:
+        return math.nan
+    try:
+        if ":" in s:
+            mins, secs = s.split(":", 1)
+            return float(mins) * 60.0 + float(secs)
+        return float(s)
+    except (TypeError, ValueError):
+        return math.nan
 
 
 def parse_class_level(text: str) -> int:
@@ -82,12 +114,23 @@ def parse_class_level(text: str) -> int:
 
 
 def recency_weighted(values: Iterable[float]) -> float:
-    vals = [float(x) for x in list(values)[:5]]
+    vals = [float(x) for x in list(values)[:5] if math.isfinite(_float_or_nan(x))]
     if not vals:
-        return 72.0
-    weights = [0.34, 0.25, 0.18, 0.13, 0.10][: len(vals)]
-    total = sum(weights)
-    return sum(v * w for v, w in zip(vals, weights)) / total
+        return 50.0
+    weights = RECENCY_WEIGHTS[: len(vals)]
+    sw = sum(weights)
+    return sum(v * w for v, w in zip(vals, weights)) / sw
+
+
+def _weighted_available(values: list[float], weights: list[float]) -> float:
+    pairs = [
+        (float(v), float(w)) for v, w in zip(values, weights)
+        if math.isfinite(_float_or_nan(v)) and w > 0
+    ]
+    if not pairs:
+        return 50.0
+    sw = sum(w for _, w in pairs)
+    return sum(v * w for v, w in pairs) / sw
 
 
 def market_strength(popularity: int | None, field: int | None) -> float:
@@ -105,118 +148,265 @@ def market_recency(values: Iterable[float], limit: int = 5) -> float:
     return clamp01(sum(v * w for v, w in zip(vals, weights)) / sw)
 
 
-def run_indices(history: dict) -> dict:
-    """Calculate the three per-run indices from normalized historical facts."""
+def _surface_kind(surface: str) -> str:
+    s = str(surface or "")
+    if "障" in s:
+        return "jump"
+    if "ダ" in s:
+        return "dirt"
+    return "turf"
+
+
+def _benchmark_sec_per_1000(surface: str, distance: float, track_condition: str = "") -> float:
+    """Transparent distance/surface benchmark used by 走.
+
+    This is intentionally a simple public formula rather than an opaque learned constant.
+    Wet-track adjustments only normalize the clock; they never use the target race's
+    unknown same-day result.
+    """
+    kind = _surface_kind(surface)
+    d = distance if math.isfinite(_float_or_nan(distance)) and distance > 0 else 1600.0
+    if kind == "dirt":
+        base = 60.6 + 0.0018 * max(d - 1000.0, 0.0)
+        adj = {"稍重": -0.2, "重": -0.4, "不良": -0.2}.get(str(track_condition or ""), 0.0)
+    elif kind == "jump":
+        base = 64.0 + 0.0007 * max(d - 2500.0, 0.0)
+        adj = {"稍重": 0.3, "重": 0.7, "不良": 1.0}.get(str(track_condition or ""), 0.0)
+    else:
+        base = 58.4 + 0.0015 * max(d - 1000.0, 0.0)
+        adj = {"稍重": 0.6, "重": 1.4, "不良": 2.4}.get(str(track_condition or ""), 0.0)
+    return base + adj
+
+
+def _time_baseline_key(venue: str, surface: str, distance: float, condition: str) -> str:
+    d = int(round(distance)) if math.isfinite(_float_or_nan(distance)) and distance > 0 else 0
+    return f"{venue or '*'}|{surface or '*'}|{d if d else '*'}|{condition or '*'}"
+
+
+def _lookup_time_baseline(history: dict, time_baselines: dict | None) -> tuple[float, float, str]:
+    """Return (median third-place sec/1000, robust sigma, source key).
+
+    Exact/fallback groups are learned from completed races that were already known at the
+    target prediction date.  When the table has too little history, use the fully public
+    fixed benchmark as a deterministic fallback.
+    """
+    distance = _float_or_nan(history.get("distance"))
+    venue = str(history.get("venue") or "")
+    surface = str(history.get("surface") or "")
+    condition = str(history.get("trackCondition") or "")
+    groups = (time_baselines or {}).get("groups", time_baselines or {})
+    if math.isfinite(distance) and distance > 0 and isinstance(groups, dict):
+        keys = [
+            _time_baseline_key(venue, surface, distance, condition),
+            _time_baseline_key(venue, surface, distance, ""),
+            _time_baseline_key("", surface, distance, condition),
+            _time_baseline_key("", surface, distance, ""),
+        ]
+        # Prefer statistically thicker groups, but allow n>=3 before falling back.
+        for minimum_n in (5, 3):
+            for key in keys:
+                row = groups.get(key) or {}
+                n = int(row.get("n") or 0)
+                median = _float_or_nan(row.get("medianSecPer1000"))
+                sigma = _float_or_nan(row.get("sigmaSecPer1000"))
+                if n >= minimum_n and math.isfinite(median) and math.isfinite(sigma) and sigma > 0:
+                    return median, max(0.20, sigma), key
+
+    benchmark = _benchmark_sec_per_1000(surface, distance, condition)
+    # 走 = 50 + 15*z; sigma 1.25 gives the legacy-transparent fallback slope of 12/second.
+    return benchmark, 1.25, "fixed-public-fallback"
+
+
+def _finish_strength(finish: int | None, field: int | None) -> float:
+    if not isinstance(finish, int) or not isinstance(field, int) or field <= 1:
+        return 0.5
+    return clamp01(1 - (finish - 1) / (field - 1))
+
+
+def _front_strength(positions: list[int], field: int | None) -> float:
+    if not isinstance(field, int) or field <= 1 or not positions:
+        return math.nan
+    valid = [int(x) for x in positions if isinstance(x, int) and 1 <= int(x) <= field]
+    if not valid:
+        return math.nan
+    # Average the first two recorded corners where available: stable enough to describe style.
+    sample = valid[:2]
+    return clamp01(mean(1 - (p - 1) / max(field - 1, 1) for p in sample))
+
+
+def run_indices(history: dict, time_baselines: dict | None = None) -> dict:
+    """Score one historical race as 走・展・力, each 0-100."""
     finish = history.get("finish")
     field = history.get("field")
-    if not isinstance(finish, int) or not isinstance(field, int) or field <= 1:
-        finish_strength = 0.5
-    else:
-        finish_strength = max(0.0, min(1.0, 1 - (finish - 1) / (field - 1)))
+    finish_strength = _finish_strength(finish, field)
 
-    result_index = clamp(48 + 50 * finish_strength)
-
+    # ---- 走: clock itself, normalized by surface/distance. ----
+    raw_time = _float_or_nan(history.get("timeSeconds"))
+    if not math.isfinite(raw_time):
+        raw_time = _time_seconds(history.get("time"))
+    third_time = _float_or_nan(history.get("thirdTimeSeconds"))
     margin = _float_or_nan(history.get("margin"))
-    if math.isfinite(margin):
-        gap_score = clamp(96 - 6.0 * max(0.0, margin))
-    else:
-        gap_score = clamp(55 + 40 * finish_strength)
-    last_score = clamp(55 + 40 * finish_strength)
-    time_index = clamp(0.75 * gap_score + 0.25 * last_score)
+    effective_time = raw_time
+    capped_after_third = False
+    if math.isfinite(raw_time) and isinstance(finish, int) and finish > 3:
+        if math.isfinite(third_time):
+            cap_time = third_time + 1.0
+            if raw_time > cap_time:
+                effective_time = cap_time
+                capped_after_third = True
+        elif math.isfinite(margin) and margin > 1.0:
+            # Live past-5 cells do not always expose the 3rd-place clock. In that case,
+            # remove loss beyond one second from the winner-gap proxy. Rebuild uses exact 3rd.
+            effective_time = max(0.1, raw_time - (margin - 1.0))
+            capped_after_third = True
 
+    distance = _float_or_nan(history.get("distance"))
+    baseline_median, baseline_sigma, baseline_source = _lookup_time_baseline(
+        history, time_baselines
+    )
+    sec_per_1000 = math.nan
+    z_score = 0.0
+    if math.isfinite(effective_time) and math.isfinite(distance) and distance > 0:
+        sec_per_1000 = effective_time * 1000.0 / distance
+        z_score = (baseline_median - sec_per_1000) / max(baseline_sigma, 0.20)
+        run_index = clamp(50.0 + 15.0 * z_score)
+    else:
+        run_index = 50.0
+
+    # ---- 展: effort against race shape / position. ----
     positions = history.get("positions") or []
-    if isinstance(field, int) and field > 1 and positions:
-        first = positions[0]
-        last = positions[-1]
-        front = max(0.0, min(1.0, 1 - (first - 1) / max(field - 1, 1)))
-        improvement = (last - finish) / max(field, 1) if isinstance(finish, int) else 0.0
-        pace_index = clamp(64 + 18 * finish_strength + 10 * max(-1, min(1, improvement)) + 4)
-    else:
-        front = math.nan
-        pace_index = clamp(62 + 26 * finish_strength + 3.5)
+    front = _front_strength(positions, field)
+    improvement = 0.0
+    if isinstance(field, int) and field > 1 and positions and isinstance(finish, int):
+        last_pos = int(positions[-1])
+        improvement = max(-1.0, min(1.0, (last_pos - finish) / max(field - 1, 1)))
 
-    composite = 0.25 * pace_index + 0.35 * time_index + 0.40 * result_index
+    race_bias = _float_or_nan(history.get("raceFrontBias"))
+    if not math.isfinite(race_bias):
+        race_bias = 0.0
+    race_bias = max(-1.0, min(1.0, race_bias))
+
+    if math.isfinite(front):
+        style_axis = 2.0 * front - 1.0  # +1 front-runner, -1 closer
+        benefit = race_bias * style_axis  # >0 benefited, <0 disadvantaged
+        disadvantage = max(0.0, -benefit)
+        advantage = max(0.0, benefit)
+        flow_index = clamp(
+            50.0
+            + 30.0 * improvement
+            + 30.0 * disadvantage * finish_strength
+            + 15.0 * (finish_strength - 0.5)
+            - 12.0 * advantage
+        )
+    else:
+        flow_index = clamp(50.0 + 10.0 * (finish_strength - 0.5))
+
+    # ---- 力: finish + race level, no clock/pace duplication. ----
+    class_level = history.get("classLevel")
+    try:
+        class_level = int(class_level)
+    except (TypeError, ValueError):
+        class_level = 3
+    class_score = CLASS_SCORES.get(max(0, min(7, class_level)), CLASS_SCORES[3])
+    finish_score = 100.0 * finish_strength
+    power_index = clamp(0.50 * class_score + 0.50 * finish_score)
+
+    composite = clamp(
+        PER_RUN_WEIGHTS["run"] * run_index
+        + PER_RUN_WEIGHTS["flow"] * flow_index
+        + PER_RUN_WEIGHTS["power"] * power_index
+    )
     return {
         **history,
-        "paceIndex": pace_index,
-        "timeIndex": time_index,
-        "resultIndex": result_index,
+        "runIndex": run_index,
+        "flowIndex": flow_index,
+        "powerIndex": power_index,
+        # Compatibility aliases: old UI/code can still render candidate-derived rows safely.
+        "paceIndex": flow_index,
+        "timeIndex": run_index,
+        "resultIndex": power_index,
         "frontStrength": front,
         "composite": composite,
+        "effectiveTimeSeconds": effective_time if math.isfinite(effective_time) else None,
+        "secPer1000": sec_per_1000 if math.isfinite(sec_per_1000) else None,
+        "timeBaselineMedian": baseline_median,
+        "timeBaselineSigma": baseline_sigma,
+        "timeBaselineSource": baseline_source,
+        "timeZ": z_score,
+        "timeCappedAfterThird": capped_after_third,
     }
 
 
-def _float_or_nan(value) -> float:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return math.nan
+def _projected_run_index(runs: list[dict], surface: str, distance: float | None) -> float:
+    values: list[float] = []
+    weights: list[float] = []
+    valid_distance = math.isfinite(_float_or_nan(distance)) and float(distance) > 0
+    target_surface = str(surface or "")
+    for i, r in enumerate(runs[:5]):
+        score = _float_or_nan(r.get("runIndex"))
+        if not math.isfinite(score):
+            continue
+        run_surface = str(r.get("surface") or "")
+        if target_surface and run_surface:
+            surface_factor = 1.0 if run_surface == target_surface else 0.35
+        else:
+            surface_factor = 0.75
+        run_distance = _float_or_nan(r.get("distance"))
+        if valid_distance and math.isfinite(run_distance) and run_distance > 0:
+            distance_factor = max(0.40, 1.0 - abs(run_distance - float(distance)) / 1200.0)
+        else:
+            distance_factor = 0.70
+        values.append(score)
+        weights.append(RECENCY_WEIGHTS[i] * surface_factor * distance_factor)
+    if not values:
+        return 50.0
+    weighted = _weighted_available(values, weights)
+    ceiling = max(values)
+    return clamp(0.80 * weighted + 0.20 * ceiling)
 
 
-def _course_score(runs: list[dict], cap: float) -> float | None:
-    vals = [
-        r["composite"]
-        for r in runs[:5]
-        if math.isfinite(_float_or_nan(r.get("composite")))
-    ]
-    if not vals:
-        return None
-    value = 0.72 * recency_weighted(vals) + 0.28 * max(vals)
-    return min(cap, value)
+def _course_performance(runs: list[dict], venue: str, surface: str, distance: float | None, fallback: float) -> float:
+    valid_distance = math.isfinite(_float_or_nan(distance)) and float(distance) > 0
 
+    def score(group: list[dict]) -> float | None:
+        if not group:
+            return None
+        vals = [_float_or_nan(r.get("composite")) for r in group[:5]]
+        vals = [v for v in vals if math.isfinite(v)]
+        return recency_weighted(vals) if vals else None
 
-def course_index(
-    runs: list[dict],
-    venue: str,
-    surface: str,
-    distance: float | None,
-    proxy: float,
-) -> float:
-    """Current-course/distance suitability using the same hierarchy everywhere."""
-    valid_distance = (
-        distance is not None
-        and math.isfinite(_float_or_nan(distance))
-        and float(distance) > 0
-    )
     exact = [
-        r
-        for r in runs
+        r for r in runs
         if r.get("venue") == venue
         and (not surface or r.get("surface") == surface)
-        and (
-            not valid_distance
-            or (
-                math.isfinite(_float_or_nan(r.get("distance")))
-                and abs(float(r["distance"]) - float(distance)) <= 100
-            )
-        )
+        and (not valid_distance or (
+            math.isfinite(_float_or_nan(r.get("distance")))
+            and abs(float(r["distance"]) - float(distance)) <= 100
+        ))
     ]
-    exact_score = _course_score(exact, 98)
-    if exact_score is not None:
-        return clamp(0.84 * exact_score + 0.16 * proxy)
+    got = score(exact)
+    if got is not None:
+        return got
 
     venue_runs = [
-        r
-        for r in runs
+        r for r in runs
         if r.get("venue") == venue and (not surface or r.get("surface") == surface)
     ]
-    venue_score = _course_score(venue_runs, 86)
-    if venue_score is not None:
-        return clamp(0.80 * venue_score + 0.20 * proxy)
+    got = score(venue_runs)
+    if got is not None:
+        return got
 
     if valid_distance:
-        dist_runs = [
-            r
-            for r in runs
+        distance_runs = [
+            r for r in runs
             if (not surface or r.get("surface") == surface)
             and math.isfinite(_float_or_nan(r.get("distance")))
             and abs(float(r["distance"]) - float(distance)) <= 200
         ]
-        dist_score = _course_score(dist_runs, 82)
-        if dist_score is not None:
-            return clamp(0.76 * dist_score + 0.24 * proxy)
-
-    return clamp(min(78, 0.88 * proxy + 0.12 * 72))
+        got = score(distance_runs)
+        if got is not None:
+            return got
+    return fallback
 
 
 def build_index_core(
@@ -225,12 +415,9 @@ def build_index_core(
     venue: str,
     surface: str,
     distance_m: float | None,
+    time_baselines: dict | None = None,
 ) -> dict:
-    """Build all derived performance indices from normalized pre-race facts.
-
-    Expected entry shape:
-      {"no": int, "name": str, "histories": [normalized-run...], "age": optional}
-    """
+    """Build v3 走・展・力 scores from normalized pre-race facts."""
     if len(entries) < 5:
         raise ValueError(f"need at least 5 horses, got {len(entries)}")
 
@@ -239,32 +426,25 @@ def build_index_core(
 
     for entry in entries:
         no = int(entry["no"])
-        runs = [run_indices(h) for h in list(entry.get("histories", []))[:5]]
+        runs = [run_indices(h, time_baselines) for h in list(entry.get("histories", []))[:5]]
         composites = [r["composite"] for r in runs]
+        recent = recency_weighted(composites) if composites else 50.0
+        powers = [r["powerIndex"] for r in runs]
+        base_power = recency_weighted(powers) if powers else 50.0
         fronts = [
-            r["frontStrength"]
-            for r in runs
+            r["frontStrength"] for r in runs
             if math.isfinite(_float_or_nan(r.get("frontStrength")))
         ]
         front_ratio = mean(fronts) if fronts else math.nan
-        if math.isfinite(front_ratio) and front_ratio >= 0.58:
+        if math.isfinite(front_ratio) and front_ratio >= 0.62:
             front_type_count += 1
-
-        if composites:
-            base = recency_weighted(composites)
-            ceiling = max(composites)
-            consistency = clamp(96 - 1.8 * pstdev(composites), 55, 96)
-            hist_recent = 0.70 * base + 0.20 * ceiling + 0.10 * consistency
-            history_weight = min(len(composites) / 5.0, 1.0) * 0.84
-            recent = clamp(history_weight * hist_recent + (1 - history_weight) * 72)
-        else:
-            recent = 72.0
 
         contexts[no] = {
             "entry": entry,
             "runs": runs,
             "frontRatio": front_ratio,
             "recent": recent,
+            "basePower": base_power,
         }
 
     pace_regime = (
@@ -277,28 +457,34 @@ def build_index_core(
 
     for no in sorted(contexts):
         c = contexts[no]
-        proxy = c["recent"]
         fr = c["frontRatio"]
+        current_run = _projected_run_index(c["runs"], surface, distance_m)
 
         if math.isfinite(fr):
             if pace_regime == "fast":
-                style = 70 + 20 * (1 - fr)
+                current_flow = clamp(35.0 + 65.0 * (1.0 - fr))
             elif pace_regime == "slow":
-                style = 70 + 20 * fr
+                current_flow = clamp(35.0 + 65.0 * fr)
             else:
-                style = 76 + 10 * (1 - abs(fr - 0.5) * 2)
-            pace = clamp(0.78 * style + 0.22 * proxy)
+                current_flow = clamp(50.0 + 20.0 * (1.0 - abs(fr - 0.5) * 2.0))
         else:
-            pace = clamp(0.78 * proxy + 0.22 * 75)
+            current_flow = 50.0
 
-        course = course_index(c["runs"], venue, surface, distance_m, proxy)
-        today = clamp(0.50 * pace + 0.50 * course)
-        total = clamp(0.60 * c["recent"] + 0.40 * today)
+        course_perf = _course_performance(
+            c["runs"], venue, surface, distance_m, c["basePower"]
+        )
+        current_power = clamp(0.75 * c["basePower"] + 0.25 * course_perf)
+        today = clamp(
+            PER_RUN_WEIGHTS["run"] * current_run
+            + PER_RUN_WEIGHTS["flow"] * current_flow
+            + PER_RUN_WEIGHTS["power"] * current_power
+        )
+        total = clamp(RECENT_TOTAL_WEIGHT * c["recent"] + CURRENT_TOTAL_WEIGHT * today)
         totals[no] = total
         runs_by_no[no] = c["runs"]
 
         recent_strings = [
-            f"{int(round(r['paceIndex']))}/{int(round(r['timeIndex']))}/{int(round(r['resultIndex']))}"
+            f"{int(round(r['runIndex']))}/{int(round(r['flowIndex']))}/{int(round(r['powerIndex']))}"
             for r in c["runs"][:5]
         ]
         while len(recent_strings) < 5:
@@ -310,8 +496,13 @@ def build_index_core(
                 "name": c["entry"].get("name", ""),
                 "recent": recent_strings,
                 "recentIndex": int(round(c["recent"])),
-                "pace": int(round(pace)),
-                "course": int(round(course)),
+                "currentRun": int(round(current_run)),
+                "currentFlow": int(round(current_flow)),
+                "currentPower": int(round(current_power)),
+                "todayParts": f"{int(round(current_run))}/{int(round(current_flow))}/{int(round(current_power))}",
+                # Compatibility aliases until every historical page has been rebuilt.
+                "pace": int(round(current_flow)),
+                "course": int(round(current_power)),
                 "today": int(round(today)),
                 "total": int(round(total)),
             }

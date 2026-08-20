@@ -1,0 +1,75 @@
+{
+  "generatedAt": "2026-08-20T15:59:39+09:00",
+  "stage": "complete",
+  "targetDates": [
+    "2026-07-18",
+    "2026-07-19",
+    "2026-07-25",
+    "2026-07-26",
+    "2026-08-01",
+    "2026-08-02",
+    "2026-08-08",
+    "2026-08-09",
+    "2026-08-15",
+    "2026-08-16"
+  ],
+  "availableDates": [
+    "2026-07-18",
+    "2026-07-19",
+    "2026-07-25",
+    "2026-07-26",
+    "2026-08-01",
+    "2026-08-02",
+    "2026-08-08",
+    "2026-08-09",
+    "2026-08-15",
+    "2026-08-16"
+  ],
+  "requestedDates": [
+    "2026-07-18",
+    "2026-07-19",
+    "2026-07-25",
+    "2026-07-26",
+    "2026-08-01",
+    "2026-08-02",
+    "2026-08-08",
+    "2026-08-09",
+    "2026-08-15",
+    "2026-08-16"
+  ],
+  "skippedDates": [],
+  "ignoredFiles": [],
+  "expectedRaces": 360,
+  "builtRaces": 360,
+  "errorCount": 0,
+  "warnings": [
+    {
+      "raceId": "202604020809",
+      "qualityWarnings": [
+        "distance_m unavailable; 今回走/コース適性 used neutral fallback",
+        "surface unavailable; 今回走/コース適性 used neutral fallback"
+      ]
+    },
+    {
+      "raceId": "202604020709",
+      "qualityWarnings": [
+        "distance_m supplemented from authoritative race-program override",
+        "surface supplemented from authoritative race-program override"
+      ]
+    },
+    {
+      "raceId": "202604020209",
+      "qualityWarnings": [
+        "distance_m unavailable; 今回走/コース適性 used neutral fallback",
+        "surface unavailable; 今回走/コース適性 used neutral fallback"
+      ]
+    },
+    {
+      "raceId": "202604020109",
+      "qualityWarnings": [
+        "distance_m unavailable; 今回走/コース適性 used neutral fallback",
+        "surface unavailable; 今回走/コース適性 used neutral fallback"
+      ]
+    }
+  ]
+}
