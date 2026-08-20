@@ -4,19 +4,19 @@ on:
   workflow_dispatch:
     inputs:
       scope:
-        description: '対象範囲'
+        description: 'all = 利用可能な過去日程を全て検証 / range = 期間指定'
         required: true
         type: choice
         options:
-          - range
           - all
-        default: range
+          - range
+        default: all
       start_date:
-        description: '開始日 YYYY-MM-DD（scope=range のとき必須）'
+        description: '開始日 YYYY-MM-DD（range のときだけ入力）'
         required: false
         type: string
       end_date:
-        description: '終了日 YYYY-MM-DD（scope=range のとき必須）'
+        description: '終了日 YYYY-MM-DD（range のときだけ入力）'
         required: false
         type: string
       mode:
@@ -76,6 +76,14 @@ jobs:
               echo "::error::scope=range の場合、start_date/end_date を YYYY-MM-DD で指定してください。"
               exit 1
             fi
+            if [[ "$START_DATE" > "$END_DATE" ]]; then
+              echo "::error::start_date は end_date 以前の日付にしてください。"
+              exit 1
+            fi
+          else
+            # all の場合は過去に入力した日付値が残っていても無視する。
+            START_DATE=""
+            END_DATE=""
           fi
 
           if [[ "$MODE" == "validate" ]]; then
@@ -114,53 +122,111 @@ jobs:
             --diagnostic-path "${{ steps.args.outputs.diagnostic_path }}"
 
       - name: Write result to Actions Summary
+        if: always()
         shell: bash
         env:
           AUDIT_PATH: ${{ steps.args.outputs.audit_path }}
+          DIAGNOSTIC_PATH: ${{ steps.args.outputs.diagnostic_path }}
           MODE: ${{ steps.args.outputs.mode }}
           SCOPE: ${{ steps.args.outputs.scope }}
+          START_DATE: ${{ steps.args.outputs.start_date }}
+          END_DATE: ${{ steps.args.outputs.end_date }}
+          SOURCE_ROOT: ${{ runner.temp }}/keibayosoku
         run: |
           python - <<'PY'
           import json
           import os
+          import re
+          from datetime import datetime
           from pathlib import Path
 
-          audit = json.loads(Path(os.environ["AUDIT_PATH"]).read_text(encoding="utf-8"))
-          summary = audit["summary"]
-          daily = audit["daily"]
-          mode_label = "検証のみ（サイト未反映）" if os.environ["MODE"] == "validate" else "本番反映"
-          dates = audit.get("targetDates", [])
-          period = f"{dates[0]} ～ {dates[-1]}" if dates else "-"
+          audit_path = Path(os.environ.get("AUDIT_PATH", ""))
+          diagnostic_path = Path(os.environ.get("DIAGNOSTIC_PATH", ""))
+          source_root = Path(os.environ["SOURCE_ROOT"])
+          pred_root = source_root / "data" / "predictions"
 
-          lines = [
-              "# Predictjra 過去レース再計算",
-              "",
-              f"- モード: **{mode_label}**",
-              f"- 対象: **{period}**（{summary['dates']}開催日 / {summary['races']}レース）",
-              "",
-              "## 回収率",
-              "",
-              "| 日付 | レース | 的中 | 投資 | 払戻 | 回収率 |",
-              "|---|---:|---:|---:|---:|---:|",
-          ]
-          for date_s in sorted(daily):
-              row = daily[date_s]
+          available = []
+          if pred_root.exists():
+              for path in sorted(pred_root.iterdir()):
+                  if path.is_dir() and re.fullmatch(r"20\d{6}", path.name) and any(path.glob("*.csv")):
+                      try:
+                          available.append(datetime.strptime(path.name, "%Y%m%d").date().isoformat())
+                      except ValueError:
+                          pass
+
+          if audit_path.is_file():
+              audit = json.loads(audit_path.read_text(encoding="utf-8"))
+              summary = audit["summary"]
+              daily = audit["daily"]
+              mode_label = "検証のみ（サイト未反映）" if os.environ["MODE"] == "validate" else "本番反映"
+              dates = audit.get("targetDates", [])
+              period = f"{dates[0]} ～ {dates[-1]}" if dates else "-"
+
+              lines = [
+                  "# Predictjra 過去レース再計算",
+                  "",
+                  f"- モード: **{mode_label}**",
+                  f"- 対象: **{period}**（{summary['dates']}開催日 / {summary['races']}レース）",
+                  "",
+                  "## 回収率",
+                  "",
+                  "| 日付 | レース | 的中 | 投資 | 払戻 | 回収率 |",
+                  "|---|---:|---:|---:|---:|---:|",
+              ]
+              for date_s in sorted(daily):
+                  row = daily[date_s]
+                  lines.append(
+                      f"| {date_s} | {row['races']} | {row['hits']} | "
+                      f"{row['stake']:,}円 | {row['return']:,}円 | **{row['recoveryRate']:.1f}%** |"
+                  )
+              lines.extend([
+                  f"| **合計** | **{summary['races']}** | **{summary['hits']}** | "
+                  f"**{summary['stake']:,}円** | **{summary['return']:,}円** | "
+                  f"**{summary['recoveryRate']:.1f}%** |",
+                  "",
+                  "## 想定人気モデル検証",
+                  "",
+                  f"- 平均人気順位誤差: **{audit['popularityModel']['meanAbsolutePopularityRankError']:.4f}**",
+                  f"- 想定人気Top3一致率: **{audit['popularityModel']['meanTop3OverlapRate'] * 100:.1f}%**",
+                  "",
+                  "> validate モードでは data/races.json を変更せず、この結果だけを確認できます。",
+              ])
+          else:
+              scope = os.environ.get("SCOPE") or "-"
+              start = os.environ.get("START_DATE") or "-"
+              end = os.environ.get("END_DATE") or "-"
+              lines = [
+                  "# Predictjra 過去レース再計算 — 失敗",
+                  "",
+                  "再計算結果は作成されませんでした。",
+                  "",
+                  f"- scope: **{scope}**",
+                  f"- 指定期間: **{start} ～ {end}**",
+                  "",
+              ]
+              if available:
+                  lines.extend([
+                      "## 利用可能な過去予想日",
+                      "",
+                      ", ".join(available),
+                      "",
+                  ])
+              if diagnostic_path.is_file():
+                  try:
+                      diagnostic = json.loads(diagnostic_path.read_text(encoding="utf-8"))
+                      lines.extend([
+                          "## 診断",
+                          "",
+                          f"- stage: `{diagnostic.get('stage', '-')}`",
+                          f"- errorCount: `{diagnostic.get('errorCount', '-')}`",
+                          "",
+                      ])
+                  except Exception:
+                      pass
               lines.append(
-                  f"| {date_s} | {row['races']} | {row['hits']} | "
-                  f"{row['stake']:,}円 | {row['return']:,}円 | **{row['recoveryRate']:.1f}%** |"
+                  "> 指定期間に過去予想がない場合は、scope を `all` にするか、上記の日付を含む期間を指定してください。"
               )
-          lines.extend([
-              f"| **合計** | **{summary['races']}** | **{summary['hits']}** | "
-              f"**{summary['stake']:,}円** | **{summary['return']:,}円** | "
-              f"**{summary['recoveryRate']:.1f}%** |",
-              "",
-              "## 想定人気モデル検証",
-              "",
-              f"- 平均人気順位誤差: **{audit['popularityModel']['meanAbsolutePopularityRankError']:.4f}**",
-              f"- 想定人気Top3一致率: **{audit['popularityModel']['meanTop3OverlapRate'] * 100:.1f}%**",
-              "",
-              "> validate モードでは data/races.json を変更せず、この結果だけを確認できます。",
-          ])
+
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
               f.write("\n".join(lines) + "\n")
           PY
