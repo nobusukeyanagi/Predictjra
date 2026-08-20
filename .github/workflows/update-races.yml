@@ -71,10 +71,11 @@ jobs:
           echo "date=$DATE" >> "$GITHUB_OUTPUT"
           echo "Resolved: mode=$MODE date=$DATE"
 
-      - name: Validate unified prediction rules
+      - name: Validate production prediction rules
         shell: bash
         run: |
-          python scripts/test_prediction_logic.py
+          # Live updates must ignore any unapplied candidate logic.
+          python scripts/test_prediction_logic_production.py
           python scripts/test_predict_engine.py
 
       - name: Fetch, index and update
