@@ -1,6 +1,6 @@
 {
-  "cacheVersion": "predictjra-historical-facts-v2-sanitized-snapshots",
-  "generatedAt": "2026-08-20T13:42:27+09:00",
+  "cacheVersion": "predictjra-historical-facts-v3-card-complete",
+  "generatedAt": "2026-08-20T15:21:05+09:00",
   "sourceRepository": "sugaimo15/keibayosoku",
   "sourceRef": "claude/horse-racing-predictor-ak6crm",
   "sourceCommit": "a59cb88028f607bf337eedd670820b11eba1d779",
@@ -37,144 +37,6 @@
       ]
     }
   ],
-  "sanitizedDates": [
-    {
-      "date": "2026-07-18",
-      "files": 36,
-      "postRaceFieldFiles": 0,
-      "removedColumns": [
-        "horse_weight",
-        "predicted_rank",
-        "score",
-        "win_odds"
-      ]
-    },
-    {
-      "date": "2026-07-19",
-      "files": 36,
-      "postRaceFieldFiles": 0,
-      "removedColumns": [
-        "horse_weight",
-        "predicted_rank",
-        "score",
-        "win_odds"
-      ]
-    },
-    {
-      "date": "2026-07-25",
-      "files": 36,
-      "postRaceFieldFiles": 16,
-      "removedColumns": [
-        "horse_weight",
-        "ml_ev",
-        "ml_rank",
-        "ml_win_prob",
-        "popularity",
-        "predicted_rank",
-        "score",
-        "win_odds"
-      ]
-    },
-    {
-      "date": "2026-07-26",
-      "files": 36,
-      "postRaceFieldFiles": 11,
-      "removedColumns": [
-        "horse_weight",
-        "ml_ev",
-        "ml_rank",
-        "ml_win_prob",
-        "popularity",
-        "predicted_rank",
-        "score",
-        "win_odds"
-      ]
-    },
-    {
-      "date": "2026-08-01",
-      "files": 36,
-      "postRaceFieldFiles": 0,
-      "removedColumns": [
-        "horse_weight",
-        "ml_ev",
-        "ml_rank",
-        "ml_win_prob",
-        "predicted_rank",
-        "score",
-        "win_odds"
-      ]
-    },
-    {
-      "date": "2026-08-02",
-      "files": 36,
-      "postRaceFieldFiles": 0,
-      "removedColumns": [
-        "horse_weight",
-        "ml_ev",
-        "ml_rank",
-        "ml_win_prob",
-        "predicted_rank",
-        "score",
-        "win_odds"
-      ]
-    },
-    {
-      "date": "2026-08-08",
-      "files": 36,
-      "postRaceFieldFiles": 0,
-      "removedColumns": [
-        "horse_weight",
-        "ml_ev",
-        "ml_rank",
-        "ml_win_prob",
-        "predicted_rank",
-        "score",
-        "win_odds"
-      ]
-    },
-    {
-      "date": "2026-08-09",
-      "files": 36,
-      "postRaceFieldFiles": 0,
-      "removedColumns": [
-        "horse_weight",
-        "ml_ev",
-        "ml_rank",
-        "ml_win_prob",
-        "predicted_rank",
-        "score",
-        "win_odds"
-      ]
-    },
-    {
-      "date": "2026-08-15",
-      "files": 36,
-      "postRaceFieldFiles": 0,
-      "removedColumns": [
-        "horse_weight",
-        "ml_ev",
-        "ml_rank",
-        "ml_win_prob",
-        "predicted_rank",
-        "score",
-        "win_odds"
-      ]
-    },
-    {
-      "date": "2026-08-16",
-      "files": 36,
-      "postRaceFieldFiles": 0,
-      "removedColumns": [
-        "horse_weight",
-        "ml_ev",
-        "ml_rank",
-        "ml_win_prob",
-        "predicted_rank",
-        "score",
-        "win_odds"
-      ]
-    }
-  ],
   "dateRaceCounts": {
     "2026-07-18": 36,
     "2026-07-19": 36,
@@ -187,19 +49,178 @@
     "2026-08-15": 36,
     "2026-08-16": 36
   },
+  "runnerSnapshotSummary": [
+    {
+      "date": "2026-07-18",
+      "races": 36,
+      "sanitizedLegacySnapshots": 36,
+      "synthesizedFromCards": 0,
+      "removedColumns": [
+        "horse_weight",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ],
+      "synthesizedReasons": []
+    },
+    {
+      "date": "2026-07-19",
+      "races": 36,
+      "sanitizedLegacySnapshots": 36,
+      "synthesizedFromCards": 0,
+      "removedColumns": [
+        "horse_weight",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ],
+      "synthesizedReasons": []
+    },
+    {
+      "date": "2026-07-25",
+      "races": 36,
+      "sanitizedLegacySnapshots": 36,
+      "synthesizedFromCards": 0,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "popularity",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ],
+      "synthesizedReasons": []
+    },
+    {
+      "date": "2026-07-26",
+      "races": 36,
+      "sanitizedLegacySnapshots": 36,
+      "synthesizedFromCards": 0,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "popularity",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ],
+      "synthesizedReasons": []
+    },
+    {
+      "date": "2026-08-01",
+      "races": 36,
+      "sanitizedLegacySnapshots": 36,
+      "synthesizedFromCards": 0,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ],
+      "synthesizedReasons": []
+    },
+    {
+      "date": "2026-08-02",
+      "races": 36,
+      "sanitizedLegacySnapshots": 36,
+      "synthesizedFromCards": 0,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ],
+      "synthesizedReasons": []
+    },
+    {
+      "date": "2026-08-08",
+      "races": 36,
+      "sanitizedLegacySnapshots": 36,
+      "synthesizedFromCards": 0,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ],
+      "synthesizedReasons": []
+    },
+    {
+      "date": "2026-08-09",
+      "races": 36,
+      "sanitizedLegacySnapshots": 36,
+      "synthesizedFromCards": 0,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ],
+      "synthesizedReasons": []
+    },
+    {
+      "date": "2026-08-15",
+      "races": 36,
+      "sanitizedLegacySnapshots": 36,
+      "synthesizedFromCards": 0,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ],
+      "synthesizedReasons": []
+    },
+    {
+      "date": "2026-08-16",
+      "races": 36,
+      "sanitizedLegacySnapshots": 36,
+      "synthesizedFromCards": 0,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ],
+      "synthesizedReasons": []
+    }
+  ],
   "targetHorseCount": 3919,
   "historicalResultFiles": 10144,
   "cachedFileCount": 11224,
   "archive": {
     "path": "history-source.tar.gz",
     "parts": [],
-    "sizeBytes": 8811313,
-    "sha256": "fb3421817beea95d0ce7c9dda5da85bc2844d00ce4586269832cf82ddba8f387"
+    "sizeBytes": 8812211,
+    "sha256": "1d9291ce4351b424c59e96df6b7add31d840b0ec582dc19795f0dd6901f70154"
   },
   "policy": {
-    "stored": "sanitized program/runner facts, final results, trifecta payouts, and required historical race result files",
-    "notStored": "target-race current odds/actual popularity/bodyweight, archived model outputs, Predictjra derived indices, axes/opponents/danger selections, hit judgement, or recovery-rate calculations",
-    "sanitization": "target-race prediction snapshots have current odds/bodyweight/actual popularity and legacy score/rank/ml_* columns physically removed before caching",
-    "unsafeDates": "dates are excluded only when canonical prediction snapshots are unreadable/unsupported or required card/result/payout files are incomplete"
+    "raceEnumeration": "all canonical 12-digit archived race cards on each completed date",
+    "stored": "sanitized program/runner facts, runner-set snapshots, final results, trifecta payouts, and required historical race result files",
+    "notStored": "target-race current odds/actual popularity/bodyweight, archived model outputs, Predictjra derived indices, selections, hit judgement, or recovery-rate calculations",
+    "runnerSnapshot": "use sanitized legacy prediction only when valid and runner-identical; otherwise synthesize race_id/horse_number only from sanitized race card",
+    "completion": "a date is included only when every canonical race card is valid and has final result + payout"
   }
 }
