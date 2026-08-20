@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       scope:
-        description: 'all = 利用可能な過去日程を全て検証 / range = 期間指定'
+        description: 'all = 安全な過去スナップショットを全て検証 / range = 期間指定'
         required: true
         type: choice
         options:
@@ -184,6 +184,26 @@ jobs:
                   f"**{summary['stake']:,}円** | **{summary['return']:,}円** | "
                   f"**{summary['recoveryRate']:.1f}%** |",
                   "",
+              ])
+              skipped = audit.get("skippedDates", [])
+              if skipped:
+                  lines.extend([
+                      "## 安全性チェックで除外した日程",
+                      "",
+                  ])
+                  for item in skipped:
+                      lines.append(f"- **{item['date']}**: {item['reason']}")
+                  lines.append("")
+              ignored = audit.get("ignoredFiles", [])
+              if ignored:
+                  lines.extend([
+                      "## 無視した非レースCSV",
+                      "",
+                  ])
+                  for item in ignored:
+                      lines.append(f"- **{item['date']}**: {', '.join(item.get('files', []))}")
+                  lines.append("")
+              lines.extend([
                   "## 想定人気モデル検証",
                   "",
                   f"- 平均人気順位誤差: **{audit['popularityModel']['meanAbsolutePopularityRankError']:.4f}**",
@@ -219,12 +239,27 @@ jobs:
                           "",
                           f"- stage: `{diagnostic.get('stage', '-')}`",
                           f"- errorCount: `{diagnostic.get('errorCount', '-')}`",
-                          "",
                       ])
+                      skipped = diagnostic.get("skippedDates", [])
+                      if skipped:
+                          lines.extend(["", "### 安全性チェックで除外した日程", ""])
+                          for item in skipped:
+                              lines.append(f"- **{item['date']}**: {item['reason']}")
+                      errors = diagnostic.get("errors", [])
+                      if errors:
+                          lines.extend(["", "### 最初のエラー", ""])
+                          for item in errors[:10]:
+                              lines.append(
+                                  f"- `{item.get('raceId', '-')}` "
+                                  f"{item.get('errorType', 'Error')}: {item.get('message', '')}"
+                              )
+                          if len(errors) > 10:
+                              lines.append(f"- …ほか {len(errors) - 10} 件")
+                      lines.append("")
                   except Exception:
                       pass
               lines.append(
-                  "> 指定期間に過去予想がない場合は、scope を `all` にするか、上記の日付を含む期間を指定してください。"
+                  "> 詳細はこのRunの `historical-rebuild-*` Artifactにある診断JSONでも確認できます。"
               )
 
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
