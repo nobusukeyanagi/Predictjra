@@ -1,6 +1,6 @@
 {
-  "cacheVersion": "predictjra-historical-facts-v1",
-  "generatedAt": "2026-08-20T11:44:50+09:00",
+  "cacheVersion": "predictjra-historical-facts-v2-sanitized-snapshots",
+  "generatedAt": "2026-08-20T13:42:27+09:00",
   "sourceRepository": "sugaimo15/keibayosoku",
   "sourceRef": "claude/horse-racing-predictor-ak6crm",
   "sourceCommit": "a59cb88028f607bf337eedd670820b11eba1d779",
@@ -19,6 +19,8 @@
   "safeDates": [
     "2026-07-18",
     "2026-07-19",
+    "2026-07-25",
+    "2026-07-26",
     "2026-08-01",
     "2026-08-02",
     "2026-08-08",
@@ -26,228 +28,7 @@
     "2026-08-15",
     "2026-08-16"
   ],
-  "skippedDates": [
-    {
-      "date": "2026-07-25",
-      "reason": "16 prediction files contain current-race odds/bodyweight/popularity",
-      "contaminatedFiles": [
-        {
-          "file": "202601010101.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202601010102.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202601010103.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202601010104.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202601010105.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202601010106.csv",
-          "issues": [
-            "current horse bodyweight populated"
-          ]
-        },
-        {
-          "file": "202604020101.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202604020102.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202604020103.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202604020104.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202604020105.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202607020101.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202607020102.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202607020103.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202607020104.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202607020105.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        }
-      ],
-      "schemaErrors": []
-    },
-    {
-      "date": "2026-07-26",
-      "reason": "11 prediction files contain current-race odds/bodyweight/popularity",
-      "contaminatedFiles": [
-        {
-          "file": "202601010201.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202601010202.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202601010203.csv",
-          "issues": [
-            "current horse bodyweight populated"
-          ]
-        },
-        {
-          "file": "202604020201.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202604020202.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202604020203.csv",
-          "issues": [
-            "current horse bodyweight populated"
-          ]
-        },
-        {
-          "file": "202604020204.csv",
-          "issues": [
-            "current horse bodyweight populated"
-          ]
-        },
-        {
-          "file": "202607020201.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202607020202.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202607020203.csv",
-          "issues": [
-            "current odds populated",
-            "current horse bodyweight populated",
-            "current actual popularity populated"
-          ]
-        },
-        {
-          "file": "202607020204.csv",
-          "issues": [
-            "current horse bodyweight populated"
-          ]
-        }
-      ],
-      "schemaErrors": []
-    }
-  ],
+  "skippedDates": [],
   "ignoredFiles": [
     {
       "date": "2026-07-25",
@@ -256,9 +37,149 @@
       ]
     }
   ],
+  "sanitizedDates": [
+    {
+      "date": "2026-07-18",
+      "files": 36,
+      "postRaceFieldFiles": 0,
+      "removedColumns": [
+        "horse_weight",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ]
+    },
+    {
+      "date": "2026-07-19",
+      "files": 36,
+      "postRaceFieldFiles": 0,
+      "removedColumns": [
+        "horse_weight",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ]
+    },
+    {
+      "date": "2026-07-25",
+      "files": 36,
+      "postRaceFieldFiles": 16,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "popularity",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ]
+    },
+    {
+      "date": "2026-07-26",
+      "files": 36,
+      "postRaceFieldFiles": 11,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "popularity",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ]
+    },
+    {
+      "date": "2026-08-01",
+      "files": 36,
+      "postRaceFieldFiles": 0,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ]
+    },
+    {
+      "date": "2026-08-02",
+      "files": 36,
+      "postRaceFieldFiles": 0,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ]
+    },
+    {
+      "date": "2026-08-08",
+      "files": 36,
+      "postRaceFieldFiles": 0,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ]
+    },
+    {
+      "date": "2026-08-09",
+      "files": 36,
+      "postRaceFieldFiles": 0,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ]
+    },
+    {
+      "date": "2026-08-15",
+      "files": 36,
+      "postRaceFieldFiles": 0,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ]
+    },
+    {
+      "date": "2026-08-16",
+      "files": 36,
+      "postRaceFieldFiles": 0,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ]
+    }
+  ],
   "dateRaceCounts": {
     "2026-07-18": 36,
     "2026-07-19": 36,
+    "2026-07-25": 36,
+    "2026-07-26": 36,
     "2026-08-01": 36,
     "2026-08-02": 36,
     "2026-08-08": 36,
@@ -266,18 +187,19 @@
     "2026-08-15": 36,
     "2026-08-16": 36
   },
-  "targetHorseCount": 3313,
-  "historicalResultFiles": 9532,
-  "cachedFileCount": 10396,
+  "targetHorseCount": 3919,
+  "historicalResultFiles": 10144,
+  "cachedFileCount": 11224,
   "archive": {
     "path": "history-source.tar.gz",
     "parts": [],
-    "sizeBytes": 8347545,
-    "sha256": "7be4a447079d81b2813a3da03274715d63b262edd8c90a865400d5adda49c1a0"
+    "sizeBytes": 8811313,
+    "sha256": "fb3421817beea95d0ce7c9dda5da85bc2844d00ce4586269832cf82ddba8f387"
   },
   "policy": {
-    "stored": "sanitized pre-race program cards, clean prediction snapshots, final results, trifecta payouts, and required historical race result files",
-    "notStored": "Predictjra derived indices, axes/opponents/danger selections, hit judgement, or recovery-rate calculations",
-    "unsafeDates": "prediction dates containing current odds/bodyweight/actual popularity are excluded"
+    "stored": "sanitized program/runner facts, final results, trifecta payouts, and required historical race result files",
+    "notStored": "target-race current odds/actual popularity/bodyweight, archived model outputs, Predictjra derived indices, axes/opponents/danger selections, hit judgement, or recovery-rate calculations",
+    "sanitization": "target-race prediction snapshots have current odds/bodyweight/actual popularity and legacy score/rank/ml_* columns physically removed before caching",
+    "unsafeDates": "dates are excluded only when canonical prediction snapshots are unreadable/unsupported or required card/result/payout files are incomplete"
   }
 }
