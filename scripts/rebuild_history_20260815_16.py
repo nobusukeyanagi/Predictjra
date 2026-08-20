@@ -1296,7 +1296,10 @@ def discover_target_dates(
 
     selected = [d for d in available if start.isoformat() <= d <= end.isoformat()]
     if not selected:
-        raise RuntimeError(f"No archived prediction dates found in {start_date}..{end_date}")
+        raise RuntimeError(
+            f"No archived prediction dates found in {start_date}..{end_date}. "
+            f"Available dates: {', '.join(available)}"
+        )
     return selected
 
 
