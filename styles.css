@@ -928,3 +928,11 @@ body.logic-modal-open { overflow: hidden; }
     margin: 0;
   }
 }
+
+/* v51: PCの日別カードで、表がヘッダーより狭い日に左右へ出る白い余白をなくす */
+@media (min-width: 761px) {
+  .race-table {
+    min-width: 100%;
+  }
+}
+
