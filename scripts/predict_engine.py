@@ -2,7 +2,7 @@
 """Predictjra live pre-race index engine.
 
 Rules fixed for future races:
-- No current odds / actual popularity / horse bodyweight/change in prediction inputs.
+- No current odds / actual popularity / horse bodyweight/change in prediction inputs.\n- Previous-race popularity is allowed only in the separate market-popularity estimator.
 - Per-run indices: 展開 / タイム / 成績.
 - 近走: recent-weighted base + ceiling + repeatability.
 - 今回: 展開 50% + コース 50%.
@@ -19,10 +19,12 @@ kept with neutral history rather than silently dropped.
 """
 from __future__ import annotations
 
+import json
 import math
 import re
 from dataclasses import dataclass
 from datetime import date
+from pathlib import Path
 from statistics import mean, pstdev
 from typing import Callable
 
@@ -43,7 +45,7 @@ POPULARITY_PROFILES = {
     "debut": {"class": .35, "age": .10},
 }
 
-MODEL_VERSION = "predictjra-live-index-v1"
+MODEL_VERSION = "predictjra-live-index-v2-market-memory"
 
 
 def clean(value) -> str:
@@ -121,6 +123,81 @@ def parse_age(text: str) -> int | None:
     return int(m.group(1)) if m else None
 
 
+def normalize_entity_id(value) -> str:
+    digits = re.sub(r"\D", "", str(value or ""))
+    return digits.zfill(5) if digits else ""
+
+
+def clamp01(value: float, default: float = 0.5) -> float:
+    try:
+        x = float(value)
+    except (TypeError, ValueError):
+        return default
+    if not math.isfinite(x):
+        return default
+    return max(0.0, min(1.0, x))
+
+
+def market_strength(popularity: int | None, field: int | None) -> float:
+    if not isinstance(popularity, int) or not isinstance(field, int) or field <= 1:
+        return 0.5
+    return clamp01(1 - (popularity - 1) / (field - 1))
+
+
+def market_recency(values: list[float], limit: int = 5) -> float:
+    vals = [clamp01(v) for v in values[:limit]]
+    if not vals:
+        return 0.5
+    weights = [0.40, 0.25, 0.16, 0.11, 0.08][:len(vals)]
+    sw = sum(weights)
+    return clamp01(sum(v * w for v, w in zip(vals, weights)) / sw)
+
+
+def parse_class_level(text: str) -> int:
+    s = clean(text).upper()
+    # Longer roman-numeral grade labels must be checked first.
+    if any(x in s for x in ("GIII", "G3", "ＧⅢ", "Ｇ３")):
+        return 5
+    if any(x in s for x in ("GII", "G2", "ＧⅡ", "Ｇ２")):
+        return 6
+    if any(x in s for x in ("GI", "G1", "ＧⅠ", "Ｇ１")):
+        return 7
+    if "リステッド" in s or "(L)" in s or "（L）" in s or "OP" in s or "オープン" in s:
+        return 4
+    if "3勝" in s or "３勝" in s:
+        return 3
+    if "2勝" in s or "２勝" in s:
+        return 2
+    if "1勝" in s or "１勝" in s:
+        return 1
+    if "未勝利" in s or "新馬" in s:
+        return 0
+    return 3
+
+
+def load_popularity_model() -> dict:
+    path = Path(__file__).resolve().parents[1] / "data" / "popularity_model_20260815_16.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    if "coefficients" not in payload or "features" not in payload:
+        return {}
+    return payload
+
+
+def entity_prior(model: dict, kind: str, entity_id: str, entity_name: str) -> float:
+    priors = model.get("entityPriors") or {}
+    by_id = priors.get(kind) or {}
+    by_name = priors.get(f"{kind}Name") or {}
+    if entity_id and entity_id in by_id:
+        return clamp01(by_id[entity_id])
+    key = clean(entity_name)
+    if key and key in by_name:
+        return clamp01(by_name[key])
+    return 0.5
+
+
 def parse_history_cell(text: str) -> dict | None:
     raw = re.sub(r"\s+", " ", str(text or "")).strip()
     date_s = parse_date_text(raw)
@@ -137,6 +214,10 @@ def parse_history_cell(text: str) -> dict | None:
         fd = re.search(r"(?<!\d)(\d{1,2})\s*(?:着)?\s*(\d{1,2})頭", raw)
     finish = int(fd.group(1)) if fd else None
     field = int(fd.group(2)) if fd else None
+
+    popularity_match = re.search(r"(?<!\d)(\d{1,2})\s*(?:人|人気)", raw)
+    popularity = int(popularity_match.group(1)) if popularity_match else None
+    class_level = parse_class_level(raw)
 
     sd = re.search(r"(芝|ダ|障(?:害)?)\s*(\d{3,4})", raw)
     surface = normalize_surface(sd.group(1)) if sd else ""
@@ -162,11 +243,18 @@ def parse_history_cell(text: str) -> dict | None:
         if candidates:
             margin = candidates[-1]
 
+    carried_match = re.search(r"(?<!\d)([4-6]\d(?:\.\d)?)\s+\d{3}kg", raw)
+    carried_weight = float(carried_match.group(1)) if carried_match else math.nan
+
     return {
         "date": date_s,
         "venue": venue,
         "finish": finish,
         "field": field,
+        "popularity": popularity,
+        "marketStrength": market_strength(popularity, field),
+        "classLevel": class_level,
+        "carriedWeight": carried_weight,
         "surface": surface,
         "distance": distance,
         "time": time_text,
@@ -224,6 +312,28 @@ def _horse_name_and_id(row) -> tuple[str, str]:
     return name, (m.group(1) if m else "")
 
 
+def _linked_entity(row, kind: str) -> tuple[str, str]:
+    node = row.select_one(f"a[href*='/{kind}/']")
+    if not node:
+        return "", ""
+    name = clean(node.get_text(" ", strip=True))
+    href = node.get("href", "")
+    ids = re.findall(r"\d{4,5}", href)
+    return name, normalize_entity_id(ids[-1] if ids else "")
+
+
+def _current_carried_weight(row) -> float:
+    jockey_node = row.select_one("a[href*='/jockey/']")
+    if not jockey_node:
+        return math.nan
+    cell = jockey_node.find_parent(["td", "th"])
+    text = cell.get_text(" ", strip=True) if cell else row.get_text(" ", strip=True)
+    values = [
+        float(x) for x in re.findall(r"(?<!\d)([4-6]\d(?:\.\d)?)(?!\d)", text)
+    ]
+    return values[-1] if values else math.nan
+
+
 def parse_rich_card(html: str, race_id: str, base_entries: list[dict] | None = None) -> dict:
     soup = BeautifulSoup(html, "lxml")
     page_text = soup.get_text(" ", strip=True)
@@ -257,6 +367,9 @@ def parse_rich_card(html: str, race_id: str, base_entries: list[dict] | None = N
 
         frame = _frame_number(row, cells)
         name, horse_id = _horse_name_and_id(row)
+        jockey_name, jockey_id = _linked_entity(row, "jockey")
+        trainer_name, trainer_id = _linked_entity(row, "trainer")
+        current_carried_weight = _current_carried_weight(row)
         row_text = row.get_text(" ", strip=True)
         age = parse_age(row_text)
 
@@ -277,6 +390,11 @@ def parse_rich_card(html: str, race_id: str, base_entries: list[dict] | None = N
             "name": name,
             "horseId": horse_id,
             "age": age,
+            "jockeyName": jockey_name,
+            "jockeyId": jockey_id,
+            "trainerName": trainer_name,
+            "trainerId": trainer_id,
+            "currentCarriedWeight": current_carried_weight,
             "histories": histories,
         }
 
@@ -298,6 +416,11 @@ def parse_rich_card(html: str, race_id: str, base_entries: list[dict] | None = N
                     "name": entry.get("name", ""),
                     "horseId": "",
                     "age": None,
+                    "jockeyName": "",
+                    "jockeyId": "",
+                    "trainerName": "",
+                    "trainerId": "",
+                    "currentCarriedWeight": math.nan,
                     "histories": [],
                 }
             else:
@@ -319,11 +442,16 @@ def parse_rich_card(html: str, race_id: str, base_entries: list[dict] | None = N
     if grade_match:
         class_hint = grade_match.group(1)
 
+    current_class_level = parse_class_level(
+        f"{race_name} {class_hint} {page_text[:3000]}"
+    )
+
     venue = TRACKS.get(race_id[4:6], race_id[4:6])
     return {
         "raceId": race_id,
         "raceName": race_name,
         "classHint": class_hint,
+        "classLevel": current_class_level,
         "venue": venue,
         "raceNo": int(race_id[-2:]),
         "surface": surface,
@@ -553,25 +681,154 @@ def build_prediction(card: dict) -> dict:
     for h in detail_horses:
         h["rank"] = rank_map[h["no"]]
 
-    profile_name = race_profile(
-        f"{card.get('raceName', '')}{card.get('classHint', '')}",
-        card.get("surface", ""),
+    # Market-popularity model v2.
+    # Unlike the ability index, this deliberately remembers how the public priced
+    # the horse in previous races, plus jockey/trainer market tendency.
+    popularity_model = load_popularity_model()
+    coeff = popularity_model.get("coefficients") or {}
+    model_features = set(popularity_model.get("features") or [])
+    current_class_level = int(card.get("classLevel", 3))
+
+    total_order_for_market = sorted(
+        detail_horses,
+        key=lambda h: (-totals[h["no"]], -h["recentIndex"], h["no"]),
     )
-    profile = POPULARITY_PROFILES[profile_name]
+    total_rank_strength = {
+        h["no"]: 1.0 - i / max(horse_count - 1, 1)
+        for i, h in enumerate(total_order_for_market)
+    }
+    recent_order_for_market = sorted(
+        detail_horses,
+        key=lambda h: (-h["recentIndex"], -totals[h["no"]], h["no"]),
+    )
+    recent_rank_strength = {
+        h["no"]: 1.0 - i / max(horse_count - 1, 1)
+        for i, h in enumerate(recent_order_for_market)
+    }
 
     for h in detail_horses:
-        age = h.get("_age")
-        age_factor = clamp(95 - 7 * abs((age or 4) - 4), 55, 95)
+        entry = contexts[h["no"]]["entry"]
+        runs = contexts[h["no"]]["runs"]
+        market_values = [
+            market_strength(r.get("popularity"), r.get("field"))
+            for r in runs
+            if isinstance(r.get("popularity"), int) and isinstance(r.get("field"), int)
+        ]
+        last_market = market_values[0] if market_values else 0.5
+        recent3_market = market_recency(market_values, 3)
+        recent5_market = market_recency(market_values, 5)
+
+        last = runs[0] if runs else {}
+        last_finish = (
+            1.0 - (last["finish"] - 1) / max(last["field"] - 1, 1)
+            if isinstance(last.get("finish"), int)
+            and isinstance(last.get("field"), int)
+            and last["field"] > 1
+            else 0.5
+        )
+        surprise_strength = clamp01(0.5 + (last_finish - last_market) / 2.0)
+
+        last_pop = last.get("popularity")
+        last_field = last.get("field")
+        last_lowpop_win = float(
+            isinstance(last.get("finish"), int)
+            and last["finish"] == 1
+            and isinstance(last_pop, int)
+            and isinstance(last_field, int)
+            and last_pop >= max(6, math.ceil(last_field / 2))
+        )
+
+        current_weight = parse_float(entry.get("currentCarriedWeight"))
+        last_weight = parse_float(last.get("carriedWeight"))
+        if math.isfinite(current_weight) and math.isfinite(last_weight):
+            weight_delta = current_weight - last_weight
+            carried_change_strength = clamp01(0.5 - weight_delta / 12.0)
+            handicap_rebound_risk = clamp01(
+                last_lowpop_win * max(weight_delta - 1.0, 0.0) / 5.0,
+                default=0.0,
+            )
+        else:
+            weight_delta = 0.0
+            carried_change_strength = 0.5
+            handicap_rebound_risk = 0.0
+
+        jockey_market = entity_prior(
+            popularity_model, "jockey",
+            entry.get("jockeyId", ""), entry.get("jockeyName", "")
+        )
+        trainer_market = entity_prior(
+            popularity_model, "trainer",
+            entry.get("trainerId", ""), entry.get("trainerName", "")
+        )
+        age = entry.get("age")
+        age_strength = clamp01((10.0 - float(age or 5)) / 8.0)
+
         factors = {
-            "recent": float(h["recentIndex"]),
-            "class": float(h["_ceiling"]),
-            "consistency": float(h["_consistency"]),
-            "upward": float(h["_upward"]),
-            "age": age_factor,
+            "total_rank_strength": clamp01(total_rank_strength[h["no"]]),
+            "recent_rank_strength": clamp01(recent_rank_strength[h["no"]]),
+            "last_market_strength": clamp01(last_market),
+            "recent3_market_strength": clamp01(recent3_market),
+            "recent5_market_strength": clamp01(recent5_market),
+            "last_finish_strength": clamp01(last_finish),
+            "surprise_strength": clamp01(surprise_strength),
+            "jockey_market_strength": clamp01(jockey_market),
+            "trainer_market_strength": clamp01(trainer_market),
+            "age_strength": clamp01(age_strength),
+            "carried_change_strength": clamp01(carried_change_strength),
+            "last_lowpop_win": last_lowpop_win,
+            "handicap_rebound_risk": clamp01(handicap_rebound_risk, default=0.0),
         }
-        weighted = [(factors[k], w) for k, w in profile.items() if k in factors]
-        denom = sum(w for _, w in weighted)
-        h["_popScore"] = sum(v * w for v, w in weighted) / denom if denom else float(h["recentIndex"])
+
+        if (
+            popularity_model.get("version", "").endswith("v2-market-memory")
+            and model_features.issubset(factors)
+            and model_features
+        ):
+            market_score = float(coeff.get("intercept", 0.0))
+            for key in popularity_model["features"]:
+                market_score += float(coeff.get(key, 0.0)) * float(factors[key])
+        else:
+            # Conservative fallback if the calibrated v2 file has not been generated yet.
+            market_score = (
+                0.36 * factors["recent5_market_strength"]
+                + 0.14 * factors["last_market_strength"]
+                + 0.16 * factors["total_rank_strength"]
+                + 0.08 * factors["recent_rank_strength"]
+                + 0.08 * factors["jockey_market_strength"]
+                + 0.06 * factors["trainer_market_strength"]
+                + 0.06 * factors["last_finish_strength"]
+                + 0.06 * factors["age_strength"]
+            )
+
+        # Class/handicap context is directly visible in the pre-race five-run card.
+        last_class_level = int(last.get("classLevel", current_class_level)) if last else current_class_level
+        max_recent_class = max(
+            [int(r.get("classLevel", 0)) for r in runs] or [current_class_level]
+        )
+        class_gap = max(current_class_level - max_recent_class, 0)
+        class_readiness = clamp01(1.0 - class_gap / 4.0)
+
+        # A low-popularity handicap win followed by a large assigned-weight rise is
+        # a classic market-overreaction trap for an ability-only model.
+        context_adjustment = (
+            0.035 * (class_readiness - 0.5)
+            - 0.090 * factors["handicap_rebound_risk"]
+        )
+        h["_popScore"] = market_score + context_adjustment
+        h["popularityFactors"] = {
+            key: round(float(value) * 100, 1)
+            for key, value in factors.items()
+        }
+        h["popularityContext"] = {
+            "classLevel": current_class_level,
+            "lastClassLevel": last_class_level,
+            "maxRecentClassLevel": max_recent_class,
+            "assignedWeightDelta": round(weight_delta, 1),
+            "model": (
+                popularity_model.get("version")
+                or "fallback-market-memory"
+            ),
+        }
 
     pop_order = sorted(
         detail_horses,
@@ -645,8 +902,9 @@ def build_prediction(card: dict) -> dict:
                 "近走60% + 今回40%; 今回=展開50%+コース50%"
             ),
             "popularityMethod": (
-                f"{profile_name} pre-race profile using recent/class/consistency/upward/age "
-                "when available; no current odds/actual popularity/bodyweight"
+                "market-memory v2: previous-race popularity, recent market memory, "
+                "ability rank, jockey/trainer market priors, age and assigned-weight change; "
+                "current odds/actual popularity/bodyweight are not used"
             ),
             "selectionRule": (
                 "danger=lowest total among estimated-popularity top3; "

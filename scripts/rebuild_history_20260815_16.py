@@ -5,7 +5,8 @@ Goals
 -----
 * Reconstruct predictions from archived PRE-RACE snapshots.
 * Never use current-race odds, actual popularity, horse bodyweight/change, or race result
-  as inputs to the performance/selection score.
+  as inputs to the performance/selection score. Previous-race popularity is allowed only
+  in the separate market-popularity estimator.
 * Use actual popularity only as a teacher label for the estimated-popularity model.
   Each race is estimated with a model trained while excluding that race itself.
 * Re-fetch archived final results and trifecta payouts and recalculate hit/miss, return,
@@ -60,7 +61,7 @@ SAPPORO11_RANK = {
     9: 9, 11: 10, 5: 11, 16: 12, 6: 13, 1: 14, 2: 15, 3: 16,
 }
 
-REBUILD_VERSION = "predictjra-history-20260815-16-v2-robust"
+REBUILD_VERSION = "predictjra-history-20260815-16-v3-market-memory"
 SOURCE_REPO = "sugaimo15/keibayosoku"
 SOURCE_REF = "claude/horse-racing-predictor-ak6crm"
 
@@ -97,6 +98,34 @@ def minmax(series: pd.Series) -> pd.Series:
 def parse_age(sex_age) -> float:
     m = re.search(r"(\d+)", clean_str(sex_age))
     return float(m.group(1)) if m else 5.0
+
+
+def normalize_entity_id(value) -> str:
+    s = clean_str(value)
+    digits = re.sub(r"\D", "", s)
+    return digits.zfill(5) if digits else ""
+
+
+def clipped01(value: float) -> float:
+    if not math.isfinite(float(value)):
+        return 0.5
+    return float(np.clip(value, 0.0, 1.0))
+
+
+def shrunk_market_mean(values: pd.Series | list[float], prior: float = 0.5, prior_weight: float = 12.0) -> float:
+    vals = pd.to_numeric(pd.Series(list(values)), errors="coerce").dropna().astype(float)
+    if vals.empty:
+        return float(prior)
+    return clipped01((float(vals.sum()) + prior * prior_weight) / (len(vals) + prior_weight))
+
+
+def market_recency(values: list[float], limit: int = 5) -> float:
+    vals = [float(v) for v in values[:limit] if math.isfinite(float(v))]
+    if not vals:
+        return 0.5
+    weights = [0.40, 0.25, 0.16, 0.11, 0.08][:len(vals)]
+    sw = sum(weights)
+    return clipped01(sum(v * w for v, w in zip(vals, weights)) / sw)
 
 
 def read_csv(path: Path) -> pd.DataFrame:
@@ -239,6 +268,33 @@ def load_target_history(source_root: Path, target_horse_ids: set[str]) -> pd.Dat
     hist["_winner_time"] = hist["_time_sec"].groupby(hist["race_id"]).transform("min")
     hist["_last3f_min"] = hist["_last3f"].groupby(hist["race_id"]).transform("min")
     hist["_last3f_max"] = hist["_last3f"].groupby(hist["race_id"]).transform("max")
+
+    # Historical market-memory fields. These are all known before a future race:
+    # previous-race popularity, assigned weight, jockey and trainer.
+    hist["_popularity"] = pd.to_numeric(
+        hist.get("popularity", pd.Series(index=hist.index, dtype=float)),
+        errors="coerce",
+    )
+    pop_denom = (hist["_field_size"] - 1).replace(0, np.nan)
+    hist["_market_strength"] = (
+        1 - (hist["_popularity"] - 1) / pop_denom
+    ).clip(0, 1)
+    hist["_weight_carried_num"] = pd.to_numeric(
+        hist.get("weight_carried", pd.Series(index=hist.index, dtype=float)),
+        errors="coerce",
+    )
+    hist["_jockey_id_norm"] = hist.get(
+        "jockey_id", pd.Series(index=hist.index, dtype=object)
+    ).apply(normalize_entity_id)
+    hist["_trainer_id_norm"] = hist.get(
+        "trainer_id", pd.Series(index=hist.index, dtype=object)
+    ).apply(normalize_entity_id)
+    hist["_jockey_name_norm"] = hist.get(
+        "jockey", pd.Series(index=hist.index, dtype=object)
+    ).apply(clean_str)
+    hist["_trainer_name_norm"] = hist.get(
+        "trainer", pd.Series(index=hist.index, dtype=object)
+    ).apply(clean_str)
 
     denom = (hist["_field_size"] - 1).replace(0, 1)
     hist["_finish_strength"] = (1 - (hist["_finish"] - 1) / denom).clip(0, 1)
@@ -726,30 +782,164 @@ def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: p
         total_display = dict(SAPPORO11_TOTAL)
         tie_order = {n: float(v) for n, v in SAPPORO11_RANK.items()}
 
-    # Popularity-model features. No actual-popularity value is placed in X.
+    # Popularity model v2: separate "ability" from "how the market tends to buy".
+    # Target-race actual popularity/odds/bodyweight never enter X.
     n = len(p)
     denom = max(n - 1, 1)
-    p["rule_rank_strength"] = 1 - (
-        pd.to_numeric(p["predicted_rank"], errors="coerce").fillna(n) - 1
-    ) / denom
-    p["ml_rank_strength"] = 1 - (
-        pd.to_numeric(p["ml_rank"], errors="coerce").fillna(n) - 1
-    ) / denom
-    p["age_strength"] = p.get("sex_age", pd.Series([""] * n)).apply(
-        lambda x: float(np.clip((10.0 - parse_age(x)) / 8.0, 0.0, 1.0))
-    )
-    carried = pd.to_numeric(p.get("weight_carried"), errors="coerce")
-    if carried.notna().sum():
-        centered = carried.fillna(carried.mean())
-        span = max(float(centered.max() - centered.min()), 1.0)
-        p["carried_strength"] = 0.5 - (centered - centered.mean()) / (2 * span)
-    else:
-        p["carried_strength"] = 0.5
 
-    features = p[[
-        "horse_number", "rule_norm", "ml_norm", "rule_rank_strength",
-        "ml_rank_strength", "age_strength", "carried_strength"
-    ]].copy()
+    # Current total/recent rank strengths are reproducible by the live engine.
+    total_order = sorted(
+        total_internal,
+        key=lambda no: (-total_internal[no], tie_order.get(no, 999), no),
+    )
+    total_rank_strength = {
+        no: 1.0 - (rank - 1) / denom
+        for rank, no in enumerate(total_order, start=1)
+    }
+    recent_map = {
+        int(h["no"]): float(h.get("recentIndex", 72))
+        for h in index_detail.get("horses", [])
+    }
+    recent_order = sorted(
+        total_internal,
+        key=lambda no: (-recent_map.get(no, 72.0), -total_internal[no], no),
+    )
+    recent_rank_strength = {
+        no: 1.0 - (rank - 1) / denom
+        for rank, no in enumerate(recent_order, start=1)
+    }
+
+    target_date = pd.Timestamp(date_s)
+    market_rows = []
+    for _, row in p.iterrows():
+        no = int(row["horse_number"])
+        horse_id = clean_str(row.get("horse_id"))
+        h = history[
+            (history["horse_id"] == horse_id)
+            & history["_date"].notna()
+            & (history["_date"] < target_date)
+        ].sort_values("_date", ascending=False)
+
+        hp = h[h["_market_strength"].notna()].head(5)
+        market_values = hp["_market_strength"].astype(float).tolist()
+        last_market = market_values[0] if market_values else 0.5
+        recent3_market = market_recency(market_values, 3)
+        recent5_market = market_recency(market_values, 5)
+
+        if not hp.empty:
+            last_hist = hp.iloc[0]
+            last_finish = (
+                float(last_hist["_finish_strength"])
+                if pd.notna(last_hist.get("_finish_strength"))
+                else 0.5
+            )
+            last_weight = (
+                float(last_hist["_weight_carried_num"])
+                if pd.notna(last_hist.get("_weight_carried_num"))
+                else math.nan
+            )
+            last_pop = (
+                float(last_hist["_popularity"])
+                if pd.notna(last_hist.get("_popularity"))
+                else math.nan
+            )
+            last_field = (
+                float(last_hist["_field_size"])
+                if pd.notna(last_hist.get("_field_size"))
+                else math.nan
+            )
+            last_finish_pos = (
+                float(last_hist["_finish"])
+                if pd.notna(last_hist.get("_finish"))
+                else math.nan
+            )
+        else:
+            last_finish = 0.5
+            last_weight = math.nan
+            last_pop = math.nan
+            last_field = math.nan
+            last_finish_pos = math.nan
+
+        surprise_strength = clipped01(0.5 + (last_finish - last_market) / 2.0)
+
+        lowpop_threshold = (
+            max(6.0, math.ceil(last_field / 2.0))
+            if math.isfinite(last_field)
+            else 7.0
+        )
+        last_lowpop_win = float(
+            math.isfinite(last_finish_pos)
+            and int(last_finish_pos) == 1
+            and math.isfinite(last_pop)
+            and last_pop >= lowpop_threshold
+        )
+
+        current_weight = numeric_or_nan(row.get("weight_carried"))
+        if math.isfinite(current_weight) and math.isfinite(last_weight):
+            weight_delta = current_weight - last_weight
+            carried_change_strength = clipped01(0.5 - weight_delta / 12.0)
+            handicap_rebound_risk = clipped01(
+                last_lowpop_win * max(weight_delta - 1.0, 0.0) / 5.0
+            )
+        else:
+            carried_change_strength = 0.5
+            handicap_rebound_risk = 0.0
+
+        jockey_id = normalize_entity_id(row.get("jockey_id"))
+        trainer_id = normalize_entity_id(row.get("trainer_id"))
+        jockey_name = clean_str(row.get("jockey"))
+        trainer_name = clean_str(row.get("trainer"))
+        eligible_hist = history[
+            history["_date"].notna()
+            & (history["_date"] < target_date)
+            & history["_market_strength"].notna()
+        ]
+        if jockey_id:
+            jockey_values = eligible_hist.loc[
+                eligible_hist["_jockey_id_norm"] == jockey_id, "_market_strength"
+            ]
+        elif jockey_name:
+            jockey_values = eligible_hist.loc[
+                eligible_hist["_jockey_name_norm"] == jockey_name, "_market_strength"
+            ]
+        else:
+            jockey_values = pd.Series(dtype=float)
+        if trainer_id:
+            trainer_values = eligible_hist.loc[
+                eligible_hist["_trainer_id_norm"] == trainer_id, "_market_strength"
+            ]
+        elif trainer_name:
+            trainer_values = eligible_hist.loc[
+                eligible_hist["_trainer_name_norm"] == trainer_name, "_market_strength"
+            ]
+        else:
+            trainer_values = pd.Series(dtype=float)
+
+        age = parse_age(row.get("sex_age"))
+        age_strength = clipped01((10.0 - age) / 8.0)
+
+        market_rows.append({
+            "horse_number": no,
+            "total_rank_strength": clipped01(total_rank_strength.get(no, 0.5)),
+            "recent_rank_strength": clipped01(recent_rank_strength.get(no, 0.5)),
+            "last_market_strength": clipped01(last_market),
+            "recent3_market_strength": clipped01(recent3_market),
+            "recent5_market_strength": clipped01(recent5_market),
+            "last_finish_strength": clipped01(last_finish),
+            "surprise_strength": clipped01(surprise_strength),
+            "jockey_market_strength": shrunk_market_mean(
+                jockey_values, prior=0.5, prior_weight=20.0
+            ),
+            "trainer_market_strength": shrunk_market_mean(
+                trainer_values, prior=0.5, prior_weight=30.0
+            ),
+            "age_strength": age_strength,
+            "carried_change_strength": clipped01(carried_change_strength),
+            "last_lowpop_win": last_lowpop_win,
+            "handicap_rebound_risk": clipped01(handicap_rebound_risk),
+        })
+
+    features = pd.DataFrame(market_rows)
     features["race_id"] = race_id
 
     actual_popularity = {}
@@ -794,8 +984,19 @@ def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: p
 
 
 FEATURE_COLS = [
-    "rule_norm", "ml_norm", "rule_rank_strength",
-    "ml_rank_strength", "age_strength", "carried_strength"
+    "total_rank_strength",
+    "recent_rank_strength",
+    "last_market_strength",
+    "recent3_market_strength",
+    "recent5_market_strength",
+    "last_finish_strength",
+    "surprise_strength",
+    "jockey_market_strength",
+    "trainer_market_strength",
+    "age_strength",
+    "carried_change_strength",
+    "last_lowpop_win",
+    "handicap_rebound_risk",
 ]
 
 
@@ -803,7 +1004,7 @@ def target_market_strength(pop: int, field_size: int) -> float:
     return 1.0 - (float(pop) - 1.0) / max(field_size - 1, 1)
 
 
-def fit_ridge(rows: pd.DataFrame, ridge: float = 2.0) -> np.ndarray:
+def fit_ridge(rows: pd.DataFrame, ridge: float = 3.0) -> np.ndarray:
     X = rows[FEATURE_COLS].astype(float).to_numpy()
     X = np.column_stack([np.ones(len(X)), X])
     y = rows["market_strength"].astype(float).to_numpy()
@@ -842,6 +1043,9 @@ def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[i
     estimates: dict[str, dict[int, int]] = {}
     abs_errors = []
     top3_overlaps = []
+    top1_hits = []
+    large_errors = []
+    sapporo_case = {}
 
     # Leave-one-race-out: a race's own final popularity never trains its estimator.
     for rid, race in races.items():
@@ -882,15 +1086,43 @@ def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[i
         top3_overlaps.append(
             len(est_top3 & act_top3) / top_n if top_n else 0.0
         )
+        actual_top1 = next((no for no, p in actual.items() if p == 1), None)
+        estimated_top1 = next((no for no, p in est_starter.items() if p == 1), None)
+        top1_hits.append(float(actual_top1 == estimated_top1))
+        race_errors = [
+            abs(est_starter[no] - actual[no])
+            for no in est_starter
+        ]
+        large_errors.extend(float(err >= 5) for err in race_errors)
+
+        if rid == SAPPORO11_ID:
+            sapporo_case = {
+                "zendanHayabusaHorseNumber": 12,
+                "zendanHayabusaEstimatedPopularity": int(est_starter.get(12, -1)),
+                "zendanHayabusaActualPopularity": int(actual.get(12, -1)),
+                "estimatedTop3": sorted(
+                    [int(no) for no, p in est_starter.items() if p <= 3],
+                    key=lambda no: est_starter[no],
+                ),
+                "actualTop3": sorted(
+                    [int(no) for no, p in actual.items() if p <= 3],
+                    key=lambda no: actual[no],
+                ),
+            }
 
     # Final coefficients for future generalization (trained on all 72 races).
     final_beta = fit_ridge(teacher)
     metrics = {
         "method": "leave-one-race-out for historical estimates",
-        "ridge": 2.0,
+        "ridge": 3.0,
         "features": FEATURE_COLS,
         "meanAbsolutePopularityRankError": round(float(np.mean(abs_errors)), 4),
+        "medianAbsolutePopularityRankError": round(float(np.median(abs_errors)), 4),
+        "maxAbsolutePopularityRankError": int(np.max(abs_errors)) if abs_errors else 0,
+        "largeError5PlusRate": round(float(np.mean(large_errors)), 4) if large_errors else 0.0,
         "meanTop3OverlapRate": round(float(np.mean(top3_overlaps)), 4),
+        "top1Accuracy": round(float(np.mean(top1_hits)), 4) if top1_hits else 0.0,
+        "sapporo11CaseStudy": sapporo_case,
         "futureModelCoefficients": {
             "intercept": float(final_beta[0]),
             **{name: float(v) for name, v in zip(FEATURE_COLS, final_beta[1:])},
@@ -899,6 +1131,33 @@ def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[i
         "teacherRaces": int(teacher["race_id"].nunique()),
     }
     return estimates, metrics
+
+
+def build_future_entity_priors(history: pd.DataFrame) -> dict:
+    """Market priors for current jockey/trainer, trained only on past race popularity."""
+    h = history[
+        history["_market_strength"].notna()
+        & history["_date"].notna()
+        & (history["_date"] <= pd.Timestamp(max(TARGET_DATES)))
+    ].copy()
+
+    def make_map(col: str, prior_weight: float) -> dict[str, float]:
+        out = {}
+        if h.empty or col not in h.columns:
+            return out
+        for entity, group in h[h[col].ne("")].groupby(col):
+            score = shrunk_market_mean(
+                group["_market_strength"], prior=0.5, prior_weight=prior_weight
+            )
+            out[str(entity)] = round(float(score), 6)
+        return out
+
+    return {
+        "jockey": make_map("_jockey_id_norm", 20.0),
+        "trainer": make_map("_trainer_id_norm", 30.0),
+        "jockeyName": make_map("_jockey_name_norm", 20.0),
+        "trainerName": make_map("_trainer_name_norm", 30.0),
+    }
 
 
 def prediction_target_count(field_size: int) -> int:
@@ -1094,6 +1353,7 @@ def main() -> int:
         )
 
     estimated_pops, pop_metrics = estimate_popularities(races)
+    future_entity_priors = build_future_entity_priors(history)
 
     data = json.loads(args.data_path.read_text(encoding="utf-8"))
     existing_by_date = {
@@ -1201,7 +1461,7 @@ def main() -> int:
                         if rid == SAPPORO11_ID
                         else "pre-race historical reconstruction"
                     ),
-                    "popularityMethod": "leave-one-race-out calibrated model",
+                    "popularityMethod": "market-memory v2 leave-one-race-out calibrated model",
                     "nonStarters": sorted(
                         set(int(x) for x in race.card["horse_number"])
                         - set(race.actual_popularity)
@@ -1350,7 +1610,7 @@ def main() -> int:
     }
 
     pop_model = {
-        "version": "predictjra-popularity-calibration-20260815-16-v1",
+        "version": "predictjra-popularity-calibration-20260815-16-v2-market-memory",
         "trainedAt": datetime.now(JST).isoformat(timespec="seconds"),
         "teacherDates": list(TARGET_DATES),
         "teacherRaces": pop_metrics["teacherRaces"],
@@ -1358,11 +1618,23 @@ def main() -> int:
         "features": pop_metrics["features"],
         "ridge": pop_metrics["ridge"],
         "coefficients": pop_metrics["futureModelCoefficients"],
+        "entityPriors": future_entity_priors,
         "validation": {
             "method": pop_metrics["method"],
             "meanAbsolutePopularityRankError": pop_metrics["meanAbsolutePopularityRankError"],
+            "medianAbsolutePopularityRankError": pop_metrics["medianAbsolutePopularityRankError"],
+            "maxAbsolutePopularityRankError": pop_metrics["maxAbsolutePopularityRankError"],
+            "largeError5PlusRate": pop_metrics["largeError5PlusRate"],
             "meanTop3OverlapRate": pop_metrics["meanTop3OverlapRate"],
+            "top1Accuracy": pop_metrics["top1Accuracy"],
+            "sapporo11CaseStudy": pop_metrics["sapporo11CaseStudy"],
         },
+        "allowedHistoricalMarketInputs": [
+            "previous-race popularity",
+            "previous assigned weight",
+            "historical jockey market tendency",
+            "historical trainer market tendency"
+        ],
         "prohibitedInputs": [
             "current odds", "current actual popularity", "horse bodyweight", "horse bodyweight change"
         ],
