@@ -94,11 +94,13 @@ jobs:
             DATA_PATH="$RUNNER_TEMP/races-validation.json"
             AUDIT_PATH="$RUNNER_TEMP/rebuild-audit.json"
             POP_MODEL_PATH="$RUNNER_TEMP/popularity-model.json"
+            TIME_BASELINE_PATH="$RUNNER_TEMP/time-baselines.json"
             DIAGNOSTIC_PATH="$RUNNER_TEMP/rebuild-diagnostics.json"
           else
             DATA_PATH="data/races.json"
             AUDIT_PATH="data/rebuild_audit.json"
             POP_MODEL_PATH="data/popularity_model.json"
+            TIME_BASELINE_PATH="data/time_baselines.json"
             DIAGNOSTIC_PATH="data/rebuild_diagnostics.json"
           fi
 
@@ -110,6 +112,7 @@ jobs:
           echo "data_path=$DATA_PATH" >> "$GITHUB_OUTPUT"
           echo "audit_path=$AUDIT_PATH" >> "$GITHUB_OUTPUT"
           echo "pop_model_path=$POP_MODEL_PATH" >> "$GITHUB_OUTPUT"
+          echo "time_baseline_path=$TIME_BASELINE_PATH" >> "$GITHUB_OUTPUT"
           echo "diagnostic_path=$DIAGNOSTIC_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Stage candidate as production for apply
@@ -159,7 +162,7 @@ jobs:
                       reason = "cache manifest is unreadable"
 
           if not refresh and manifest is not None:
-              expected_cache_version = "predictjra-historical-facts-v2-sanitized-snapshots"
+              expected_cache_version = "predictjra-historical-facts-v3-card-complete"
               if manifest.get("cacheVersion") != expected_cache_version:
                   refresh = True
                   reason = (
@@ -295,6 +298,7 @@ jobs:
             --data-path "${{ steps.args.outputs.data_path }}" \
             --audit-path "${{ steps.args.outputs.audit_path }}" \
             --pop-model-path "${{ steps.args.outputs.pop_model_path }}" \
+            --time-baseline-path "${{ steps.args.outputs.time_baseline_path }}" \
             --diagnostic-path "${{ steps.args.outputs.diagnostic_path }}"
 
       - name: Write result to Actions Summary
@@ -448,6 +452,7 @@ jobs:
           path: |
             ${{ steps.args.outputs.audit_path }}
             ${{ steps.args.outputs.pop_model_path }}
+            ${{ steps.args.outputs.time_baseline_path }}
             ${{ steps.args.outputs.diagnostic_path }}
             data/history_cache/manifest.json
           if-no-files-found: ignore
@@ -467,7 +472,7 @@ jobs:
           fi
 
           if [[ "$MODE" == "apply" ]] && \
-             [[ -n "$(git status --porcelain -- data/races.json data/rebuild_audit.json data/popularity_model.json data/rebuild_diagnostics.json)" ]]; then
+             [[ -n "$(git status --porcelain -- data/races.json data/rebuild_audit.json data/popularity_model.json data/time_baselines.json data/rebuild_diagnostics.json)" ]]; then
             echo "production_data_changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "production_data_changed=false" >> "$GITHUB_OUTPUT"
@@ -504,6 +509,7 @@ jobs:
               data/races.json \
               data/rebuild_audit.json \
               data/popularity_model.json \
+              data/time_baselines.json \
               data/rebuild_diagnostics.json
           fi
           if [[ "$MODE" == "apply" && "$LOGIC_PROMOTED" == "true" ]]; then
