@@ -2,7 +2,8 @@
 """Predictjra live pre-race index engine.
 
 Rules fixed for future races:
-- No current odds / actual popularity / horse bodyweight/change in prediction inputs.\n- Previous-race popularity is allowed only in the separate market-popularity estimator.
+- No current odds / actual popularity / horse bodyweight/change in prediction inputs.
+- Previous-race popularity is allowed only in the separate market-popularity estimator.
 - Per-run indices: 展開 / タイム / 成績.
 - 近走: recent-weighted base + ceiling + repeatability.
 - 今回: 展開 50% + コース 50%.

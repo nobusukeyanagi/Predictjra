@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
-"""Fetch JRA race cards/results with multi-source fallback and update data/races.json.
+"""Shared JRA race discovery/result fetcher with multi-source fallbacks.
 
-prepare: previous-day 13:00 JST run; targets tomorrow, creates predictions once.
-result: race-day 18:00 JST run; targets today, records results and trifecta payout.
+Production automation invokes update_races_v2.py.  This module supplies the shared
+race-discovery, entry, result, payout, persistence, and stake helpers used there.
+Its standalone legacy prepare path is retained for compatibility but is not the
+production prediction path.
+
+Scheduled production operation:
+  prepare: 13:00 JST; targets tomorrow and builds predictions through
+           update_races_v2.py -> predict_engine.py -> prediction_logic.py.
+  result:  19:00 JST; targets today and records results/trifecta payouts.
 
 Source priority
 ---------------
@@ -584,8 +591,8 @@ def prediction_target_count(horse_count: int) -> int:
 
 
 def create_prediction(horses: list[int]) -> dict:
-    # Existing fallback. The index-based prediction engine can replace this when
-    # race index data is generated server-side for every race.
+    # Legacy standalone fallback only. Production prepare does not call this random
+    # selector; update_races_v2.py delegates prediction to the unified index engine.
     pick_count = prediction_target_count(len(horses))
     picks = random.SystemRandom().sample(horses, pick_count)
     return {"axes": picks[:2], "opponents": picks[2:]}

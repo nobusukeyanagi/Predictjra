@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Production updater using the Predictjra live index engine.
+"""Production updater for Predictjra.
 
-This wraps the existing multi-source discovery/result scraper in update_races.py
-and replaces only the old random prepare prediction with deterministic index rules.
+Race discovery, base entries, results, payouts, and persistence helpers come from
+update_races.py.  Pre-race prediction is built by predict_engine.py, which normalizes
+the live card and calls prediction_logic.py, the single source of truth shared with
+historical rebuild/backtest.
 """
 from __future__ import annotations
 
@@ -130,7 +132,8 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
     diagnostics["prepareErrors"] = errors
 
     # Accuracy-first: do not publish a newly-generated partial card set.
-    # Existing already-v1 races are allowed; every remaining discovered race must stage.
+    # Races already prepared with the current MODEL_VERSION are accepted; every
+    # remaining discovered race must stage successfully before the day is saved.
     already_ok = {
         rid for rid, r in existing.items()
         if r.get("modelMeta", {}).get("version") == MODEL_VERSION and r.get("prediction")
