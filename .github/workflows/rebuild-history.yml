@@ -68,7 +68,7 @@ jobs:
         shell: bash
         run: |
           test -f scripts/test_build_history_cache_backfill.py || {
-            echo "::error::v53.3 backfill test file is missing. Re-upload the complete v53.3 diff."
+            echo "::error::v53.4 backfill test file is missing. Re-upload the complete v53.4 diff."
             exit 1
           }
           python - <<'PY'
@@ -78,7 +78,7 @@ jobs:
           text = path.read_text(encoding="utf-8")
           m = re.search(r'^CACHE_VERSION\s*=\s*"([^"]+)"', text, re.MULTILINE)
           actual = m.group(1) if m else ""
-          expected = "predictjra-historical-facts-v6-resilient-repair"
+          expected = "predictjra-historical-facts-v7-multisource-complete"
           if actual != expected:
               raise SystemExit(
                   f"::error::build_history_cache.py version mismatch: {actual or 'unknown'} != {expected}"
@@ -187,7 +187,7 @@ jobs:
                       reason = "cache manifest is unreadable"
 
           if not refresh and manifest is not None:
-              expected_cache_version = "predictjra-historical-facts-v6-resilient-repair"
+              expected_cache_version = "predictjra-historical-facts-v7-multisource-complete"
               if manifest.get("cacheVersion") != expected_cache_version:
                   refresh = True
                   reason = (
@@ -403,7 +403,7 @@ jobs:
                   f"- 過去事実データ: **{cache_label}**",
                   f"- キャッシュ: **{len(manifest.get('safeDates') or [])}開催日 / {archive_mb:.1f} MB**",
                   f"- 2026年1月以降Backfill: **{len(manifest.get('resultDerivedDates') or [])}開催日**（確定結果からレース前固定項目だけを再構成）",
-                  f"- Web欠損補完: **{int((manifest.get('webRepair') or {}).get('repairedRaceCount') or 0)}レース**（netkeiba開催日程・レース一覧で完全性確認）",
+                  f"- 欠損補完: **{int((manifest.get('webRepair') or {}).get('repairedRaceCount') or 0)}レース**（SportsNavi → netkeiba、必要な片側だけ補完）",
                   f"- サニタイズ: 当日オッズ・実人気・馬体重・旧モデル出力をキャッシュ/予想入力から除外",
                   f"- ロジック状態: **{logic_state}**",
                   f"- 候補SHA: `{candidate_sha}` / 本番SHA: `{production_sha}`",
@@ -428,10 +428,12 @@ jobs:
 
               skipped = manifest.get("skippedDates", [])
               if skipped:
-                  lines.extend(["## 安全性のため隔離した日程", ""])
+                  lines.extend(["## 完全性エラー", ""])
                   for item in skipped:
                       lines.append(f"- **{item['date']}**: {item['reason']}")
                   lines.append("")
+              else:
+                  lines.extend(["- 隔離日程: **0件**（全対象日を完全性検証済み）", ""])
 
               lines.extend([
                   "## 想定人気モデル検証",
