@@ -13,7 +13,11 @@ Scheduled production operation:
 
 Source priority
 ---------------
-Race discovery / entries:
+Race discovery:
+  1. netkeiba race list (exact race IDs)
+  2. JBIS exact links (fallback only; never fabricate 1R..12R)
+
+Entries:
   1. JBIS Search
   2. SportsNavi
   3. netkeiba
@@ -62,6 +66,8 @@ JBIS_TRACK_CODES = {
     "01": "101", "02": "102", "03": "103", "04": "104", "05": "105",
     "06": "106", "07": "107", "08": "108", "09": "109", "10": "110",
 }
+JRA_CALENDAR_BASES = ("https://www.jra.go.jp", "https://jra.jp")
+JRA_VENUE_CODES = {name: code for code, name in TRACKS.items()}
 TRACK_ORDER = {name: i for i, name in enumerate(TRACKS.values(), start=1)}
 
 session = requests.Session()
@@ -69,6 +75,10 @@ session.headers.update({
     "User-Agent": UA,
     "Accept-Language": "ja,en-US;q=0.8,en;q=0.6",
 })
+
+# Cache JRA calendar fetches (including failures) so one unresolved race does not
+# trigger repeated official-site requests for every race on the same date.
+_JRA_CALENDAR_CACHE: dict[str, tuple[bool, str, str]] = {}
 
 
 def clean(text: str) -> str:
@@ -143,39 +153,110 @@ def build_race_id(target: date, track_code: str, meeting: int, day_no: int, race
 # Race discovery
 # ---------------------------------------------------------------------------
 
-def discover_race_ids_jbis(target: date) -> list[str]:
-    """Discover active JRA tracks via JBIS and construct netkeiba-style race IDs.
+def extract_jra_calendar_race_ids(html: str, target: date) -> list[str]:
+    """Extract only races actually listed on JRA's updated daily program.
 
-    JBIS race URLs are date/track/race based. The page title contains e.g.
-    "1回 札幌 8日", allowing us to reconstruct the conventional race ID
-    without asking netkeiba for the race list.
+    Cancellation notices such as ``第8レース以降を取りやめ`` must not be
+    interpreted as conducted races, so only row-style ``8レース``/``8R``
+    tokens are accepted.
     """
-    found: list[str] = []
-    for track_code, venue in TRACKS.items():
+    soup = BeautifulSoup(html, "lxml")
+    text = soup.get_text("\n", strip=True)
+    venue_alt = "|".join(map(re.escape, JRA_VENUE_CODES))
+    heading = re.compile(rf"(?P<meeting>\d+)回(?P<venue>{venue_alt})(?P<day>\d+)日")
+    matches = list(heading.finditer(text))
+    ids: set[str] = set()
+    for i, match in enumerate(matches):
+        meeting = int(match.group("meeting"))
+        day_no = int(match.group("day"))
+        venue = match.group("venue")
+        body_end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        body = text[match.end():body_end]
+        race_nos = {
+            int(x) for x in re.findall(
+                r"(?m)^(?!\s*第)\s*(\d{1,2})\s*(?:レース|R)(?=\s|$)", body
+            )
+            if 1 <= int(x) <= 12
+        }
+        prefix = f"{target.year}{JRA_VENUE_CODES[venue]}{meeting:02d}{day_no:02d}"
+        ids.update(f"{prefix}{race_no:02d}" for race_no in race_nos)
+    return sorted(ids, key=lambda rid: (int(rid[4:6]), int(rid[-2:])))
+
+
+def fetch_jra_calendar(target: date) -> tuple[str, str]:
+    """Fetch JRA's official daily program with bounded latency and date caching."""
+    key = target.isoformat()
+    cached = _JRA_CALENDAR_CACHE.get(key)
+    if cached:
+        ok, payload, source = cached
+        if ok:
+            return payload, source
+        raise RuntimeError(payload)
+
+    errors: list[str] = []
+    rel = f"/keiba/calendar{target.year}/{target.year}/{target.month}/{target:%m%d}.html"
+    for base in JRA_CALENDAR_BASES:
+        url = base + rel
+        try:
+            r = session.get(
+                url, timeout=12, headers={"Referer": base + "/", "User-Agent": UA}
+            )
+            r.raise_for_status()
+            if not r.encoding or r.encoding.lower() == "iso-8859-1":
+                r.encoding = r.apparent_encoding
+            html = r.text
+            text = BeautifulSoup(html, "lxml").get_text(" ", strip=True)
+            if str(target.year) not in text or f"{target.month}月{target.day}日" not in text:
+                raise ValueError("JRA calendar page does not identify target date")
+            _JRA_CALENDAR_CACHE[key] = (True, html, url)
+            return html, url
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"{url}: {exc}")
+    message = " | ".join(errors)
+    _JRA_CALENDAR_CACHE[key] = (False, message, "")
+    raise RuntimeError(message)
+
+
+def discover_race_ids_jra(target: date) -> list[str]:
+    html, _ = fetch_jra_calendar(target)
+    return extract_jra_calendar_race_ids(html, target)
+
+
+def discover_race_ids_jbis(target: date) -> list[str]:
+    """Fallback discovery from exact JBIS links; never invent 1R..12R.
+
+    The old implementation reconstructed every race number 1..12 after seeing
+    race 1. That could create non-existent/cancelled races. This fallback only
+    accepts race URLs that are actually present in JBIS HTML.
+    """
+    found: set[str] = set()
+    for track_code in TRACKS:
         jbis_track = JBIS_TRACK_CODES[track_code]
         url = f"{JBIS_BASE}/{target:%Y%m%d}/{jbis_track}/01/"
         try:
             html = request_html(url, pause=0.15, referer="https://www.jbis.or.jp/")
         except Exception:
             continue
-
+        pattern = rf"/race/{target:%Y%m%d}/{jbis_track}/(\d{{1,2}})/"
+        race_nos = {int(x) for x in re.findall(pattern, html) if 1 <= int(x) <= 12}
+        if not race_nos:
+            continue
         soup = BeautifulSoup(html, "lxml")
         title_text = " ".join([
             soup.title.get_text(" ", strip=True) if soup.title else "",
-            soup.get_text(" ", strip=True)[:2000],
+            soup.get_text(" ", strip=True)[:2500],
         ])
+        venue = TRACKS[track_code]
         m = re.search(rf"(\d+)回\s*{re.escape(venue)}\s*(\d+)日", title_text)
         if not m:
             continue
-
         meeting = int(m.group(1))
         day_no = int(m.group(2))
-        # Central JRA cards have at most 12 races; individual cancelled races can
-        # later fail safely at the entry-fetch stage.
-        for race_no in range(1, 13):
-            found.append(build_race_id(target, track_code, meeting, day_no, race_no))
-
-    return sorted(set(found), key=lambda rid: (int(rid[4:6]), int(rid[-2:])))
+        found.update(
+            build_race_id(target, track_code, meeting, day_no, race_no)
+            for race_no in race_nos
+        )
+    return sorted(found, key=lambda rid: (int(rid[4:6]), int(rid[-2:])))
 
 
 def discover_race_ids_netkeiba(target: date) -> list[str]:
@@ -206,15 +287,17 @@ def discover_race_ids_netkeiba(target: date) -> list[str]:
 
 
 def discover_race_ids(target: date) -> tuple[list[str], str]:
-    ids = discover_race_ids_jbis(target)
-    if ids:
-        print(f"DISCOVERY source=JBIS races={len(ids)}")
-        return ids, "jbis"
-
+    # Prefer sources that expose exact race IDs. If both fail, return no races rather
+    # than fabricating a conventional 1R..12R card.
     ids = discover_race_ids_netkeiba(target)
     if ids:
         print(f"DISCOVERY source=netkeiba races={len(ids)}")
         return ids, "netkeiba"
+
+    ids = discover_race_ids_jbis(target)
+    if ids:
+        print(f"DISCOVERY source=JBIS-exact-links races={len(ids)}")
+        return ids, "jbis-exact-links"
 
     return [], "none"
 
@@ -612,6 +695,104 @@ def parse_result_netkeiba(html: str) -> dict | None:
     return {"places": places, "trifectas": trifectas} if places and trifectas else None
 
 
+def validate_result_payload(result: dict, race_id: str = "?") -> None:
+    """Fail closed when finish order and trifecta payout disagree."""
+    if not isinstance(result, dict):
+        raise ValueError(f"{race_id}: result payload is not an object")
+    places = result.get("places")
+    trifectas = result.get("trifectas")
+    if not isinstance(places, list) or not places:
+        raise ValueError(f"{race_id}: result places missing")
+    if not isinstance(trifectas, list) or not trifectas:
+        raise ValueError(f"{race_id}: trifecta payout missing")
+
+    finish_by_horse: dict[int, int] = {}
+    for place, horses in enumerate(places, start=1):
+        if place > 3:
+            break
+        if not isinstance(horses, list):
+            raise ValueError(f"{race_id}: malformed place group {place}")
+        for raw in horses:
+            horse = int(raw)
+            if not 1 <= horse <= 18:
+                raise ValueError(f"{race_id}: invalid horse number {horse}")
+            if horse in finish_by_horse:
+                raise ValueError(f"{race_id}: duplicate top finisher {horse}")
+            finish_by_horse[horse] = place
+    if len(finish_by_horse) < 3 or 1 not in set(finish_by_horse.values()):
+        raise ValueError(f"{race_id}: fewer than three official top finishers")
+
+    for item in trifectas:
+        if not isinstance(item, dict):
+            raise ValueError(f"{race_id}: malformed trifecta row")
+        horses = [int(x) for x in item.get("horses", [])]
+        payout = int(item.get("payout", 0) or 0)
+        if len(horses) != 3 or len(set(horses)) != 3 or payout <= 0:
+            raise ValueError(f"{race_id}: malformed trifecta payout row {item}")
+        positions = [finish_by_horse.get(horse) for horse in horses]
+        if any(pos is None or pos > 3 for pos in positions) or positions != sorted(positions):
+            raise ValueError(
+                f"{race_id}: trifecta payout {horses} conflicts with result "
+                f"top finishers positions={positions}"
+            )
+
+
+def _sportsnavi_cancelled_text(html: str, race_id: str) -> bool:
+    text = BeautifulSoup(html, "lxml").get_text(" ", strip=True)
+    race_no = int(race_id[-2:])
+    return bool(
+        re.search(rf"(?:^|\s){race_no}R(?:\s|[^0-9]).{{0,80}}(?:中止|取りやめ)", text)
+        or re.search(rf"第{race_no}レース.{{0,80}}(?:中止|取りやめ)", text)
+    )
+
+
+def confirm_cancelled_race(race_id: str, target: date) -> tuple[bool, str]:
+    """Confirm non-conducted race from JRA official or SportsNavi evidence."""
+    try:
+        html, source = fetch_jra_calendar(target)
+        official_ids = extract_jra_calendar_race_ids(html, target)
+        text = BeautifulSoup(html, "lxml").get_text(" ", strip=True)
+        venue_name = TRACKS.get(race_id[4:6], "")
+        race_no = int(race_id[-2:])
+        meeting = int(race_id[6:8])
+        day_no = int(race_id[8:10])
+        heading_present = bool(
+            venue_name and re.search(rf"{meeting}回{re.escape(venue_name)}{day_no}日", text)
+        )
+        explicit = bool(venue_name and (
+            re.search(
+                rf"{re.escape(venue_name)}競馬.{{0,50}}第{race_no}レース.{{0,50}}取りやめ",
+                text,
+            )
+            or re.search(
+                rf"{re.escape(venue_name)}競馬.{{0,50}}(?:雪|積雪|降雪|台風|悪天候|安全).{{0,80}}(?:中止|取りやめ)",
+                text,
+            )
+        ))
+        after = (
+            re.search(
+                rf"{re.escape(venue_name)}競馬.{{0,50}}第(\d+)レース以降.{{0,50}}取りやめ",
+                text,
+            )
+            if venue_name else None
+        )
+        if after and race_no >= int(after.group(1)):
+            explicit = True
+        if heading_present and race_id not in official_ids and explicit:
+            return True, source
+    except Exception:
+        pass
+
+    try:
+        url = sports_url(race_id, result=False)
+        html = request_html(url, pause=0.10, referer="https://sports.yahoo.co.jp/keiba/")
+        if _sportsnavi_cancelled_text(html, race_id):
+            return True, url
+    except Exception:
+        pass
+    return False, ""
+
+
 def fetch_result(race_id: str, target: date) -> tuple[dict | None, str]:
     attempts = [
         ("jbis", jbis_url(target, race_id, result=True), parse_result_generic, "https://www.jbis.or.jp/"),
@@ -625,6 +806,7 @@ def fetch_result(race_id: str, target: date) -> tuple[dict | None, str]:
             html = request_html(url, referer=referer)
             result = parser(html)
             if result:
+                validate_result_payload(result, race_id)
                 print(f"RESULT_FETCH {race_id} source={source}")
                 return result, source
             errors.append(f"{source}: result not complete")
@@ -635,6 +817,7 @@ def fetch_result(race_id: str, target: date) -> tuple[dict | None, str]:
         html = selenium_html(netkeiba_url(race_id, result=True), wait_seconds=2.0)
         result = parse_result_netkeiba(html)
         if result:
+            validate_result_payload(result, race_id)
             print(f"RESULT_FETCH {race_id} source=netkeiba-selenium")
             return result, "netkeiba-selenium"
     except Exception as exc:  # noqa: BLE001
@@ -831,22 +1014,17 @@ def resolve_target(mode: str, explicit: str | None) -> date:
 
 
 def main() -> int:
+    # This module is a shared helper only. Running its legacy standalone prepare path
+    # could create random predictions, so production/manual updates must use v2.
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["prepare", "result"], required=True)
-    parser.add_argument("--date", help="YYYY-MM-DD. Omit for scheduled default.")
-    args = parser.parse_args()
-
-    target = resolve_target(args.mode, args.date)
-    data = load_data()
-    print(f"mode={args.mode} target={target}")
-
-    changed = prepare_day(data, target) if args.mode == "prepare" else result_day(data, target)
-    if changed:
-        save_data(data)
-        print(f"Saved {DATA_PATH} ({changed} race updates)")
-    else:
-        print("No data changes.")
-    return 0
+    parser.add_argument("--mode", choices=["prepare", "result"])
+    parser.add_argument("--date", help="YYYY-MM-DD")
+    parser.parse_args()
+    print(
+        "ERROR: scripts/update_races.py is a helper module only. "
+        "Use scripts/update_races_v2.py for all prepare/result updates."
+    )
+    return 2
 
 
 if __name__ == "__main__":

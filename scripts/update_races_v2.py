@@ -9,6 +9,7 @@ snapshot. Historical Rebuild/validate uses prediction_logic_candidate.py instead
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import traceback
 from datetime import date, datetime, timedelta
@@ -215,25 +216,63 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
 def result_day(data: dict, target: date, diagnostics: dict) -> int:
     day = legacy.find_day(data, target, create=False)
     if not day or not day.get("races"):
-        print(f"No prepared races for {target}; attempting preparation first.")
-        prepare_day(data, target, diagnostics)
-        day = legacy.find_day(data, target, create=False)
-    if not day:
-        return 0
+        diagnostics["publishBlocked"] = True
+        raise RuntimeError(
+            f"no prepared races for {target}; result mode never creates predictions"
+        )
 
     changed = 0
-    for race in day.get("races", []):
+    staged_races: list[dict] = []
+    unresolved: list[str] = []
+    errors: list[dict] = []
+    cancelled: list[dict] = []
+
+    for original in day.get("races", []):
+        race = copy.deepcopy(original)
         race_id = race["raceId"]
         try:
-            result, result_source = legacy.fetch_result(race_id, target)
-            if not result:
+            prediction = race.get("prediction")
+            if not prediction or len(prediction.get("axes", [])) != 2:
+                raise ValueError("prepared prediction missing or invalid")
+
+            # A rerun after an earlier successful/partial attempt should not depend on
+            # fetching already-finalized races again. Validate the stored payload before
+            # accepting it as resolved.
+            if race.get("status") in {"hit", "miss"} and race.get("result"):
+                legacy.validate_result_payload(race["result"], race_id)
+                staged_races.append(race)
                 diagnostics["races"].append({
-                    "raceId": race_id, "status": "result-pending"
+                    "raceId": race_id,
+                    "status": "already-finalized",
                 })
-                print(f"PENDING {race_id}: result/trifecta not parsed yet")
                 continue
 
-            prediction = race.get("prediction") or {"axes": [], "opponents": []}
+            result, result_source = legacy.fetch_result(race_id, target)
+            if not result:
+                is_cancelled, cancel_source = legacy.confirm_cancelled_race(race_id, target)
+                if is_cancelled:
+                    cancelled.append({
+                        "raceId": race_id,
+                        "source": cancel_source,
+                    })
+                    diagnostics["races"].append({
+                        "raceId": race_id,
+                        "status": "cancelled",
+                        "cancellationSource": cancel_source,
+                    })
+                    changed += 1  # removed from the conducted-race set
+                    print(f"CANCELLED {race_id}: confirmed by {cancel_source}")
+                    continue
+
+                unresolved.append(race_id)
+                diagnostics["races"].append({
+                    "raceId": race_id,
+                    "status": "result-unresolved",
+                })
+                print(f"UNRESOLVED {race_id}: no result and no cancellation evidence")
+                continue
+
+            legacy.validate_result_payload(result, race_id)
             winning = [
                 t for t in result["trifectas"]
                 if legacy.combo_is_covered(prediction, t["horses"])
@@ -251,6 +290,7 @@ def result_day(data: dict, target: date, diagnostics: dict) -> int:
                 **race.get("dataSources", {}),
                 "result": result_source,
             }
+            staged_races.append(race)
             changed += 1
 
             main = int((prediction.get("axes") or [0])[0] or 0)
@@ -267,14 +307,33 @@ def result_day(data: dict, target: date, diagnostics: dict) -> int:
                 f"mainWin={main in first} source={result_source}"
             )
         except Exception as exc:  # noqa: BLE001
-            diagnostics["races"].append({
+            unresolved.append(race_id)
+            error = {
                 "raceId": race_id,
                 "status": "result-error",
                 "error": str(exc),
                 "traceback": traceback.format_exc(),
-            })
+            }
+            errors.append(error)
+            diagnostics["races"].append(error)
             print(f"ERROR result {race_id}: {exc}")
 
+    diagnostics["cancelledRaces"] = cancelled
+    diagnostics["resultErrors"] = errors
+    diagnostics["unresolvedRaceIds"] = sorted(set(unresolved))
+
+    # Fail closed: do not mutate/save even one result unless every prepared race is
+    # either finalized or explicitly confirmed as non-conducted.
+    if unresolved:
+        diagnostics["publishBlocked"] = True
+        raise RuntimeError(
+            "result update incomplete; publication blocked for race IDs: "
+            + ", ".join(sorted(set(unresolved)))
+        )
+
+    day["races"] = staged_races
+    diagnostics["publishBlocked"] = False
+    diagnostics["resolvedRaceCount"] = len(staged_races)
     return changed
 
 
