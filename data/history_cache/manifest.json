@@ -1,9 +1,9 @@
 {
   "cacheVersion": "predictjra-historical-facts-v3-card-complete",
-  "generatedAt": "2026-08-20T15:43:06+09:00",
+  "generatedAt": "2026-08-21T10:12:21+09:00",
   "sourceRepository": "sugaimo15/keibayosoku",
   "sourceRef": "claude/horse-racing-predictor-ak6crm",
-  "sourceCommit": "a59cb88028f607bf337eedd670820b11eba1d779",
+  "sourceCommit": "7bb22ee1d44ee309ea792e264210f7460aad117d",
   "availableDates": [
     "2026-07-18",
     "2026-07-19",
@@ -208,13 +208,13 @@
     }
   ],
   "targetHorseCount": 3919,
-  "historicalResultFiles": 10144,
-  "cachedFileCount": 11224,
+  "historicalResultFiles": 10148,
+  "cachedFileCount": 11228,
   "archive": {
     "path": "history-source.tar.gz",
     "parts": [],
-    "sizeBytes": 8811910,
-    "sha256": "83d6969d30b7c9c2a735627c8714c6c112d2940aad321bdf4df2f91f8e3cffc9"
+    "sizeBytes": 8814556,
+    "sha256": "4de6bbac5e5acab1db576ccb23258f8d9a6e1b46a953ac9964899bc4b5a2ff8b"
   },
   "policy": {
     "raceEnumeration": "all canonical 12-digit archived race cards on each completed date",
