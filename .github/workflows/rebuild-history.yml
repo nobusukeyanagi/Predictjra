@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       scope:
-        description: 'all = キャッシュ済みの安全な過去日を全て検証 / range = 期間指定'
+        description: 'all = 2026年1月以降の完全検証済み過去日を全て検証 / range = 期間指定'
         required: true
         type: choice
         options:
@@ -63,6 +63,9 @@ jobs:
 
       - name: Validate candidate prediction rules
         run: python scripts/test_prediction_logic.py
+
+      - name: Validate historical backfill safety rules
+        run: PYTHONPATH=scripts python scripts/test_build_history_cache_backfill.py
 
       - name: Resolve mode, range and output paths
         id: args
@@ -162,7 +165,7 @@ jobs:
                       reason = "cache manifest is unreadable"
 
           if not refresh and manifest is not None:
-              expected_cache_version = "predictjra-historical-facts-v3-card-complete"
+              expected_cache_version = "predictjra-historical-facts-v4-result-backfill"
               if manifest.get("cacheVersion") != expected_cache_version:
                   refresh = True
                   reason = (
@@ -365,7 +368,8 @@ jobs:
                   f"- 対象: **{period}**（{summary['dates']}開催日 / {summary['races']}レース）",
                   f"- 過去事実データ: **{cache_label}**",
                   f"- キャッシュ: **{len(manifest.get('safeDates') or [])}開催日 / {archive_mb:.1f} MB**",
-                  f"- サニタイズ: **{len(manifest.get('sanitizedDates') or [])}開催日 / {sum(int(x.get('files') or 0) for x in (manifest.get('sanitizedDates') or []))}ファイル**（当日オッズ・実人気・馬体重・旧モデル出力をキャッシュ前に除去）",
+                  f"- 2026年1月以降Backfill: **{len(manifest.get('resultDerivedDates') or [])}開催日**（確定結果からレース前固定項目だけを再構成）",
+                  f"- サニタイズ: 当日オッズ・実人気・馬体重・旧モデル出力をキャッシュ/予想入力から除外",
                   f"- ロジック状態: **{logic_state}**",
                   f"- 候補SHA: `{candidate_sha}` / 本番SHA: `{production_sha}`",
                   "",
