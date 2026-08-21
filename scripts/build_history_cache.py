@@ -26,14 +26,14 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pandas as pd
 
 JST = ZoneInfo("Asia/Tokyo")
-CACHE_VERSION = "predictjra-historical-facts-v3-card-complete"
+CACHE_VERSION = "predictjra-historical-facts-v4-result-backfill"
 SOURCE_REPO = "sugaimo15/keibayosoku"
 SOURCE_REF = "claude/horse-racing-predictor-ak6crm"
 
@@ -55,7 +55,9 @@ def read_csv(path: Path) -> pd.DataFrame:
 def source_commit(source_root: Path) -> str:
     try:
         return subprocess.check_output(
-            ["git", "-C", str(source_root), "rev-parse", "HEAD"], text=True
+            ["git", "-C", str(source_root), "rev-parse", "HEAD"],
+            text=True,
+            stderr=subprocess.DEVNULL,
         ).strip()
     except Exception:
         return ""
@@ -163,6 +165,258 @@ def inspect_card_date(source_root: Path, card_dir: Path) -> dict:
     }
 
 
+
+
+RESULT_CARD_COLUMNS = [
+    "race_id", "race_name", "surface", "distance_m", "waku", "horse_number",
+    "horse_name", "sex_age", "weight_carried", "jockey", "trainer",
+    "horse_id", "jockey_id", "trainer_id",
+]
+RESULT_REQUIRED_COLUMNS = set(RESULT_CARD_COLUMNS) | {
+    "date", "finish_position", "popularity", "win_odds", "time",
+}
+BACKFILL_START = date(2026, 1, 1)
+EXPECTED_FIRST_JRA_DATE = date(2026, 1, 4)
+
+
+def _one_value(df: pd.DataFrame, column: str, race_id: str) -> str:
+    if column not in df.columns:
+        raise ValueError(f"{race_id}: result missing {column}")
+    vals = [clean_str(x) for x in df[column].tolist() if clean_str(x)]
+    unique = sorted(set(vals))
+    if len(unique) != 1:
+        raise ValueError(f"{race_id}: result {column} is not constant: {unique[:5]}")
+    return unique[0]
+
+
+def result_date(result: pd.DataFrame, race_id: str) -> str:
+    raw = _one_value(result, "date", race_id)
+    try:
+        return pd.Timestamp(raw).date().isoformat()
+    except Exception as exc:
+        raise ValueError(f"{race_id}: invalid result date {raw!r}") from exc
+
+
+def synthesize_card_from_result(result: pd.DataFrame, race_id: str) -> pd.DataFrame:
+    """Recreate only immutable/pre-race program fields from a final result archive.
+
+    Finish, clock, margin, final popularity, final odds and bodyweight are intentionally
+    excluded.  This allows old dates without an archived race-card file to be rebuilt
+    without leaking the target-race outcome into Predictjra.
+    """
+    missing = RESULT_REQUIRED_COLUMNS - set(result.columns)
+    if missing:
+        raise ValueError(f"{race_id}: result missing required columns: {sorted(missing)}")
+    ok, reason = valid_race_frame(result, race_id)
+    if not ok:
+        raise ValueError(f"{race_id}: invalid result frame: {reason}")
+
+    # Fields that define the race itself must be consistent across every runner row.
+    _one_value(result, "race_name", race_id)
+    _one_value(result, "surface", race_id)
+    _one_value(result, "distance_m", race_id)
+    result_date(result, race_id)
+
+    nums = pd.to_numeric(result["horse_number"], errors="coerce")
+    if nums.isna().any() or nums.astype(int).duplicated().any():
+        raise ValueError(f"{race_id}: duplicate/invalid horse_number in result")
+
+    card = result[RESULT_CARD_COLUMNS].copy()
+    # The result archive may spell trainers more fully than the old race-card archive.
+    # trainer_id is retained, so entity matching remains stable; no post-race field is kept.
+    card = sanitize_card(card)
+    ok, reason = valid_race_frame(card, race_id)
+    if not ok:
+        raise ValueError(f"{race_id}: invalid synthesized card: {reason}")
+    return card
+
+
+def _top3_groups(result: pd.DataFrame) -> dict[int, set[int]]:
+    finish = pd.to_numeric(result.get("finish_position"), errors="coerce")
+    horses = pd.to_numeric(result.get("horse_number"), errors="coerce")
+    groups: dict[int, set[int]] = {}
+    for f, h in zip(finish, horses):
+        if pd.isna(f) or pd.isna(h):
+            continue
+        place = int(f)
+        if 1 <= place <= 3:
+            groups.setdefault(place, set()).add(int(h))
+    return groups
+
+
+def validate_result_payout(result: pd.DataFrame, payout: pd.DataFrame, race_id: str) -> None:
+    """Fail closed when final-result and trifecta-payout archives disagree."""
+    for name, frame in (("result", result), ("payout", payout)):
+        if frame.empty:
+            raise ValueError(f"{race_id}: empty {name}")
+        if "race_id" not in frame.columns:
+            raise ValueError(f"{race_id}: {name} missing race_id")
+        ids = {clean_str(x) for x in frame["race_id"].tolist() if clean_str(x)}
+        if ids != {race_id}:
+            raise ValueError(f"{race_id}: {name} race_id mismatch {sorted(ids)}")
+
+    # Every actual starter must have a final popularity label. Cancelled/excluded runners
+    # can remain in the card but are allowed to have no numeric finish/popularity.
+    finish = pd.to_numeric(result.get("finish_position"), errors="coerce")
+    pop = pd.to_numeric(result.get("popularity"), errors="coerce")
+    if (finish.notna() & pop.isna()).any():
+        bad = pd.to_numeric(
+            result.loc[finish.notna() & pop.isna(), "horse_number"], errors="coerce"
+        ).dropna().astype(int).tolist()
+        raise ValueError(f"{race_id}: starters missing final popularity: {bad}")
+
+    groups = _top3_groups(result)
+    top_horses = set().union(*groups.values()) if groups else set()
+    if len(top_horses) < 3 or 1 not in groups:
+        raise ValueError(f"{race_id}: result does not contain at least three top finishers")
+    finish_by_horse: dict[int, int] = {}
+    for place, horses_at_place in groups.items():
+        for horse in horses_at_place:
+            finish_by_horse[horse] = place
+
+    if "bet_type" not in payout.columns or "combination" not in payout.columns or "amount" not in payout.columns:
+        raise ValueError(f"{race_id}: payout schema missing bet_type/combination/amount")
+    tri = payout[payout["bet_type"].astype(str).str.replace("3", "三").str.contains("三連単", na=False)]
+    if tri.empty:
+        # Some archives use the ASCII leading 3 without conversion-friendly spelling.
+        tri = payout[payout["bet_type"].astype(str).str.contains(r"(?:3|三)連単", regex=True, na=False)]
+    if tri.empty:
+        raise ValueError(f"{race_id}: trifecta payout missing")
+
+    valid_count = 0
+    for _, row in tri.iterrows():
+        nums = [int(x) for x in re.findall(r"\d{1,2}", clean_str(row.get("combination")))]
+        amount = pd.to_numeric(pd.Series([row.get("amount")]), errors="coerce").iloc[0]
+        if len(nums) != 3 or pd.isna(amount) or float(amount) <= 0:
+            raise ValueError(f"{race_id}: malformed trifecta payout row")
+        positions = [finish_by_horse.get(horse) for horse in nums]
+        # Dead heats can produce finish sequences such as 1-1-3.  A payout is valid when
+        # all three horses are within the official top-three finish positions and the
+        # ordered ticket does not contradict their recorded finish order.
+        if any(pos is None or pos > 3 for pos in positions) or positions != sorted(positions):
+            raise ValueError(
+                f"{race_id}: trifecta payout {nums} conflicts with result top finishers "
+                f"positions={positions}"
+            )
+        valid_count += 1
+    if valid_count == 0:
+        raise ValueError(f"{race_id}: no valid trifecta payout rows")
+
+
+def validate_archive_structure(by_date: dict[str, dict]) -> None:
+    """Reject silent holes in the central-JRA result archive.
+
+    A JRA race id is YYYY + venue(2) + meeting(2) + meeting-day(2) + race(2).
+    Central meetings normally publish 12 races per meeting day.  Accuracy has priority
+    over partial coverage here: if the archive has a hole, stop the refresh and preserve
+    the previous durable cache rather than guessing that the missing race was harmless.
+    """
+    slots: dict[tuple[int, int, int], set[int]] = {}
+    slot_dates: dict[tuple[int, int, int], set[str]] = {}
+    meeting_days: dict[tuple[int, int], set[int]] = {}
+    errors: list[str] = []
+
+    for date_s, info in by_date.items():
+        if date_s.startswith("__"):
+            continue
+        for filename in info.get("raceFiles", []):
+            rid = Path(filename).stem
+            if not re.fullmatch(r"\d{12}", rid):
+                errors.append(f"{date_s}: invalid race id {rid}")
+                continue
+            venue = int(rid[4:6])
+            meeting = int(rid[6:8])
+            meeting_day = int(rid[8:10])
+            race_no = int(rid[10:12])
+            key = (venue, meeting, meeting_day)
+            slots.setdefault(key, set()).add(race_no)
+            slot_dates.setdefault(key, set()).add(date_s)
+            meeting_days.setdefault((venue, meeting), set()).add(meeting_day)
+
+    expected_races = set(range(1, 13))
+    for key, race_nos in sorted(slots.items()):
+        if race_nos != expected_races:
+            missing = sorted(expected_races - race_nos)
+            extra = sorted(race_nos - expected_races)
+            errors.append(f"meeting-day {key}: missing races={missing}, unexpected={extra}")
+        dates = slot_dates.get(key, set())
+        if len(dates) != 1:
+            errors.append(f"meeting-day {key}: mapped to multiple dates {sorted(dates)}")
+
+    for key, days in sorted(meeting_days.items()):
+        if not days:
+            continue
+        expected_days = set(range(1, max(days) + 1))
+        if days != expected_days:
+            errors.append(
+                f"meeting {key}: missing meeting-day numbers {sorted(expected_days - days)}"
+            )
+
+    if errors:
+        raise RuntimeError(
+            "Historical result archive has structural holes; refresh aborted: "
+            + " | ".join(errors[:50])
+        )
+
+
+def inspect_result_backfill(source_root: Path, *, start: date = BACKFILL_START) -> dict[str, dict]:
+    """Index complete 2026 result/payout races, grouped by actual race date."""
+    result_root = source_root / "data" / "race_results" / "2026"
+    if not result_root.is_dir():
+        raise FileNotFoundError(result_root)
+
+    by_date: dict[str, dict] = {}
+    for path in sorted(result_root.glob("*.csv")):
+        if not CANONICAL_RACE_FILE.fullmatch(path.name):
+            continue
+        rid = path.stem
+        try:
+            result = read_csv(path)
+            d = result_date(result, rid)
+            if pd.Timestamp(d).date() < start:
+                continue
+            card = synthesize_card_from_result(result, rid)
+            payout_path = source_root / "data" / "race_payouts" / f"{rid}.csv"
+            if not payout_path.is_file():
+                raise FileNotFoundError(f"payout missing: {payout_path}")
+            payout = read_csv(payout_path)
+            validate_result_payout(result, payout, rid)
+            # Keep the synthesized card in memory only for validation; cache staging rebuilds
+            # it from the immutable result file so there is a single source of truth.
+            _ = card
+            entry = by_date.setdefault(d, {"raceFiles": [], "errors": []})
+            entry["raceFiles"].append(path.name)
+        except Exception as exc:  # noqa: BLE001
+            # If even the date field is broken, keep the error under a special bucket so the
+            # entire cache refresh fails rather than silently dropping the file.
+            key = "__invalid__"
+            try:
+                raw = read_csv(path)
+                key = result_date(raw, rid)
+            except Exception:
+                pass
+            entry = by_date.setdefault(key, {"raceFiles": [], "errors": []})
+            entry["errors"].append({"file": path.name, "reason": f"{type(exc).__name__}: {exc}"})
+
+    if "__invalid__" in by_date:
+        errors = by_date["__invalid__"]["errors"]
+        raise RuntimeError(f"Invalid 2026 historical result files: {errors[:10]}")
+
+    for d, info in by_date.items():
+        info["raceFiles"] = sorted(set(info["raceFiles"]))
+        info["safe"] = bool(info["raceFiles"]) and not info["errors"]
+        info["reason"] = "" if info["safe"] else f"{len(info['errors'])} result/payout validation errors"
+
+    validate_archive_structure(by_date)
+    actual_dates = sorted(d for d in by_date if not d.startswith("__"))
+    if not actual_dates or actual_dates[0] != EXPECTED_FIRST_JRA_DATE.isoformat():
+        raise RuntimeError(
+            "Historical result archive does not start at the expected first 2026 JRA day: "
+            f"expected={EXPECTED_FIRST_JRA_DATE.isoformat()} actual={actual_dates[0] if actual_dates else 'none'}"
+        )
+    return by_date
+
+
 def choose_runner_snapshot(
     source_root: Path,
     compact: str,
@@ -215,12 +469,12 @@ def build_cache(source_root: Path, cache_dir: Path) -> dict:
     if not card_root.exists():
         raise FileNotFoundError(card_root)
 
-    available_dates: list[str] = []
-    safe_dates: list[str] = []
-    skipped_dates: list[dict] = []
-    ignored_files: list[dict] = []
-    inspections: dict[str, dict] = {}
+    # Results/payouts are the authoritative immutable archive for dates that predate the
+    # saved race-card snapshots.  We validate them first and synthesize only pre-race facts.
+    result_backfill = inspect_result_backfill(source_root)
 
+    card_inspections: dict[str, dict] = {}
+    ignored_files: list[dict] = []
     for card_dir in sorted(card_root.iterdir()):
         if not card_dir.is_dir() or not re.fullmatch(r"20\d{6}", card_dir.name):
             continue
@@ -230,23 +484,81 @@ def build_cache(source_root: Path, cache_dir: Path) -> dict:
             date_s = datetime.strptime(card_dir.name, "%Y%m%d").date().isoformat()
         except ValueError:
             continue
-        available_dates.append(date_s)
         inspection = inspect_card_date(source_root, card_dir)
-        inspections[date_s] = inspection
+        card_inspections[date_s] = inspection
         if inspection["ignoredFiles"]:
             ignored_files.append({"date": date_s, "files": inspection["ignoredFiles"]})
-        if inspection["safe"]:
-            safe_dates.append(date_s)
-        else:
+
+    available_dates = sorted(set(result_backfill) | set(card_inspections))
+    safe_dates: list[str] = []
+    skipped_dates: list[dict] = []
+    date_sources: dict[str, str] = {}
+    inspections: dict[str, dict] = {}
+
+    for date_s in available_dates:
+        if date_s.startswith("__"):
+            continue
+        card_info = card_inspections.get(date_s)
+        result_info = result_backfill.get(date_s)
+
+        # Prefer a real archived pre-race card when it is complete. Otherwise use the
+        # leakage-safe card synthesized from final result rows. If both exist, their race
+        # sets must match exactly; this catches silent partial-day archives.
+        if card_info and not card_info.get("safe"):
             skipped_dates.append({
                 "date": date_s,
-                "reason": inspection["reason"],
-                "schemaErrors": inspection["schemaErrors"],
-                "missingArchives": inspection["missingArchives"],
+                "reason": f"archived race card is present but unsafe: {card_info.get('reason')}",
+                "schemaErrors": card_info.get("schemaErrors", []),
+                "missingArchives": card_info.get("missingArchives", []),
             })
+            continue
 
+        if card_info and card_info.get("safe"):
+            card_ids = {Path(x).stem for x in card_info.get("raceFiles", [])}
+            result_ids = {Path(x).stem for x in (result_info or {}).get("raceFiles", [])}
+            if result_ids and card_ids != result_ids:
+                missing_card = sorted(result_ids - card_ids)
+                missing_result = sorted(card_ids - result_ids)
+                skipped_dates.append({
+                    "date": date_s,
+                    "reason": "archived card/result race-set mismatch",
+                    "missingCardRaceIds": missing_card,
+                    "missingResultRaceIds": missing_result,
+                })
+                continue
+            safe_dates.append(date_s)
+            date_sources[date_s] = "archived-race-card"
+            inspections[date_s] = card_info
+            continue
+
+        if result_info and result_info.get("safe"):
+            safe_dates.append(date_s)
+            date_sources[date_s] = "result-derived-pre-race-card"
+            inspections[date_s] = result_info
+            continue
+
+        reasons = []
+        if card_info and not card_info.get("safe"):
+            reasons.append(f"card: {card_info.get('reason')}")
+        if result_info and not result_info.get("safe"):
+            reasons.append(f"result: {result_info.get('reason')}")
+        skipped_dates.append({
+            "date": date_s,
+            "reason": "; ".join(reasons) or "no complete card/result archive",
+            "schemaErrors": (card_info or {}).get("schemaErrors", []),
+            "missingArchives": (card_info or {}).get("missingArchives", []),
+            "resultErrors": (result_info or {}).get("errors", []),
+        })
+
+    if skipped_dates:
+        # Accuracy takes priority over partial coverage. One broken date means the refresh
+        # stops and the previous durable cache remains untouched.
+        raise RuntimeError(
+            "Historical cache refresh refused because one or more dates are incomplete: "
+            + json.dumps(skipped_dates[:20], ensure_ascii=False)
+        )
     if not safe_dates:
-        raise RuntimeError("No complete historical race-card dates are available for caching")
+        raise RuntimeError("No complete historical dates are available for caching")
 
     source_sha = source_commit(source_root)
     cache_dir.mkdir(parents=True, exist_ok=True)
@@ -260,34 +572,58 @@ def build_cache(source_root: Path, cache_dir: Path) -> dict:
 
         for date_s in safe_dates:
             compact = date_s.replace("-", "")
-            card_dir = source_root / "data" / "race_cards" / compact
-            race_files = [card_dir / name for name in inspections[date_s]["raceFiles"]]
-            date_race_counts[date_s] = len(race_files)
+            source_kind = date_sources[date_s]
+            race_names = inspections[date_s]["raceFiles"]
+            date_race_counts[date_s] = len(race_names)
             legacy_count = 0
             synthesized_count = 0
+            result_card_count = 0
             removed_columns: set[str] = set()
             synthesized_reasons: list[dict] = []
 
-            for card_path in race_files:
-                rid = card_path.stem
-                result_path = source_root / "data" / "race_results" / rid[:4] / f"{rid}.csv"
+            for name in race_names:
+                rid = Path(name).stem
+                result_path = source_root / "data" / "race_results" / "2026" / f"{rid}.csv"
                 payout_path = source_root / "data" / "race_payouts" / f"{rid}.csv"
-                for path in (card_path, result_path, payout_path):
+                for path in (result_path, payout_path):
                     if not path.exists():
                         raise FileNotFoundError(f"cache source missing: {path}")
+                result = read_csv(result_path)
+                payout = read_csv(payout_path)
+                validate_result_payout(result, payout, rid)
 
-                card = sanitize_card(read_csv(card_path))
+                if source_kind == "archived-race-card":
+                    card_path = source_root / "data" / "race_cards" / compact / f"{rid}.csv"
+                    if not card_path.is_file():
+                        raise FileNotFoundError(f"cache source missing: {card_path}")
+                    card = sanitize_card(read_csv(card_path))
+                    card_dst = staging / card_path.relative_to(source_root)
+                    snapshot, snapshot_meta = choose_runner_snapshot(
+                        source_root, compact, rid, card
+                    )
+                else:
+                    card = synthesize_card_from_result(result, rid)
+                    card_dst = staging / "data" / "race_cards" / compact / f"{rid}.csv"
+                    snapshot = synthesize_runner_snapshot(card, rid)
+                    snapshot_meta = {
+                        "source": "synthesized-from-result-derived-card",
+                        "reason": "archived pre-race card absent; immutable program facts projected from final result archive",
+                        "removedColumns": [],
+                    }
+                    result_card_count += 1
+
                 ok, reason = valid_race_frame(card, rid)
                 if not ok:
                     raise ValueError(f"{rid}: invalid sanitized card: {reason}")
-                card_dst = staging / card_path.relative_to(source_root)
+                # Prohibited current-race fields must never survive into the cache card.
+                leaked = sorted(PROHIBITED_CURRENT_COLUMNS & set(card.columns))
+                if leaked:
+                    raise ValueError(f"{rid}: synthesized/sanitized card leaked columns: {leaked}")
+
                 card_dst.parent.mkdir(parents=True, exist_ok=True)
                 card.to_csv(card_dst, index=False, encoding="utf-8-sig")
-                copied_paths.add(str(card_path.relative_to(source_root)))
+                copied_paths.add(str(card_dst.relative_to(staging)))
 
-                snapshot, snapshot_meta = choose_runner_snapshot(
-                    source_root, compact, rid, card
-                )
                 snapshot_dst = staging / "data" / "predictions" / compact / f"{rid}.csv"
                 snapshot_dst.parent.mkdir(parents=True, exist_ok=True)
                 snapshot.to_csv(snapshot_dst, index=False, encoding="utf-8-sig")
@@ -311,7 +647,9 @@ def build_cache(source_root: Path, cache_dir: Path) -> dict:
 
             runner_snapshot_summary.append({
                 "date": date_s,
-                "races": len(race_files),
+                "races": len(race_names),
+                "cardSource": source_kind,
+                "resultDerivedCards": result_card_count,
                 "sanitizedLegacySnapshots": legacy_count,
                 "synthesizedFromCards": synthesized_count,
                 "removedColumns": sorted(removed_columns),
@@ -368,6 +706,7 @@ def build_cache(source_root: Path, cache_dir: Path) -> dict:
                     archive_parts.append(part.name)
                     index += 1
 
+        result_derived_dates = [d for d in safe_dates if date_sources[d] == "result-derived-pre-race-card"]
         manifest = {
             "cacheVersion": CACHE_VERSION,
             "generatedAt": datetime.now(JST).isoformat(timespec="seconds"),
@@ -376,9 +715,11 @@ def build_cache(source_root: Path, cache_dir: Path) -> dict:
             "sourceCommit": source_sha,
             "availableDates": available_dates,
             "safeDates": safe_dates,
-            "skippedDates": skipped_dates,
+            "skippedDates": [],
             "ignoredFiles": ignored_files,
             "dateRaceCounts": date_race_counts,
+            "dateSources": date_sources,
+            "resultDerivedDates": result_derived_dates,
             "runnerSnapshotSummary": runner_snapshot_summary,
             "targetHorseCount": len(target_horse_ids),
             "historicalResultFiles": history_files,
@@ -390,11 +731,13 @@ def build_cache(source_root: Path, cache_dir: Path) -> dict:
                 "sha256": archive_sha,
             },
             "policy": {
-                "raceEnumeration": "all canonical 12-digit archived race cards on each completed date",
+                "raceEnumeration": "union of canonical archived race cards and validated 2026 final-result archives from 2026-01-01 onward",
+                "resultDerivedCard": "when an archived pre-race card is absent, project only race_id/name/surface/distance/frame/horse/name/sex-age/assigned-weight/jockey/trainer/entity IDs from the final result; never project finish/time/margin/popularity/odds/bodyweight",
+                "resultPayoutCrossCheck": "every starter requires final popularity; top3 result groups must exist; every trifecta payout combination must agree with the result top3",
                 "stored": "sanitized program/runner facts, runner-set snapshots, final results, trifecta payouts, and required historical race result files",
                 "notStored": "target-race current odds/actual popularity/bodyweight, archived model outputs, Predictjra derived indices, selections, hit judgement, or recovery-rate calculations",
-                "runnerSnapshot": "use sanitized legacy prediction only when valid and runner-identical; otherwise synthesize race_id/horse_number only from sanitized race card",
-                "completion": "a date is included only when every canonical race card is valid and has final result + payout",
+                "runnerSnapshot": "use sanitized legacy prediction only when valid and runner-identical; otherwise synthesize race_id/horse_number from the sanitized/pre-race-only card",
+                "completion": "cache refresh is fail-closed: every meeting-day must contain races 1-12 with no meeting-day gaps; any schema, card/result race-set, result/payout, archive-structure, or leakage inconsistency aborts the refresh before the durable cache is replaced",
             },
         }
         (cache_dir / "manifest.json").write_text(
