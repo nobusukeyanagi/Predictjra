@@ -64,6 +64,28 @@ jobs:
       - name: Validate candidate prediction rules
         run: python scripts/test_prediction_logic.py
 
+      - name: Verify historical backfill implementation
+        shell: bash
+        run: |
+          test -f scripts/test_build_history_cache_backfill.py || {
+            echo "::error::v53 backfill test file is missing. Re-upload the complete v53.1 repair diff."
+            exit 1
+          }
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          path = Path("scripts/build_history_cache.py")
+          text = path.read_text(encoding="utf-8")
+          m = re.search(r'^CACHE_VERSION\s*=\s*"([^"]+)"', text, re.MULTILINE)
+          actual = m.group(1) if m else ""
+          expected = "predictjra-historical-facts-v4-result-backfill"
+          if actual != expected:
+              raise SystemExit(
+                  f"::error::build_history_cache.py version mismatch: {actual or 'unknown'} != {expected}"
+              )
+          print(f"Backfill cache implementation: {actual}")
+          PY
+
       - name: Validate historical backfill safety rules
         run: PYTHONPATH=scripts python scripts/test_build_history_cache_backfill.py
 
