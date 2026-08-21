@@ -236,6 +236,100 @@ def dedupe_entries(entries: list[dict]) -> list[dict]:
     return [by_horse[h] for h in sorted(by_horse)]
 
 
+def jra_frame_number(horse_number: int, field_size: int) -> int:
+    """Return the deterministic JRA frame (枠番) for a horse number.
+
+    JRA frames are assigned from the inside out with at most eight frames.
+    When there are more than eight runners, the additional runners are placed
+    into the outer frames first.  For 17/18-runner fields, frame 8 and then
+    frame 7 receive a third runner.
+
+    The mapping depends only on the original field size and horse number, so
+    it is safer than trusting a scraper's visual/CSS interpretation of 枠番.
+    """
+    horse = int(horse_number)
+    field = int(field_size)
+    if not 1 <= field <= 18:
+        raise ValueError(f"unsupported JRA field size: {field}")
+    if not 1 <= horse <= field:
+        raise ValueError(f"horse number {horse} outside field size {field}")
+
+    if field <= 8:
+        return horse
+
+    base = field // 8
+    extra = field % 8
+    cursor = 1
+    for frame in range(1, 9):
+        count = base + (1 if frame > 8 - extra else 0)
+        if cursor <= horse < cursor + count:
+            return frame
+        cursor += count
+    raise ValueError(f"could not resolve frame for horse={horse}, field={field}")
+
+
+def jra_frame_map(field_size: int) -> dict[str, int]:
+    field = int(field_size)
+    return {str(h): jra_frame_number(h, field) for h in range(1, field + 1)}
+
+
+def normalize_entry_frames(entries: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Validate a parsed runner set and replace scraper frames with JRA-derived frames.
+
+    Returns (normalized_entries, mismatches).  A source is accepted only when
+    horse numbers form a complete 1..N sequence.  This prevents a partially
+    parsed table from being published as a full card.
+    """
+    normalized = dedupe_entries(entries)
+    if len(normalized) < 2:
+        raise ValueError(f"only {len(normalized)} entries parsed")
+
+    numbers = [int(e["horse"]) for e in normalized]
+    field_size = max(numbers)
+    expected_numbers = list(range(1, field_size + 1))
+    if numbers != expected_numbers:
+        missing = sorted(set(expected_numbers) - set(numbers))
+        raise ValueError(
+            f"runner sequence incomplete: parsed={numbers} missing={missing}"
+        )
+
+    mismatches: list[dict] = []
+    for entry in normalized:
+        horse = int(entry["horse"])
+        expected = jra_frame_number(horse, field_size)
+        raw = entry.get("frame")
+        try:
+            parsed = int(raw) if raw is not None and str(raw).strip() else None
+        except (TypeError, ValueError):
+            parsed = None
+        if parsed != expected:
+            mismatches.append({
+                "horse": horse,
+                "parsed": parsed,
+                "expected": expected,
+            })
+        # 枠番 is deterministic. Never let a scraper/CSS parsing error override it.
+        entry["frame"] = expected
+
+    return normalized, mismatches
+
+
+def horse_frame_map_complete(frames, field_size) -> bool:
+    """True only when every horse has the exact JRA-derived frame value."""
+    try:
+        field = int(field_size)
+        if not 1 <= field <= 18 or not isinstance(frames, dict):
+            return False
+        expected = jra_frame_map(field)
+        for horse, frame in expected.items():
+            raw = frames.get(horse, frames.get(int(horse)))
+            if int(raw) != frame:
+                return False
+        return len({str(k) for k in frames.keys() if str(k).isdigit()}) >= field
+    except (TypeError, ValueError):
+        return False
+
+
 def parse_entries_jbis(html: str) -> list[dict]:
     soup = BeautifulSoup(html, "lxml")
     entries: list[dict] = []
@@ -359,20 +453,40 @@ def fetch_entries(race_id: str, target: date) -> tuple[list[dict], str]:
         try:
             html = request_html(url, referer=referer)
             entries = parser(html)
-            if len(entries) >= 2:
-                print(f"ENTRIES {race_id} source={source} horses={len(entries)}")
-                return entries, source
-            errors.append(f"{source}: parsed {len(entries)}")
+            try:
+                entries, frame_mismatches = normalize_entry_frames(entries)
+            except Exception as exc:  # noqa: BLE001
+                errors.append(f"{source}: {exc}")
+                continue
+            if frame_mismatches:
+                sample = ", ".join(
+                    f"{x['horse']}:{x['parsed']}->{x['expected']}"
+                    for x in frame_mismatches[:5]
+                )
+                print(
+                    f"FRAME_REPAIR {race_id} source={source} "
+                    f"count={len(frame_mismatches)} sample={sample}"
+                )
+            print(f"ENTRIES {race_id} source={source} horses={len(entries)}")
+            return entries, source
         except Exception as exc:  # noqa: BLE001
             errors.append(f"{source}: {exc}")
 
     # Last browser retry for netkeiba only.
     try:
         html = selenium_html(netkeiba_url(race_id), wait_seconds=2.0)
-        entries = parse_entries_netkeiba(html)
-        if len(entries) >= 2:
-            print(f"ENTRIES {race_id} source=netkeiba-selenium horses={len(entries)}")
-            return entries, "netkeiba-selenium"
+        entries, frame_mismatches = normalize_entry_frames(parse_entries_netkeiba(html))
+        if frame_mismatches:
+            sample = ", ".join(
+                f"{x['horse']}:{x['parsed']}->{x['expected']}"
+                for x in frame_mismatches[:5]
+            )
+            print(
+                f"FRAME_REPAIR {race_id} source=netkeiba-selenium "
+                f"count={len(frame_mismatches)} sample={sample}"
+            )
+        print(f"ENTRIES {race_id} source=netkeiba-selenium horses={len(entries)}")
+        return entries, "netkeiba-selenium"
     except Exception as exc:  # noqa: BLE001
         errors.append(f"netkeiba-selenium: {exc}")
 

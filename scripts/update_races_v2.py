@@ -43,13 +43,39 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
 
     for race_id in ids:
         existing_race = existing.get(race_id)
-        if (
+        current_prediction = bool(
             existing_race
             and existing_race.get("prediction")
             and existing_race.get("modelMeta", {}).get("version") == MODEL_VERSION
-        ):
-            print(f"SKIP {race_id}: already prepared with {MODEL_VERSION}")
-            continue
+        )
+        if current_prediction:
+            field_size = int(existing_race.get("horseCount") or 0)
+            if legacy.horse_frame_map_complete(
+                existing_race.get("horseFrames"), field_size
+            ):
+                print(f"SKIP {race_id}: already prepared with {MODEL_VERSION}")
+                continue
+            if 1 <= field_size <= 18:
+                repaired = dict(existing_race)
+                before = dict(existing_race.get("horseFrames") or {})
+                repaired["horseFrames"] = legacy.jra_frame_map(field_size)
+                repaired["dataSources"] = {
+                    **repaired.get("dataSources", {}),
+                    "frames": "jra-deterministic-repair",
+                }
+                staged.append(repaired)
+                diagnostics["races"].append({
+                    "raceId": race_id,
+                    "status": "frame-repaired",
+                    "horseCount": field_size,
+                    "oldHorseFrames": before,
+                    "horseFrames": repaired["horseFrames"],
+                })
+                print(
+                    f"REPAIR {race_id}: corrected horseFrames from deterministic "
+                    f"JRA allocation ({field_size} runners)"
+                )
+                continue
 
         venue, race_no = legacy.race_meta(race_id)
         try:
@@ -57,6 +83,9 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
             horses = [int(e["horse"]) for e in base_entries]
             if len(horses) < 5:
                 raise ValueError(f"only {len(horses)} horse numbers parsed")
+            field_size = max(horses)
+            if horses != list(range(1, field_size + 1)):
+                raise ValueError(f"incomplete horse-number sequence: {horses}")
 
             rich_card, rich_source = fetch_rich_card(
                 race_id,
@@ -68,17 +97,14 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
             built = build_prediction(rich_card)
             prediction = built["prediction"]
 
-            frames = {
-                str(e["horse"]): e["frame"]
-                for e in base_entries if e.get("frame")
-            }
+            # 枠番 is a deterministic function of horse number and field size.
+            # Do not let a CSS/HTML parser from any source overwrite it.
+            frames = legacy.jra_frame_map(field_size)
             names = {
                 str(e["horse"]): e["name"]
                 for e in base_entries if e.get("name")
             }
             for e in rich_card["entries"]:
-                if e.get("frame"):
-                    frames[str(e["no"])] = e["frame"]
                 if e.get("name"):
                     names[str(e["no"])] = e["name"]
 
@@ -87,7 +113,7 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
                 "raceId": race_id,
                 "venue": venue,
                 "raceNo": race_no,
-                "horseCount": len(horses),
+                "horseCount": field_size,
                 "horseFrames": frames,
                 "horseNames": names,
                 "prediction": prediction,
@@ -102,6 +128,7 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
                     **race.get("dataSources", {}),
                     "discovery": discovery_source,
                     "entries": entry_source,
+                    "frames": "jra-deterministic",
                     "indexDetail": rich_source,
                 },
             })
@@ -137,7 +164,13 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
     # remaining discovered race must stage successfully before the day is saved.
     already_ok = {
         rid for rid, r in existing.items()
-        if r.get("modelMeta", {}).get("version") == MODEL_VERSION and r.get("prediction")
+        if (
+            r.get("modelMeta", {}).get("version") == MODEL_VERSION
+            and r.get("prediction")
+            and legacy.horse_frame_map_complete(
+                r.get("horseFrames"), r.get("horseCount")
+            )
+        )
     }
     staged_ids = {r["raceId"] for r in staged}
     missing = set(ids) - already_ok - staged_ids
@@ -157,6 +190,23 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
             new_races.append(staged_map[rid])
         elif rid in existing:
             new_races.append(existing[rid])
+
+    # Final publication invariant: no pending/prepared race may reach races.json
+    # with a missing or contradictory frame map.
+    bad_frames = [
+        r.get("raceId", "?") for r in new_races
+        if not legacy.horse_frame_map_complete(
+            r.get("horseFrames"), r.get("horseCount")
+        )
+    ]
+    if bad_frames:
+        diagnostics["publishBlocked"] = True
+        diagnostics["frameValidationErrors"] = bad_frames
+        raise RuntimeError(
+            "horseFrames validation failed; publication blocked for race IDs: "
+            + ", ".join(bad_frames)
+        )
+
     day["races"] = new_races
     diagnostics["publishBlocked"] = False
     return len(staged)

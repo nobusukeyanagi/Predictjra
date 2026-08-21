@@ -323,8 +323,17 @@ function frameNumber(horseNo, horseCount) {
 }
 
 function horseBox(no, race) {
+  const count = Number(effectiveHorseCount(race));
+  const derived = frameNumber(no, count);
   const saved = race?.horseFrames?.[String(no)] ?? race?.horseFrames?.[no];
-  const frame = Number(saved) || frameNumber(no, effectiveHorseCount(race));
+  const savedFrame = Number(saved);
+  // For a normal JRA card the frame is deterministic from horse number + field size.
+  // Prefer that value over a contradictory scraped value.  Stored data is used only
+  // for legacy rows that do not have a usable horseCount.
+  const hasReliableCount = Number.isInteger(count) && count >= Number(no) && count <= 18;
+  const frame = hasReliableCount
+    ? derived
+    : (Number.isInteger(savedFrame) && savedFrame >= 1 && savedFrame <= 8 ? savedFrame : derived);
   return `<span class="horse-box frame-${frame}" title="馬番 ${no} / ${frame}枠">${no}</span>`;
 }
 
