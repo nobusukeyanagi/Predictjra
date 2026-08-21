@@ -79,11 +79,41 @@ jobs:
           python scripts/test_predict_engine.py
           # A race must never be published with missing/contradictory 枠番 colors.
           python scripts/test_frame_colors.py
+          # Live result updates must fail closed on partial/mismatched results.
+          python scripts/test_update_races_safety.py
 
       - name: Fetch, index and update
         shell: bash
         run: |
           python scripts/update_races_v2.py             --mode "${{ steps.args.outputs.mode }}"             --date "${{ steps.args.outputs.date }}"             --diagnostics "$RUNNER_TEMP/update-race-diagnostics.json"
+
+      - name: Verify live update completed safely
+        shell: bash
+        env:
+          UPDATE_MODE: ${{ steps.args.outputs.mode }}
+          UPDATE_DIAGNOSTICS: ${{ runner.temp }}/update-race-diagnostics.json
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path(os.environ["UPDATE_DIAGNOSTICS"])
+          if not path.is_file():
+              raise SystemExit("update diagnostics missing")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          if data.get("success") is not True:
+              raise SystemExit(f"update did not finish successfully: {data.get('fatalError')}")
+          if data.get("publishBlocked") is True:
+              raise SystemExit("publication is blocked by updater diagnostics")
+          if os.environ.get("UPDATE_MODE") == "result":
+              unresolved = data.get("unresolvedRaceIds") or []
+              if unresolved:
+                  raise SystemExit(
+                      "unresolved result races remain: " + ", ".join(unresolved)
+                  )
+          print("Updater diagnostics passed fail-closed publication checks.")
+          PY
 
       - name: Protect design files
         shell: bash
