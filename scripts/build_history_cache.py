@@ -36,7 +36,7 @@ import requests
 from bs4 import BeautifulSoup
 
 JST = ZoneInfo("Asia/Tokyo")
-CACHE_VERSION = "predictjra-historical-facts-v5-web-repair"
+CACHE_VERSION = "predictjra-historical-facts-v6-resilient-repair"
 SOURCE_REPO = "sugaimo15/keibayosoku"
 SOURCE_REF = "claude/horse-racing-predictor-ak6crm"
 
@@ -306,7 +306,9 @@ def validate_result_payout(result: pd.DataFrame, payout: pd.DataFrame, race_id: 
         raise ValueError(f"{race_id}: no valid trifecta payout rows")
 
 
-NETKEIBA_BASE = "https://race.netkeiba.com"
+
+RACE_NETKEIBA_BASE = "https://race.netkeiba.com"
+DB_NETKEIBA_BASE = "https://db.netkeiba.com"
 WEB_UA = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
@@ -318,14 +320,15 @@ WEB_SESSION.headers.update({
 })
 
 
-def _request_web(url: str, *, pause: float = 0.12) -> str:
+def _request_web(url: str, *, pause: float = 0.10, attempts: int = 5) -> str:
+    """GET with retries. Callers decide whether a final failure is fatal or quarantinable."""
     last = None
-    for attempt in range(3):
+    for attempt in range(attempts):
         try:
             response = WEB_SESSION.get(
                 url,
-                timeout=30,
-                headers={"Referer": "https://race.netkeiba.com/"},
+                timeout=35,
+                headers={"Referer": "https://db.netkeiba.com/"},
             )
             response.raise_for_status()
             if not response.encoding or response.encoding.lower() == "iso-8859-1":
@@ -337,87 +340,210 @@ def _request_web(url: str, *, pause: float = 0.12) -> str:
             return html
         except Exception as exc:  # noqa: BLE001
             last = exc
-            time.sleep(0.8 * (attempt + 1))
-    raise RuntimeError(f"GET failed after retries: {url}: {last}")
+            time.sleep(min(6.0, 0.8 * (2 ** attempt)))
+    raise RuntimeError(f"GET failed after {attempts} attempts: {url}: {last}")
 
 
-def discover_netkeiba_calendar_dates(start: date, end: date) -> list[str]:
-    """Discover actual central-JRA racing dates from netkeiba's monthly calendar.
-
-    This prevents an entirely missing source-archive day from being silently overlooked.
-    """
-    dates: set[str] = set()
-    cursor = date(start.year, start.month, 1)
-    while cursor <= end:
-        url = f"{NETKEIBA_BASE}/top/calendar.html?year={cursor.year}&month={cursor.month}"
-        html = _request_web(url, pause=0.08)
-        found = set(re.findall(r"kaisai_date=(20\d{6})", html))
-        # A normal month with central racing must expose at least one dated race-list link.
-        monthly = []
-        for compact in found:
-            try:
-                d = datetime.strptime(compact, "%Y%m%d").date()
-            except ValueError:
-                continue
-            if d.year == cursor.year and d.month == cursor.month and start <= d <= end:
-                monthly.append(d.isoformat())
-        if not monthly and cursor <= end:
-            raise RuntimeError(
-                f"netkeiba calendar returned no JRA dates for {cursor.year}-{cursor.month:02d}; "
-                "refusing to assume a blank month"
-            )
-        dates.update(monthly)
-        if cursor.month == 12:
-            cursor = date(cursor.year + 1, 1, 1)
-        else:
-            cursor = date(cursor.year, cursor.month + 1, 1)
-    return sorted(dates)
+def is_central_jra_race_id(race_id: str) -> bool:
+    if not re.fullmatch(r"20\d{10}", str(race_id or "")):
+        return False
+    venue = int(race_id[4:6])
+    race_no = int(race_id[-2:])
+    return 1 <= venue <= 10 and 1 <= race_no <= 12
 
 
-def discover_netkeiba_race_ids(target: date) -> list[str]:
-    url = f"{NETKEIBA_BASE}/top/race_list.html?kaisai_date={target:%Y%m%d}"
-    html = _request_web(url, pause=0.08)
-    title = BeautifulSoup(html, "lxml").title
-    title_text = title.get_text(" ", strip=True) if title else ""
-    expected_date_label = f"{target.year}年{target.month}月{target.day}日"
-    if expected_date_label not in title_text:
-        raise RuntimeError(
-            f"race-list date mismatch for {target}: page title={title_text[:120]!r}"
+def discover_expected_from_source(
+    source_root: Path,
+    *,
+    start: date,
+    end: date,
+) -> tuple[dict[str, list[str]], list[str]]:
+    """Derive deterministic 1R..12R race IDs from observed central-JRA meeting slots."""
+    result_root = source_root / "data" / "race_results" / str(start.year)
+    if not result_root.is_dir():
+        raise FileNotFoundError(result_root)
+
+    slot_dates: dict[str, set[str]] = {}
+    warnings: list[str] = []
+    for path in sorted(result_root.glob("*.csv")):
+        rid = path.stem
+        if not is_central_jra_race_id(rid):
+            continue
+        try:
+            result = read_csv(path)
+            date_s = result_date(result, rid)
+            d = pd.Timestamp(date_s).date()
+        except Exception as exc:  # noqa: BLE001
+            warnings.append(f"{rid}: cannot read date while enumerating source: {type(exc).__name__}: {exc}")
+            continue
+        if not (start <= d <= end):
+            continue
+        slot_dates.setdefault(rid[:10], set()).add(date_s)
+
+    if not slot_dates:
+        raise RuntimeError("No central-JRA meeting slots were discovered from the result archive")
+
+    expected_by_date: dict[str, set[str]] = {}
+    for prefix, dates in sorted(slot_dates.items()):
+        if len(dates) != 1:
+            warnings.append(f"{prefix}: meeting slot maps to multiple dates {sorted(dates)}")
+            continue
+        date_s = next(iter(dates))
+        expected_by_date.setdefault(date_s, set()).update(
+            f"{prefix}{race_no:02d}" for race_no in range(1, 13)
         )
-    ids = []
-    seen = set()
-    for rid in re.findall(r"race_id=(\d{12})", html):
-        if rid in seen or rid[:4] != str(target.year):
-            continue
-        if rid[4:6] not in {f"{i:02d}" for i in range(1, 11)}:
-            continue
-        race_no = int(rid[-2:])
-        if not 1 <= race_no <= 12:
-            continue
-        seen.add(rid)
-        ids.append(rid)
-    ids.sort(key=lambda x: (int(x[4:6]), int(x[6:8]), int(x[8:10]), int(x[10:12])))
+
+    expected = {d: sorted(ids) for d, ids in sorted(expected_by_date.items())}
+    if EXPECTED_FIRST_JRA_DATE.isoformat() not in expected:
+        warnings.append(
+            f"source-derived dates do not include expected first JRA day "
+            f"{EXPECTED_FIRST_JRA_DATE.isoformat()}"
+        )
+    return expected, warnings
+
+
+def discover_db_race_ids(target: date) -> list[str]:
+    """Best-effort exact race IDs from the static netkeiba DB date-list page."""
+    url = f"{DB_NETKEIBA_BASE}/race/list/{target:%Y%m%d}/"
+    html = _request_web(url, pause=0.05, attempts=4)
+    ids: set[str] = set()
+    for rid in re.findall(r"/race/(20\d{10})/?", html):
+        if is_central_jra_race_id(rid):
+            ids.add(rid)
+    return sorted(ids)
+
+
+def _race_set_structurally_complete(ids: list[str]) -> bool:
     if not ids:
-        raise RuntimeError(f"netkeiba race list is empty for calendar race date {target}")
-
-    # Each active central-JRA meeting publishes a 1R..12R slot set. Cancelled races still
-    # retain a race id on the day list, so a gap here signals a scrape problem.
-    by_slot: dict[tuple[str, str, str], set[int]] = {}
+        return False
+    by_prefix: dict[str, set[int]] = {}
     for rid in ids:
-        by_slot.setdefault((rid[4:6], rid[6:8], rid[8:10]), set()).add(int(rid[10:12]))
+        if not is_central_jra_race_id(rid):
+            continue
+        by_prefix.setdefault(rid[:10], set()).add(int(rid[-2:]))
+    if not by_prefix:
+        return False
     expected = set(range(1, 13))
-    bad = []
-    for slot, numbers in sorted(by_slot.items()):
-        if numbers != expected:
-            bad.append({
-                "slot": slot,
-                "missing": sorted(expected - numbers),
-                "unexpected": sorted(numbers - expected),
-            })
-    if bad:
-        raise RuntimeError(f"netkeiba race-list structural gap on {target}: {bad[:10]}")
-    return ids
+    return all(nums == expected for nums in by_prefix.values())
 
+
+def discover_expected_race_ids_resilient(
+    source_root: Path,
+    *,
+    start: date,
+    end: date,
+    verify_static_lists: bool = True,
+) -> tuple[dict[str, list[str]], list[str]]:
+    """Source-derived enumeration with an optional static-DB cross-check."""
+    expected, warnings = discover_expected_from_source(source_root, start=start, end=end)
+    if not verify_static_lists:
+        return expected, warnings
+
+    merged: dict[str, list[str]] = {}
+    consecutive_failures = 0
+    verification_disabled = False
+    for date_s, source_ids in expected.items():
+        target = pd.Timestamp(date_s).date()
+        ids = set(source_ids)
+        if verification_disabled:
+            merged[date_s] = sorted(ids)
+            continue
+        try:
+            web_ids = discover_db_race_ids(target)
+            if _race_set_structurally_complete(web_ids):
+                ids.update(web_ids)
+                consecutive_failures = 0
+            elif web_ids:
+                warnings.append(
+                    f"{date_s}: static DB race list was incomplete; using source-derived slots "
+                    f"({len(web_ids)} web ids)"
+                )
+                consecutive_failures = 0
+            else:
+                raise RuntimeError("static DB race list exposed no central race IDs")
+        except Exception as exc:  # noqa: BLE001
+            consecutive_failures += 1
+            warnings.append(
+                f"{date_s}: static DB race-list verification unavailable; "
+                f"using source-derived slots: {type(exc).__name__}: {exc}"
+            )
+            if consecutive_failures >= 3:
+                verification_disabled = True
+                warnings.append(
+                    "static DB race-list verification disabled for the rest of this run "
+                    "after 3 consecutive failures; source-derived meeting slots remain active"
+                )
+        merged[date_s] = sorted(ids)
+    return merged, warnings
+
+def restore_existing_cache_facts(cache_dir: Path, source_root: Path) -> dict:
+    """Reuse already-validated result/payout facts before attempting network repair."""
+    manifest_path = cache_dir / "manifest.json"
+    if not manifest_path.is_file():
+        return {"restoredResults": 0, "restoredPayouts": 0, "sourceVersion": ""}
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        archive = manifest.get("archive") or {}
+        with tempfile.TemporaryDirectory(prefix="predictjra-old-cache-") as tmp:
+            combined = Path(tmp) / "history-source.tar.gz"
+            if archive.get("path"):
+                src = cache_dir / archive["path"]
+                if not src.is_file():
+                    return {"restoredResults": 0, "restoredPayouts": 0, "sourceVersion": manifest.get("cacheVersion", "")}
+                combined.write_bytes(src.read_bytes())
+            else:
+                parts = archive.get("parts") or []
+                if not parts or any(not (cache_dir / name).is_file() for name in parts):
+                    return {"restoredResults": 0, "restoredPayouts": 0, "sourceVersion": manifest.get("cacheVersion", "")}
+                with combined.open("wb") as dst:
+                    for name in parts:
+                        dst.write((cache_dir / name).read_bytes())
+
+            expected_sha = archive.get("sha256")
+            if expected_sha and sha256_file(combined) != expected_sha:
+                return {"restoredResults": 0, "restoredPayouts": 0, "sourceVersion": manifest.get("cacheVersion", "")}
+
+            extract = Path(tmp) / "extract"
+            extract.mkdir()
+            with tarfile.open(combined, "r:gz") as tf:
+                tf.extractall(extract)
+
+            restored_results = 0
+            restored_payouts = 0
+            old_results = extract / "data" / "race_results" / "2026"
+            if old_results.is_dir():
+                dst_dir = source_root / "data" / "race_results" / "2026"
+                dst_dir.mkdir(parents=True, exist_ok=True)
+                for src in old_results.glob("*.csv"):
+                    if not is_central_jra_race_id(src.stem):
+                        continue
+                    dst = dst_dir / src.name
+                    if not dst.exists():
+                        shutil.copy2(src, dst)
+                        restored_results += 1
+            old_payouts = extract / "data" / "race_payouts"
+            if old_payouts.is_dir():
+                dst_dir = source_root / "data" / "race_payouts"
+                dst_dir.mkdir(parents=True, exist_ok=True)
+                for src in old_payouts.glob("*.csv"):
+                    if not is_central_jra_race_id(src.stem):
+                        continue
+                    dst = dst_dir / src.name
+                    if not dst.exists():
+                        shutil.copy2(src, dst)
+                        restored_payouts += 1
+            return {
+                "restoredResults": restored_results,
+                "restoredPayouts": restored_payouts,
+                "sourceVersion": manifest.get("cacheVersion", ""),
+            }
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "restoredResults": 0,
+            "restoredPayouts": 0,
+            "sourceVersion": "",
+            "warning": f"{type(exc).__name__}: {exc}",
+        }
 
 def _header_index(headers: list[str], *needles: str) -> int | None:
     for idx, header in enumerate(headers):
@@ -433,7 +559,7 @@ def _entity_id(cell, kind: str) -> str:
     for anchor in cell.find_all("a", href=True):
         href = anchor.get("href") or ""
         # Handles /horse/2022101234/, /jockey/00666/, /trainer/result/recent/01105/.
-        m = re.search(rf"/{kind}/(?:[^?#]*/)?(\d{{4,12}})/?(?:[?#]|$)", href)
+        m = re.search(rf"/{kind}/(?:[^/?#]+/)*(\d{{4,12}})/?(?:[?#]|$)", href)
         if m:
             return m.group(1)
     return ""
@@ -445,12 +571,16 @@ def _cell_text(cells, idx: int | None) -> str:
     return cells[idx].get_text(" ", strip=True)
 
 
-def parse_netkeiba_full_result(html: str, race_id: str, target: date) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Parse a complete final-result table plus trifecta payout from netkeiba.
+def _header_index_any(headers: list[str], *needles: str) -> int | None:
+    for needle in needles:
+        idx = _header_index(headers, needle)
+        if idx is not None:
+            return idx
+    return None
 
-    Only this repair function sees post-race fields. `synthesize_card_from_result()` later
-    projects the strict pre-race subset before Predictjra is run.
-    """
+
+def parse_netkeiba_full_result(html: str, race_id: str, target: date) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Parse final result + trifecta payout from either netkeiba DB or race pages."""
     soup = BeautifulSoup(html, "lxml")
     race_name_node = soup.select_one(".RaceName") or soup.find("h1")
     race_name = clean_str(race_name_node.get_text(" ", strip=True) if race_name_node else "")
@@ -458,26 +588,39 @@ def parse_netkeiba_full_result(html: str, race_id: str, target: date) -> tuple[p
         raise ValueError(f"{race_id}: netkeiba result missing race name")
 
     race_data_node = soup.select_one(".RaceData01")
-    race_data = race_data_node.get_text(" ", strip=True) if race_data_node else soup.get_text(" ", strip=True)[:5000]
-    sm = re.search(r"(?:^|[/\s])(芝|ダート|ダ|障)(\d{3,4})m", race_data)
+    race_data = (
+        race_data_node.get_text(" ", strip=True)
+        if race_data_node
+        else soup.get_text(" ", strip=True)[:7000]
+    )
+    sm = re.search(r"(芝|ダート|ダ|障)[^0-9]{0,16}(\d{3,4})m", race_data)
     if not sm:
         raise ValueError(f"{race_id}: cannot parse surface/distance from result page")
     surface = {"ダ": "ダート"}.get(sm.group(1), sm.group(1))
     distance_m = int(sm.group(2))
+
     direction = ""
-    dm = re.search(r"\([^)]*(右|左)[^)]*\)", race_data)
+    dm = re.search(r"(?:芝|ダート|ダ|障)[^0-9]{0,10}(右|左)", race_data)
+    if not dm:
+        dm = re.search(r"\([^)]*(右|左)[^)]*\)", race_data)
     if dm:
         direction = dm.group(1)
-    wm = re.search(r"天候[:：]\s*([^/\s]+)", race_data)
-    cm = re.search(r"馬場[:：]\s*([^/\s]+)", race_data)
+
+    wm = re.search(r"天候\s*[:：]\s*([^/\s]+)", race_data)
+    cm = re.search(r"馬場\s*[:：]\s*([^/\s]+)", race_data)
+    if not cm:
+        cm = re.search(r"(?:芝|ダート|ダ|障)\s*[:：]\s*([^/\s]+)", race_data)
     weather = wm.group(1) if wm else ""
     track_condition = cm.group(1) if cm else ""
 
-    result_table = soup.select_one("table.RaceTable01") or soup.select_one(".ResultTableWrap table")
+    result_table = (
+        soup.select_one("table.RaceTable01")
+        or soup.select_one(".ResultTableWrap table")
+    )
     if result_table is None:
         for table in soup.find_all("table"):
             heads = [c.get_text(" ", strip=True) for c in table.find_all("th")]
-            joined = "|".join(heads)
+            joined = re.sub(r"\s+", "", "|".join(heads))
             if "着順" in joined and "馬番" in joined and "馬名" in joined:
                 result_table = table
                 break
@@ -488,13 +631,16 @@ def parse_netkeiba_full_result(html: str, race_id: str, target: date) -> tuple[p
     for row in result_table.find_all("tr"):
         cells = row.find_all(["th", "td"], recursive=False)
         texts = [c.get_text(" ", strip=True) for c in cells]
-        joined = "|".join(texts)
+        joined = re.sub(r"\s+", "", "|".join(texts))
         if "着順" in joined and "馬番" in joined and "馬名" in joined:
             header_row = row
             break
     if header_row is None:
         raise ValueError(f"{race_id}: result header row not found")
-    headers = [c.get_text(" ", strip=True) for c in header_row.find_all(["th", "td"], recursive=False)]
+    headers = [
+        c.get_text(" ", strip=True)
+        for c in header_row.find_all(["th", "td"], recursive=False)
+    ]
     idx = {
         "finish_position": _header_index(headers, "着順"),
         "waku": _header_index(headers, "枠"),
@@ -506,15 +652,20 @@ def parse_netkeiba_full_result(html: str, race_id: str, target: date) -> tuple[p
         "time": _header_index(headers, "タイム"),
         "margin": _header_index(headers, "着差"),
         "popularity": _header_index(headers, "人気"),
-        "win_odds": _header_index(headers, "単勝", "オッズ"),
-        "last_3f": _header_index(headers, "後3F"),
-        "passing_order": _header_index(headers, "コーナー", "通過"),
-        "trainer": _header_index(headers, "厩舎"),
+        "win_odds": _header_index_any(headers, "単勝オッズ", "単勝"),
+        "last_3f": _header_index_any(headers, "後3F", "上り"),
+        "passing_order": _header_index(headers, "通過"),
+        "trainer": _header_index_any(headers, "調教師", "厩舎"),
         "horse_weight": _header_index(headers, "馬体重"),
     }
-    for required in ("finish_position", "horse_number", "horse_name", "sex_age", "weight_carried", "jockey", "popularity", "win_odds", "trainer"):
+    for required in (
+        "finish_position", "horse_number", "horse_name", "sex_age",
+        "weight_carried", "jockey", "popularity", "win_odds", "trainer",
+    ):
         if idx[required] is None:
-            raise ValueError(f"{race_id}: result table missing column {required}; headers={headers}")
+            raise ValueError(
+                f"{race_id}: result table missing column {required}; headers={headers}"
+            )
 
     rows: list[dict] = []
     for row in result_table.find_all("tr"):
@@ -530,6 +681,7 @@ def parse_netkeiba_full_result(html: str, race_id: str, target: date) -> tuple[p
         horse_number = int(hm.group())
         if not 1 <= horse_number <= 18:
             continue
+
         finish_text = _cell_text(cells, idx["finish_position"])
         fm = re.match(r"\s*(\d+)", finish_text)
         finish_position = int(fm.group(1)) if fm else ""
@@ -584,7 +736,9 @@ def parse_netkeiba_full_result(html: str, race_id: str, target: date) -> tuple[p
     if result["horse_number"].astype(int).duplicated().any():
         raise ValueError(f"{race_id}: duplicate horse numbers parsed from netkeiba")
     if (result["horse_id"].astype(str).str.len() == 0).any():
-        missing = result.loc[result["horse_id"].astype(str).str.len() == 0, "horse_number"].tolist()
+        missing = result.loc[
+            result["horse_id"].astype(str).str.len() == 0, "horse_number"
+        ].tolist()
         raise ValueError(f"{race_id}: horse IDs missing from result page: {missing}")
 
     payout_rows: list[dict] = []
@@ -595,17 +749,36 @@ def parse_netkeiba_full_result(html: str, race_id: str, target: date) -> tuple[p
         bet_text = re.sub(r"\s+", "", cells[0].get_text(" ", strip=True))
         if "3連単" not in bet_text and "三連単" not in bet_text:
             continue
-        combo_nums = [int(x) for x in re.findall(r"(?<!\d)(\d{1,2})(?!\d)", cells[1].get_text(" ", strip=True))]
-        amounts = [int(x.replace(",", "")) for x in re.findall(r"([\d,]+)\s*円", cells[2].get_text(" ", strip=True))]
-        pops = []
+        combo_nums = [
+            int(x)
+            for x in re.findall(
+                r"(?<!\d)(\d{1,2})(?!\d)",
+                cells[1].get_text(" ", strip=True),
+            )
+        ]
+        amount_text = cells[2].get_text(" ", strip=True)
+        amounts = [
+            int(x.replace(",", ""))
+            for x in re.findall(r"(?<!\d)(\d[\d,]*)(?!\d)", amount_text)
+        ]
+        pops: list[int] = []
         if len(cells) >= 4:
-            pops = [int(x) for x in re.findall(r"(\d+)\s*人気", cells[3].get_text(" ", strip=True))]
+            pops = [
+                int(x.replace(",", ""))
+                for x in re.findall(
+                    r"(?<!\d)(\d[\d,]*)(?!\d)",
+                    cells[3].get_text(" ", strip=True),
+                )
+            ]
         if not combo_nums or len(combo_nums) % 3 != 0:
-            raise ValueError(f"{race_id}: cannot parse trifecta combinations from netkeiba")
-        combos = [combo_nums[i:i+3] for i in range(0, len(combo_nums), 3)]
+            raise ValueError(
+                f"{race_id}: cannot parse trifecta combinations from netkeiba"
+            )
+        combos = [combo_nums[i:i + 3] for i in range(0, len(combo_nums), 3)]
         if len(amounts) != len(combos):
             raise ValueError(
-                f"{race_id}: trifecta combination/payout count mismatch {len(combos)} != {len(amounts)}"
+                f"{race_id}: trifecta combination/payout count mismatch "
+                f"{len(combos)} != {len(amounts)}"
             )
         if pops and len(pops) != len(combos):
             pops = []
@@ -617,6 +790,7 @@ def parse_netkeiba_full_result(html: str, race_id: str, target: date) -> tuple[p
                 "amount": amount,
                 "popularity": pops[i] if pops else "",
             })
+
     payout = pd.DataFrame(payout_rows)
     if payout.empty:
         raise ValueError(f"{race_id}: netkeiba trifecta payout not parsed")
@@ -624,78 +798,159 @@ def parse_netkeiba_full_result(html: str, race_id: str, target: date) -> tuple[p
     return result, payout
 
 
+def fetch_netkeiba_result_with_fallback(
+    race_id: str,
+    target: date,
+) -> tuple[pd.DataFrame, pd.DataFrame, str]:
+    """Fetch one final result from static DB first, modern race page second."""
+    urls = [
+        f"{DB_NETKEIBA_BASE}/race/{race_id}/",
+        f"{RACE_NETKEIBA_BASE}/race/result.html?race_id={race_id}",
+    ]
+    errors: list[str] = []
+    for url in urls:
+        try:
+            html = _request_web(url, pause=0.12, attempts=5)
+            result, payout = parse_netkeiba_full_result(html, race_id, target)
+            return result, payout, url
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"{url}: {type(exc).__name__}: {exc}")
+    raise RuntimeError(" | ".join(errors))
+
+
 def repair_result_archive_from_web(
     source_root: Path,
     *,
     start: date,
     end: date,
+    verify_static_lists: bool = True,
 ) -> dict:
-    """Repair missing 2026 result/payout files against netkeiba's calendar and race lists.
-
-    Existing valid source files are never replaced. Invalid/mismatched files abort the
-    refresh rather than being silently overwritten. Missing files are generated only when
-    a complete netkeiba final-result page passes the same result/payout consistency checks.
-    """
-    calendar_dates = discover_netkeiba_calendar_dates(start, end)
-    expected_by_date: dict[str, list[str]] = {}
+    """Repair scattered missing/invalid 2026 result+payout facts resiliently."""
+    expected_by_date, discovery_warnings = discover_expected_race_ids_resilient(
+        source_root,
+        start=start,
+        end=end,
+        verify_static_lists=verify_static_lists,
+    )
     repaired: list[dict] = []
+    unresolved: list[dict] = []
     result_root = source_root / "data" / "race_results" / str(start.year)
     payout_root = source_root / "data" / "race_payouts"
     result_root.mkdir(parents=True, exist_ok=True)
     payout_root.mkdir(parents=True, exist_ok=True)
 
-    for date_s in calendar_dates:
-        target = datetime.strptime(date_s, "%Y-%m-%d").date()
-        ids = discover_netkeiba_race_ids(target)
-        expected_by_date[date_s] = ids
+    consecutive_fetch_failures = 0
+    repair_disabled = False
+
+    for date_s, ids in expected_by_date.items():
+        target = pd.Timestamp(date_s).date()
         for rid in ids:
             result_path = result_root / f"{rid}.csv"
             payout_path = payout_root / f"{rid}.csv"
-            if result_path.is_file() and payout_path.is_file():
-                # Do not trust presence alone: validate every existing target race pair.
-                result = read_csv(result_path)
-                payout = read_csv(payout_path)
-                if result_date(result, rid) != date_s:
-                    raise RuntimeError(
-                        f"{rid}: source result date mismatch {result_date(result, rid)} != {date_s}"
-                    )
-                validate_result_payout(result, payout, rid)
+
+            existing_valid = False
+            existing_error = ""
+            existing_result_valid = False
+            existing_result = None
+            if result_path.is_file():
+                try:
+                    existing_result = read_csv(result_path)
+                    if result_date(existing_result, rid) != date_s:
+                        raise ValueError(
+                            f"source result date mismatch "
+                            f"{result_date(existing_result, rid)} != {date_s}"
+                        )
+                    # This validates the immutable/pre-race projection as well, so malformed
+                    # source results are repairable even when the payout file is also absent.
+                    synthesize_card_from_result(existing_result, rid)
+                    existing_result_valid = True
+                except Exception as exc:  # noqa: BLE001
+                    existing_error = f"{type(exc).__name__}: {exc}"
+
+            if existing_result_valid and payout_path.is_file():
+                try:
+                    existing_payout = read_csv(payout_path)
+                    validate_result_payout(existing_result, existing_payout, rid)
+                    existing_valid = True
+                except Exception as exc:  # noqa: BLE001
+                    existing_error = f"{type(exc).__name__}: {exc}"
+
+            if existing_valid:
                 continue
 
-            url = f"{NETKEIBA_BASE}/race/result.html?race_id={rid}"
-            html = _request_web(url, pause=0.18)
-            result, payout = parse_netkeiba_full_result(html, rid, target)
-            if result_date(result, rid) != date_s:
-                raise RuntimeError(f"{rid}: repaired result date mismatch")
+            if repair_disabled:
+                unresolved.append({
+                    "date": date_s,
+                    "raceId": rid,
+                    "reason": (
+                        "web repair circuit breaker active after repeated failures"
+                        + (f"; existing={existing_error}" if existing_error else "")
+                    ),
+                })
+                continue
 
-            # If only one side was missing, the existing side must agree with the web repair.
-            if result_path.is_file():
-                existing_result = read_csv(result_path)
-                validate_result_payout(existing_result, payout, rid)
-                result = existing_result
-            if payout_path.is_file():
-                existing_payout = read_csv(payout_path)
-                validate_result_payout(result, existing_payout, rid)
-                payout = existing_payout
+            try:
+                result, payout, source_url = fetch_netkeiba_result_with_fallback(
+                    rid, target
+                )
+                if result_date(result, rid) != date_s:
+                    raise ValueError(
+                        f"repaired result date mismatch "
+                        f"{result_date(result, rid)} != {date_s}"
+                    )
 
-            result_was_missing = not result_path.is_file()
-            payout_was_missing = not payout_path.is_file()
-            result.to_csv(result_path, index=False, encoding="utf-8-sig")
-            payout.to_csv(payout_path, index=False, encoding="utf-8-sig")
-            repaired.append({
-                "date": date_s,
-                "raceId": rid,
-                "resultCreated": result_was_missing,
-                "payoutCreated": payout_was_missing,
-                "source": url,
-            })
+                # When one existing side is valid, require the fetched side to agree.
+                # When an existing pair is invalid, the temporary source clone may be
+                # replaced by the fully validated web pair; the upstream repository itself
+                # is never modified.
+                if not existing_error:
+                    if existing_result_valid and not payout_path.is_file():
+                        validate_result_payout(existing_result, payout, rid)
+                        result = existing_result
+                    if payout_path.is_file() and not result_path.is_file():
+                        existing_payout = read_csv(payout_path)
+                        validate_result_payout(result, existing_payout, rid)
+                        payout = existing_payout
+
+                result_was_missing = not result_path.is_file()
+                payout_was_missing = not payout_path.is_file()
+                replaced_invalid = bool(existing_error)
+                result.to_csv(result_path, index=False, encoding="utf-8-sig")
+                payout.to_csv(payout_path, index=False, encoding="utf-8-sig")
+                repaired.append({
+                    "date": date_s,
+                    "raceId": rid,
+                    "resultCreated": result_was_missing,
+                    "payoutCreated": payout_was_missing,
+                    "replacedInvalidSourcePair": replaced_invalid,
+                    "source": source_url,
+                })
+                consecutive_fetch_failures = 0
+            except Exception as exc:  # noqa: BLE001
+                consecutive_fetch_failures += 1
+                unresolved.append({
+                    "date": date_s,
+                    "raceId": rid,
+                    "reason": (
+                        f"{type(exc).__name__}: {exc}"
+                        + (f"; existing={existing_error}" if existing_error else "")
+                    ),
+                })
+                if consecutive_fetch_failures >= 5:
+                    repair_disabled = True
+                    discovery_warnings.append(
+                        "web result repair disabled for the rest of this run after "
+                        "5 consecutive race fetch/parse failures; remaining affected dates "
+                        "will be quarantined instead of failing the Action"
+                    )
 
     return {
-        "calendarDates": calendar_dates,
+        "calendarDates": sorted(expected_by_date),
         "expectedByDate": expected_by_date,
         "repaired": repaired,
+        "unresolved": unresolved,
+        "discoveryWarnings": discovery_warnings,
     }
-
 
 def validate_archive_structure(
     by_date: dict[str, dict],
@@ -786,62 +1041,84 @@ def inspect_result_backfill(
     start: date = BACKFILL_START,
     expected_by_date: dict[str, list[str]] | None = None,
 ) -> dict[str, dict]:
-    """Index complete 2026 result/payout races, grouped by actual race date."""
+    """Index valid central-JRA result/payout pairs and quarantine broken dates."""
     result_root = source_root / "data" / "race_results" / "2026"
     if not result_root.is_dir():
         raise FileNotFoundError(result_root)
 
-    by_date: dict[str, dict] = {}
+    expected_by_date = expected_by_date or {}
+    rid_to_expected_date = {
+        rid: date_s
+        for date_s, ids in expected_by_date.items()
+        for rid in ids
+    }
+    by_date: dict[str, dict] = {
+        date_s: {"raceFiles": [], "errors": [], "warnings": []}
+        for date_s in expected_by_date
+    }
+
     for path in sorted(result_root.glob("*.csv")):
-        if not CANONICAL_RACE_FILE.fullmatch(path.name):
-            continue
         rid = path.stem
+        if not is_central_jra_race_id(rid):
+            continue
         try:
             result = read_csv(path)
             d = result_date(result, rid)
             if pd.Timestamp(d).date() < start:
                 continue
+        except Exception as exc:  # noqa: BLE001
+            expected_date = rid_to_expected_date.get(rid)
+            if expected_date:
+                by_date.setdefault(
+                    expected_date, {"raceFiles": [], "errors": [], "warnings": []}
+                )["errors"].append({
+                    "file": path.name,
+                    "reason": f"cannot read/validate result date: {type(exc).__name__}: {exc}",
+                })
+            continue
+
+        entry = by_date.setdefault(
+            d, {"raceFiles": [], "errors": [], "warnings": []}
+        )
+        try:
             card = synthesize_card_from_result(result, rid)
             payout_path = source_root / "data" / "race_payouts" / f"{rid}.csv"
             if not payout_path.is_file():
                 raise FileNotFoundError(f"payout missing: {payout_path}")
             payout = read_csv(payout_path)
             validate_result_payout(result, payout, rid)
-            # Keep the synthesized card in memory only for validation; cache staging rebuilds
-            # it from the immutable result file so there is a single source of truth.
             _ = card
-            entry = by_date.setdefault(d, {"raceFiles": [], "errors": []})
             entry["raceFiles"].append(path.name)
         except Exception as exc:  # noqa: BLE001
-            # If even the date field is broken, keep the error under a special bucket so the
-            # entire cache refresh fails rather than silently dropping the file.
-            key = "__invalid__"
-            try:
-                raw = read_csv(path)
-                key = result_date(raw, rid)
-            except Exception:
-                pass
-            entry = by_date.setdefault(key, {"raceFiles": [], "errors": []})
-            entry["errors"].append({"file": path.name, "reason": f"{type(exc).__name__}: {exc}"})
+            entry["errors"].append({
+                "file": path.name,
+                "reason": f"{type(exc).__name__}: {exc}",
+            })
 
-    if "__invalid__" in by_date:
-        errors = by_date["__invalid__"]["errors"]
-        raise RuntimeError(f"Invalid 2026 historical result files: {errors[:10]}")
-
-    for d, info in by_date.items():
+    for date_s, info in by_date.items():
         info["raceFiles"] = sorted(set(info["raceFiles"]))
+        if expected_by_date:
+            expected = set(expected_by_date.get(date_s) or [])
+            actual = {Path(x).stem for x in info["raceFiles"]}
+            missing = sorted(expected - actual)
+            unexpected = sorted(actual - expected)
+            if missing:
+                info["errors"].append({
+                    "reason": f"missing expected race ids: {missing}",
+                    "missingRaceIds": missing,
+                })
+            if unexpected:
+                info["errors"].append({
+                    "reason": f"unexpected race ids: {unexpected}",
+                    "unexpectedRaceIds": unexpected,
+                })
         info["safe"] = bool(info["raceFiles"]) and not info["errors"]
-        info["reason"] = "" if info["safe"] else f"{len(info['errors'])} result/payout validation errors"
-
-    validate_archive_structure(by_date, expected_by_date=expected_by_date)
-    actual_dates = sorted(d for d in by_date if not d.startswith("__"))
-    if not actual_dates or actual_dates[0] != EXPECTED_FIRST_JRA_DATE.isoformat():
-        raise RuntimeError(
-            "Historical result archive does not start at the expected first 2026 JRA day: "
-            f"expected={EXPECTED_FIRST_JRA_DATE.isoformat()} actual={actual_dates[0] if actual_dates else 'none'}"
+        info["reason"] = (
+            "" if info["safe"]
+            else f"{len(info['errors'])} result/payout/completeness errors"
         )
-    return by_date
 
+    return by_date
 
 def choose_runner_snapshot(
     source_root: Path,
@@ -927,17 +1204,37 @@ def build_cache(
     if not card_root.exists():
         raise FileNotFoundError(card_root)
 
-    # Results/payouts are the authoritative immutable archive for dates that predate the
-    # saved race-card snapshots. Before trusting the source repository, independently
-    # enumerate actual 2026 JRA dates/race IDs and repair only genuinely missing archives.
-    web_repair = {"calendarDates": [], "expectedByDate": None, "repaired": []}
+    # Reuse already-validated cached facts first. Then enumerate expected central-JRA
+    # race IDs from observed meeting slots and repair only scattered missing files.
+    # Static netkeiba DB lists are a cross-check, never a hard dependency.
+    cache_restore = restore_existing_cache_facts(cache_dir, source_root)
+    latest = latest_2026_source_date(source_root)
     if web_discovery:
-        latest = latest_2026_source_date(source_root)
         web_repair = repair_result_archive_from_web(
-            source_root, start=EXPECTED_FIRST_JRA_DATE, end=latest
+            source_root,
+            start=EXPECTED_FIRST_JRA_DATE,
+            end=latest,
+            verify_static_lists=True,
         )
+    else:
+        expected, warnings = discover_expected_race_ids_resilient(
+            source_root,
+            start=EXPECTED_FIRST_JRA_DATE,
+            end=latest,
+            verify_static_lists=False,
+        )
+        web_repair = {
+            "calendarDates": sorted(expected),
+            "expectedByDate": expected,
+            "repaired": [],
+            "unresolved": [],
+            "discoveryWarnings": warnings,
+        }
+
     result_backfill = inspect_result_backfill(
-        source_root, expected_by_date=web_repair.get("expectedByDate")
+        source_root,
+        start=EXPECTED_FIRST_JRA_DATE,
+        expected_by_date=web_repair.get("expectedByDate") or {},
     )
 
     card_inspections: dict[str, dict] = {}
@@ -956,74 +1253,53 @@ def build_cache(
         if inspection["ignoredFiles"]:
             ignored_files.append({"date": date_s, "files": inspection["ignoredFiles"]})
 
-    available_dates = sorted(set(result_backfill) | set(card_inspections))
+    available_dates = sorted(set(web_repair.get("expectedByDate") or {}) | set(result_backfill) | set(card_inspections))
     safe_dates: list[str] = []
     skipped_dates: list[dict] = []
     date_sources: dict[str, str] = {}
     inspections: dict[str, dict] = {}
 
     for date_s in available_dates:
-        if date_s.startswith("__"):
-            continue
         card_info = card_inspections.get(date_s)
         result_info = result_backfill.get(date_s)
 
-        # Prefer a real archived pre-race card when it is complete. Otherwise use the
-        # leakage-safe card synthesized from final result rows. If both exist, their race
-        # sets must match exactly; this catches silent partial-day archives.
-        if card_info and not card_info.get("safe"):
-            skipped_dates.append({
-                "date": date_s,
-                "reason": f"archived race card is present but unsafe: {card_info.get('reason')}",
-                "schemaErrors": card_info.get("schemaErrors", []),
-                "missingArchives": card_info.get("missingArchives", []),
-            })
-            continue
-
-        if card_info and card_info.get("safe"):
-            card_ids = {Path(x).stem for x in card_info.get("raceFiles", [])}
-            result_ids = {Path(x).stem for x in (result_info or {}).get("raceFiles", [])}
-            if result_ids and card_ids != result_ids:
-                missing_card = sorted(result_ids - card_ids)
-                missing_result = sorted(card_ids - result_ids)
-                skipped_dates.append({
-                    "date": date_s,
-                    "reason": "archived card/result race-set mismatch",
-                    "missingCardRaceIds": missing_card,
-                    "missingResultRaceIds": missing_result,
-                })
-                continue
-            safe_dates.append(date_s)
-            date_sources[date_s] = "archived-race-card"
-            inspections[date_s] = card_info
-            continue
-
+        # Accuracy is preserved by quarantining only the broken date. A partial/unsafe
+        # archived card does not poison the whole refresh when the final result archive is
+        # complete enough to reconstruct the pre-race-only card safely.
         if result_info and result_info.get("safe"):
+            if card_info and card_info.get("safe"):
+                card_ids = {Path(x).stem for x in card_info.get("raceFiles", [])}
+                result_ids = {Path(x).stem for x in result_info.get("raceFiles", [])}
+                if card_ids == result_ids:
+                    safe_dates.append(date_s)
+                    date_sources[date_s] = "archived-race-card"
+                    inspections[date_s] = card_info
+                    continue
+
             safe_dates.append(date_s)
             date_sources[date_s] = "result-derived-pre-race-card"
             inspections[date_s] = result_info
             continue
 
         reasons = []
-        if card_info and not card_info.get("safe"):
-            reasons.append(f"card: {card_info.get('reason')}")
         if result_info and not result_info.get("safe"):
             reasons.append(f"result: {result_info.get('reason')}")
+        if card_info and not card_info.get("safe"):
+            reasons.append(f"card: {card_info.get('reason')}")
+        elif card_info and card_info.get("safe") and not result_info:
+            reasons.append("result: expected result/payout set unavailable")
+
         skipped_dates.append({
             "date": date_s,
-            "reason": "; ".join(reasons) or "no complete card/result archive",
+            "reason": "; ".join(reasons) or "no complete result/payout archive",
             "schemaErrors": (card_info or {}).get("schemaErrors", []),
             "missingArchives": (card_info or {}).get("missingArchives", []),
             "resultErrors": (result_info or {}).get("errors", []),
         })
 
-    if skipped_dates:
-        # Accuracy takes priority over partial coverage. One broken date means the refresh
-        # stops and the previous durable cache remains untouched.
-        raise RuntimeError(
-            "Historical cache refresh refused because one or more dates are incomplete: "
-            + json.dumps(skipped_dates[:20], ensure_ascii=False)
-        )
+    # Recoverable network/source holes are represented as skippedDates and do not make the
+    # entire GitHub Action fail. They are never inserted into the cache or prediction data.
+    # This preserves correctness while allowing every other verified date to rebuild.
     if not safe_dates:
         raise RuntimeError("No complete historical dates are available for caching")
 
@@ -1182,17 +1458,21 @@ def build_cache(
             "sourceCommit": source_sha,
             "availableDates": available_dates,
             "safeDates": safe_dates,
-            "skippedDates": [],
+            "skippedDates": skipped_dates,
             "ignoredFiles": ignored_files,
             "dateRaceCounts": date_race_counts,
             "dateSources": date_sources,
             "resultDerivedDates": result_derived_dates,
+            "cacheReuse": cache_restore,
             "webRepair": {
                 "enabled": bool(web_discovery),
                 "calendarDates": web_repair.get("calendarDates") or [],
                 "repairedRaceCount": len(web_repair.get("repaired") or []),
                 "repairedRaces": web_repair.get("repaired") or [],
-                "source": "netkeiba monthly calendar + daily race list + final result page",
+                "unresolvedRaceCount": len(web_repair.get("unresolved") or []),
+                "unresolvedRaces": web_repair.get("unresolved") or [],
+                "discoveryWarnings": web_repair.get("discoveryWarnings") or [],
+                "source": "source-derived JRA meeting slots + static db.netkeiba cross-check + dual result-page fallback",
             },
             "runnerSnapshotSummary": runner_snapshot_summary,
             "targetHorseCount": len(target_horse_ids),
@@ -1205,14 +1485,14 @@ def build_cache(
                 "sha256": archive_sha,
             },
             "policy": {
-                "raceEnumeration": "independently discover actual JRA dates from netkeiba monthly calendars and exact race IDs from each daily race list; then require the repaired result archive to match that set exactly",
-                "missingArchiveRepair": "create only missing result/payout files from the matching netkeiba final-result page; existing valid files are retained and any disagreement aborts refresh",
+                "raceEnumeration": "derive deterministic 1R..12R IDs from every observed central-JRA meeting-day prefix; optionally add/verify slots from the server-rendered db.netkeiba daily list without making that web page a hard dependency",
+                "missingArchiveRepair": "reuse prior validated cache facts first; then create only missing result/payout files using db.netkeiba static result pages with race.netkeiba as a fallback; existing valid files are retained",
                 "resultDerivedCard": "when an archived pre-race card is absent, project only race_id/name/surface/distance/frame/horse/name/sex-age/assigned-weight/jockey/trainer/entity IDs from the final result; never project finish/time/margin/popularity/odds/bodyweight",
                 "resultPayoutCrossCheck": "every starter requires final popularity; top3 result groups must exist; every trifecta payout combination must agree with the result top3",
                 "stored": "sanitized program/runner facts, runner-set snapshots, final results, trifecta payouts, and required historical race result files",
                 "notStored": "target-race current odds/actual popularity/bodyweight, archived model outputs, Predictjra derived indices, selections, hit judgement, or recovery-rate calculations",
                 "runnerSnapshot": "use sanitized legacy prediction only when valid and runner-identical; otherwise synthesize race_id/horse_number from the sanitized/pre-race-only card",
-                "completion": "cache refresh is fail-closed: independently discovered race-date/race-id sets must exactly equal the repaired result archive; any schema, card/result race-set, result/payout, web-discovery, archive-structure, or leakage inconsistency aborts before the durable cache is replaced",
+                "completion": "race-level integrity remains fail-closed, but recoverable network/source gaps quarantine only the affected date; verified dates still rebuild and the Action completes. Quarantined dates are never inserted into predictions.",
             },
         }
         (cache_dir / "manifest.json").write_text(

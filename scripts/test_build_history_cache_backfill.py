@@ -14,6 +14,7 @@ from build_history_cache import (
     RESULT_CARD_COLUMNS,
     synthesize_card_from_result,
     parse_netkeiba_full_result,
+    discover_expected_from_source,
     validate_archive_structure,
     validate_result_payout,
 )
@@ -213,6 +214,94 @@ def test_netkeiba_result_repair_parser() -> None:
     assert int(payout.iloc[0]["amount"]) == 2380
 
 
+
+def test_source_derived_expected_ids_reconstruct_missing_races() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / "source"
+        result_dir = root / "data" / "race_results" / "2026"
+        result_dir.mkdir(parents=True)
+        # Deliberately omit 5R. Enumeration must still reconstruct 1R..12R.
+        for race_no in [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12]:
+            rid = f"2026060101{race_no:02d}"
+            sample_result(rid, "2026-01-04").to_csv(
+                result_dir / f"{rid}.csv", index=False, encoding="utf-8-sig"
+            )
+        expected, warnings = discover_expected_from_source(
+            root,
+            start=pd.Timestamp("2026-01-04").date(),
+            end=pd.Timestamp("2026-01-04").date(),
+        )
+        assert len(expected["2026-01-04"]) == 12
+        assert "202606010105" in expected["2026-01-04"]
+        assert not warnings
+
+
+def test_partial_date_is_quarantined_but_other_date_builds() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / "source"
+        cache = Path(tmp) / "cache"
+        (root / "data" / "race_cards").mkdir(parents=True)
+        result_dir = root / "data" / "race_results" / "2026"
+        payout_dir = root / "data" / "race_payouts"
+        result_dir.mkdir(parents=True)
+        payout_dir.mkdir(parents=True)
+
+        # 2026-01-04 is complete.
+        for race_no in range(1, 13):
+            rid = f"2026060101{race_no:02d}"
+            sample_result(rid, "2026-01-04").to_csv(
+                result_dir / f"{rid}.csv", index=False, encoding="utf-8-sig"
+            )
+            sample_payout(rid).to_csv(
+                payout_dir / f"{rid}.csv", index=False, encoding="utf-8-sig"
+            )
+        # 2026-01-05 has one missing race/payout pair.
+        for race_no in range(1, 12):
+            rid = f"2026080102{race_no:02d}"
+            sample_result(rid, "2026-01-05").to_csv(
+                result_dir / f"{rid}.csv", index=False, encoding="utf-8-sig"
+            )
+            sample_payout(rid).to_csv(
+                payout_dir / f"{rid}.csv", index=False, encoding="utf-8-sig"
+            )
+
+        manifest = build_cache(root, cache, web_discovery=False)
+        assert "2026-01-04" in manifest["safeDates"]
+        assert "2026-01-05" not in manifest["safeDates"]
+        skipped = {x["date"]: x for x in manifest["skippedDates"]}
+        assert "2026-01-05" in skipped
+        assert "result" in skipped["2026-01-05"]["reason"]
+
+
+def test_db_netkeiba_static_result_parser_variant() -> None:
+    html = """
+    <html><head><title>3歳未勝利｜2026年1月4日</title></head><body>
+    <h1>3歳未勝利</h1>
+    <div>芝右 外1600m / 天候 : 晴 / 芝 : 良 / 発走 : 12:25</div>
+    <table>
+      <tr><th>着順</th><th>枠番</th><th>馬番</th><th>馬名</th><th>性齢</th><th>斤量</th><th>騎手</th><th>タイム</th><th>着差</th><th>通過</th><th>上り</th><th>単勝</th><th>人気</th><th>馬体重</th><th>調教師</th></tr>
+    """ + "".join(
+        f"<tr><td>{i}</td><td>{(i+1)//2}</td><td>{i}</td>"
+        f"<td><a href='/horse/2023{i:06d}/'>馬{i}</a></td>"
+        f"<td>牡3</td><td>57</td>"
+        f"<td><a href='/jockey/{1000+i:05d}/'>騎手{i}</a></td>"
+        f"<td>1:3{i%10}.0</td><td></td><td>1-1</td><td>35.0</td>"
+        f"<td>{1.0+i:.1f}</td><td>{i}</td><td>450(0)</td>"
+        f"<td><a href='/trainer/{2000+i:05d}/'>調教師{i}</a></td></tr>"
+        for i in range(1, 13)
+    ) + """
+    </table>
+    <table><tr><th>三連単</th><td>1 → 2 → 3</td><td>2,380</td><td>3</td></tr></table>
+    </body></html>
+    """
+    result, payout = parse_netkeiba_full_result(
+        html, "202606010105", pd.Timestamp("2026-01-04").date()
+    )
+    assert len(result) == 12
+    assert result.iloc[0]["horse_id"] == "2023000001"
+    assert result.iloc[0]["trainer_id"] == "02001"
+    assert int(payout.iloc[0]["amount"]) == 2380
+
 def main() -> int:
     test_result_projection_is_leakage_safe()
     test_result_and_payout_must_agree()
@@ -221,7 +310,10 @@ def main() -> int:
     test_full_cache_build_from_result_only_day()
     test_exact_discovered_race_set_is_enforced()
     test_netkeiba_result_repair_parser()
-    print("OK: historical result backfill leakage/completeness tests passed")
+    test_source_derived_expected_ids_reconstruct_missing_races()
+    test_partial_date_is_quarantined_but_other_date_builds()
+    test_db_netkeiba_static_result_parser_variant()
+    print("OK: historical result backfill leakage/completeness/resilience tests passed")
     return 0
 
 
