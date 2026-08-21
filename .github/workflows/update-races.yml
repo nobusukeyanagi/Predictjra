@@ -77,6 +77,8 @@ jobs:
           # Live updates must ignore any unapplied candidate logic.
           python scripts/test_prediction_logic_production.py
           python scripts/test_predict_engine.py
+          # A race must never be published with missing/contradictory 枠番 colors.
+          python scripts/test_frame_colors.py
 
       - name: Fetch, index and update
         shell: bash
