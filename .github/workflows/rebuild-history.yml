@@ -68,7 +68,7 @@ jobs:
         shell: bash
         run: |
           test -f scripts/test_build_history_cache_backfill.py || {
-            echo "::error::v53 backfill test file is missing. Re-upload the complete v53.1 repair diff."
+            echo "::error::v53.3 backfill test file is missing. Re-upload the complete v53.3 diff."
             exit 1
           }
           python - <<'PY'
@@ -78,7 +78,7 @@ jobs:
           text = path.read_text(encoding="utf-8")
           m = re.search(r'^CACHE_VERSION\s*=\s*"([^"]+)"', text, re.MULTILINE)
           actual = m.group(1) if m else ""
-          expected = "predictjra-historical-facts-v5-web-repair"
+          expected = "predictjra-historical-facts-v6-resilient-repair"
           if actual != expected:
               raise SystemExit(
                   f"::error::build_history_cache.py version mismatch: {actual or 'unknown'} != {expected}"
@@ -187,7 +187,7 @@ jobs:
                       reason = "cache manifest is unreadable"
 
           if not refresh and manifest is not None:
-              expected_cache_version = "predictjra-historical-facts-v5-web-repair"
+              expected_cache_version = "predictjra-historical-facts-v6-resilient-repair"
               if manifest.get("cacheVersion") != expected_cache_version:
                   refresh = True
                   reason = (
@@ -249,10 +249,22 @@ jobs:
         if: steps.cache.outputs.refresh == 'true'
         shell: bash
         run: |
-          git clone --depth 1 \
-            --branch claude/horse-racing-predictor-ak6crm \
-            https://github.com/sugaimo15/keibayosoku.git \
-            "$RUNNER_TEMP/keibayosoku"
+          rm -rf "$RUNNER_TEMP/keibayosoku"
+          for attempt in 1 2 3; do
+            if git clone --depth 1 \
+              --branch claude/horse-racing-predictor-ak6crm \
+              https://github.com/sugaimo15/keibayosoku.git \
+              "$RUNNER_TEMP/keibayosoku"; then
+              break
+            fi
+            echo "::warning::Historical source clone failed (attempt $attempt/3). Retrying."
+            rm -rf "$RUNNER_TEMP/keibayosoku"
+            sleep $((attempt * 5))
+          done
+          test -d "$RUNNER_TEMP/keibayosoku/.git" || {
+            echo "::error::Historical source could not be cloned after 3 attempts."
+            exit 1
+          }
 
       - name: Refresh immutable historical facts cache
         if: steps.cache.outputs.refresh == 'true'
@@ -416,7 +428,7 @@ jobs:
 
               skipped = manifest.get("skippedDates", [])
               if skipped:
-                  lines.extend(["## 元アーカイブで安全性チェックから除外した日程", ""])
+                  lines.extend(["## 安全性のため隔離した日程", ""])
                   for item in skipped:
                       lines.append(f"- **{item['date']}**: {item['reason']}")
                   lines.append("")
