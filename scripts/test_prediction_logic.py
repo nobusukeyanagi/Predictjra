@@ -5,11 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 
 from prediction_logic_candidate import (
+    FEATURE_COLS,
     MODEL_VERSION,
     PER_RUN_WEIGHTS,
     RECENCY_WEIGHTS,
     SELECTION_RULE_TEXT,
     build_index_core,
+    build_market_profile,
+    market_score_from_model,
     prediction_target_count,
     run_indices,
     select_prediction,
@@ -56,6 +59,37 @@ def main() -> None:
     assert prediction_target_count(6) == 3
     assert prediction_target_count(13) == 7
     assert prediction_target_count(18) == 7
+
+    # v5 popularity features remain leakage-safe: only previous runs and target
+    # program conditions are needed. Same-condition memory must be explicit.
+    profile, context = build_market_profile(
+        [
+            sample_run(finish=2, popularity=2, class_level=3),
+            {**sample_run(finish=5, popularity=7, class_level=2), "surface": "ダート", "distance": 1600.0},
+        ],
+        total_rank_strength=0.8,
+        recent_rank_strength=0.7,
+        current_carried_weight=57.0,
+        jockey_market_strength=0.65,
+        trainer_market_strength=0.60,
+        jockey_surface_market_strength=0.70,
+        trainer_surface_market_strength=0.64,
+        age=4,
+        current_class_level=3,
+        current_surface="芝",
+        current_distance=2000.0,
+        current_date="2026-07-18",
+    )
+    for key in (
+        "horse_market_mean_strength", "market_trend_strength",
+        "market_stability_strength", "surface_market_strength",
+        "distance_market_strength", "surface_distance_market_strength",
+        "jockey_surface_market_strength", "trainer_surface_market_strength",
+        "class_fit_strength", "layoff_strength",
+    ):
+        assert key in FEATURE_COLS and 0 <= profile[key] <= 1, key
+    assert context["distanceM"] == 2000
+    assert isinstance(market_score_from_model(profile, context, {}), float)
 
     # Every per-run component is an explicit 0-100 score.
     baseline = {

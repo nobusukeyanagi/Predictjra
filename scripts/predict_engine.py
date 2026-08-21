@@ -166,6 +166,40 @@ def entity_prior(model: dict, kind: str, entity_id: str, entity_name: str) -> fl
     return 0.5
 
 
+def market_surface_kind(surface: str) -> str:
+    value = clean(surface)
+    if "障" in value:
+        return "jump"
+    if "ダ" in value:
+        return "dirt"
+    return "turf"
+
+
+def entity_context_prior(
+    model: dict,
+    kind: str,
+    entity_id: str,
+    entity_name: str,
+    surface: str,
+) -> tuple[float, float]:
+    """Return (overall, target-surface) market priors without using today's market."""
+    overall = entity_prior(model, kind, entity_id, entity_name)
+    priors = model.get("entityPriors") or {}
+    surface_key = market_surface_kind(surface)
+    by_id = priors.get(f"{kind}Surface") or {}
+    by_name = priors.get(f"{kind}NameSurface") or {}
+    scoped = None
+    if entity_id:
+        scoped = by_id.get(f"{entity_id}|{surface_key}")
+    if scoped is None:
+        key = clean(entity_name)
+        if key:
+            scoped = by_name.get(f"{key}|{surface_key}")
+    if scoped is None:
+        return overall, overall
+    return overall, clamp01(scoped)
+
+
 def parse_history_cell(text: str) -> dict | None:
     raw = re.sub(r"\s+", " ", str(text or "")).strip()
     date_s = parse_date_text(raw)
@@ -508,24 +542,48 @@ def build_prediction(card: dict) -> dict:
     for h in detail_horses:
         no = int(h["no"] )
         entry = entry_by_no[no]
-        jockey_market = entity_prior(
+        jockey_market, jockey_surface_market = entity_context_prior(
             popularity_model, "jockey",
             entry.get("jockeyId", ""), entry.get("jockeyName", ""),
+            card.get("surface", ""),
         )
-        trainer_market = entity_prior(
+        trainer_market, trainer_surface_market = entity_context_prior(
             popularity_model, "trainer",
             entry.get("trainerId", ""), entry.get("trainerName", ""),
+            card.get("surface", ""),
         )
-        factors, context = build_market_profile(
-            runs_by_no.get(no, []),
-            total_rank_strength=total_rank_strength[no],
-            recent_rank_strength=recent_rank_strength[no],
-            current_carried_weight=parse_float(entry.get("currentCarriedWeight")),
-            jockey_market_strength=jockey_market,
-            trainer_market_strength=trainer_market,
-            age=entry.get("age"),
-            current_class_level=current_class_level,
-        )
+        try:
+            factors, context = build_market_profile(
+                runs_by_no.get(no, []),
+                total_rank_strength=total_rank_strength[no],
+                recent_rank_strength=recent_rank_strength[no],
+                current_carried_weight=parse_float(entry.get("currentCarriedWeight")),
+                jockey_market_strength=jockey_market,
+                trainer_market_strength=trainer_market,
+                jockey_surface_market_strength=jockey_surface_market,
+                trainer_surface_market_strength=trainer_surface_market,
+                age=entry.get("age"),
+                current_class_level=current_class_level,
+                current_surface=card.get("surface", ""),
+                current_distance=card.get("distanceM"),
+                current_date=card.get("targetDate") or date.today().isoformat(),
+            )
+        except TypeError as exc:
+            # Candidate and production are intentionally isolated.  While a v5
+            # candidate is being validated, live production can still be v4.
+            # Fall back only for the old signature; do not hide unrelated errors.
+            if "unexpected keyword argument" not in str(exc):
+                raise
+            factors, context = build_market_profile(
+                runs_by_no.get(no, []),
+                total_rank_strength=total_rank_strength[no],
+                recent_rank_strength=recent_rank_strength[no],
+                current_carried_weight=parse_float(entry.get("currentCarriedWeight")),
+                jockey_market_strength=jockey_market,
+                trainer_market_strength=trainer_market,
+                age=entry.get("age"),
+                current_class_level=current_class_level,
+            )
         h["_popScore"] = market_score_from_model(factors, context, popularity_model)
         h["popularityFactors"] = {
             key: round(float(value) * 100, 1) for key, value in factors.items()

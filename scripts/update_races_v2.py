@@ -64,6 +64,7 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
                 legacy.request_html,
                 legacy.selenium_html,
             )
+            rich_card["targetDate"] = target.isoformat()
             built = build_prediction(rich_card)
             prediction = built["prediction"]
 

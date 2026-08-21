@@ -40,10 +40,12 @@ import pandas as pd
 from prediction_logic_candidate import (
     FEATURE_COLS,
     MODEL_VERSION,
+    POPULARITY_MODEL_VERSION,
     SELECTION_RULE_TEXT,
     build_index_core,
     build_market_profile,
     market_context_adjustment,
+    market_score_from_model,
     parse_class_level,
     prediction_target_count,
     rank_strengths,
@@ -62,7 +64,7 @@ TRACK_ORDER = {name: i for i, name in enumerate(TRACKS.values(), start=1)}
 # prediction score override is allowed; all races use prediction_logic_candidate.py.
 SAPPORO11_ID = "202601010811"
 
-REBUILD_VERSION = "predictjra-history-generic-v8-run-flow-power"
+REBUILD_VERSION = "predictjra-history-generic-v9-temporal-context-popularity"
 SOURCE_REPO = "sugaimo15/keibayosoku"
 SOURCE_REF = "claude/horse-racing-predictor-ak6crm"
 
@@ -307,6 +309,17 @@ def load_target_history(source_root: Path, target_horse_ids: set[str]) -> pd.Dat
         "trainer", pd.Series(index=hist.index, dtype=object)
     ).apply(clean_str)
 
+    def _market_surface(value) -> str:
+        text = clean_str(value)
+        if "障" in text:
+            return "jump"
+        if "ダ" in text:
+            return "dirt"
+        return "turf"
+
+    hist["_market_surface_kind"] = hist.get(
+        "surface", pd.Series(index=hist.index, dtype=object)
+    ).apply(_market_surface)
 
     return hist
 
@@ -666,6 +679,15 @@ def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: p
 
     race_name = clean_str(card2.get("race_name", pd.Series([""])).iloc[0])
     current_class_level = parse_class_level(race_name)
+    current_surface = clean_str(card2.get("surface", pd.Series([""])).iloc[0])
+    current_distance = numeric_or_nan(
+        card2.get("distance_m", pd.Series([math.nan])).iloc[0]
+    )
+    current_surface_kind = (
+        "jump" if "障" in current_surface else
+        "dirt" if "ダ" in current_surface else
+        "turf"
+    )
     market_rows = []
     for _, row in card2.iterrows():
         no = int(row["horse_number"])
@@ -676,26 +698,36 @@ def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: p
         trainer_name = clean_str(row.get("trainer"))
 
         if jockey_id:
-            jockey_values = eligible_hist.loc[
-                eligible_hist["_jockey_id_norm"] == jockey_id, "_market_strength"
+            jockey_rows = eligible_hist.loc[
+                eligible_hist["_jockey_id_norm"] == jockey_id
             ]
         elif jockey_name:
-            jockey_values = eligible_hist.loc[
-                eligible_hist["_jockey_name_norm"] == jockey_name, "_market_strength"
+            jockey_rows = eligible_hist.loc[
+                eligible_hist["_jockey_name_norm"] == jockey_name
             ]
         else:
-            jockey_values = pd.Series(dtype=float)
+            jockey_rows = eligible_hist.iloc[0:0]
+        jockey_values = jockey_rows["_market_strength"]
+        jockey_surface_values = jockey_rows.loc[
+            jockey_rows["_market_surface_kind"] == current_surface_kind,
+            "_market_strength",
+        ]
 
         if trainer_id:
-            trainer_values = eligible_hist.loc[
-                eligible_hist["_trainer_id_norm"] == trainer_id, "_market_strength"
+            trainer_rows = eligible_hist.loc[
+                eligible_hist["_trainer_id_norm"] == trainer_id
             ]
         elif trainer_name:
-            trainer_values = eligible_hist.loc[
-                eligible_hist["_trainer_name_norm"] == trainer_name, "_market_strength"
+            trainer_rows = eligible_hist.loc[
+                eligible_hist["_trainer_name_norm"] == trainer_name
             ]
         else:
-            trainer_values = pd.Series(dtype=float)
+            trainer_rows = eligible_hist.iloc[0:0]
+        trainer_values = trainer_rows["_market_strength"]
+        trainer_surface_values = trainer_rows.loc[
+            trainer_rows["_market_surface_kind"] == current_surface_kind,
+            "_market_strength",
+        ]
 
         factors, context = build_market_profile(
             runs_by_no.get(no, []),
@@ -708,8 +740,21 @@ def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: p
             trainer_market_strength=shrunk_market_mean(
                 trainer_values, prior=0.5, prior_weight=30.0
             ),
+            jockey_surface_market_strength=shrunk_market_mean(
+                jockey_surface_values,
+                prior=shrunk_market_mean(jockey_values, prior=0.5, prior_weight=20.0),
+                prior_weight=10.0,
+            ),
+            trainer_surface_market_strength=shrunk_market_mean(
+                trainer_surface_values,
+                prior=shrunk_market_mean(trainer_values, prior=0.5, prior_weight=30.0),
+                prior_weight=15.0,
+            ),
             age=parse_age(row.get("sex_age")),
             current_class_level=current_class_level,
+            current_surface=current_surface,
+            current_distance=current_distance,
+            current_date=date_s,
         )
         market_rows.append({
             "horse_number": no,
@@ -784,8 +829,43 @@ def predict_strength(features: pd.DataFrame, beta: np.ndarray) -> np.ndarray:
     return X @ beta
 
 
+def _fallback_market_scores(features: pd.DataFrame) -> np.ndarray:
+    """Deterministic cold-start score used before enough older teacher races exist."""
+    scores = []
+    for _, row in features.iterrows():
+        factors = {name: float(row[name]) for name in FEATURE_COLS}
+        context = {
+            "classLevel": int(row["_current_class_level"]),
+            "lastClassLevel": int(row["_last_class_level"]),
+            "maxRecentClassLevel": int(row["_max_recent_class_level"]),
+            "assignedWeightDelta": float(row["_assigned_weight_delta"]),
+        }
+        scores.append(market_score_from_model(factors, context, {}))
+    return np.asarray(scores, dtype=float)
+
+
+def _context_adjustments(features: pd.DataFrame) -> np.ndarray:
+    adjustments = []
+    for _, row in features.iterrows():
+        factors = {name: float(row[name]) for name in FEATURE_COLS}
+        context = {
+            "classLevel": int(row["_current_class_level"]),
+            "lastClassLevel": int(row["_last_class_level"]),
+            "maxRecentClassLevel": int(row["_max_recent_class_level"]),
+            "assignedWeightDelta": float(row["_assigned_weight_delta"]),
+        }
+        adjustments.append(market_context_adjustment(factors, context))
+    return np.asarray(adjustments, dtype=float)
+
+
 def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[int, int]], dict]:
-    # Build teacher table from final popularity. It is never an input feature.
+    """Estimate popularity with strict past->future validation.
+
+    Unlike v4 leave-one-race-out, the target date and every later date are excluded
+    from training.  The first date uses the public fixed market-memory blend; later
+    dates gradually blend an expanding-window ridge model as teacher history grows.
+    This makes the audit a much closer proxy for future live races.
+    """
     teacher_parts = []
     for rid, race in races.items():
         f = race.popularity_features.copy()
@@ -795,44 +875,44 @@ def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[i
 
         f["field_size"] = actual_starter_count
         f["actual_popularity"] = f["horse_number"].map(race.actual_popularity)
-        # 取消・除外などはレース前予想候補としては保持するが、
-        # 最終人気の教師ラベルを持たないため学習行から除外する。
         f = f[f["actual_popularity"].notna()].copy()
         f["market_strength"] = [
             target_market_strength(int(p), actual_starter_count)
             for p in f["actual_popularity"]
         ]
+        f["_teacher_date"] = pd.Timestamp(race.date)
         teacher_parts.append(f)
     teacher = pd.concat(teacher_parts, ignore_index=True)
 
     estimates: dict[str, dict[int, int]] = {}
-    abs_errors = []
-    top3_overlaps = []
-    top1_hits = []
-    large_errors = []
-    sapporo_case = {}
+    abs_errors: list[float] = []
+    top3_overlaps: list[float] = []
+    top1_hits: list[float] = []
+    large_errors: list[float] = []
+    sapporo_case: dict = {}
+    train_race_counts: list[int] = []
 
-    # Leave-one-race-out: a race's own final popularity never trains its estimator.
-    for rid, race in races.items():
-        train = teacher[teacher["race_id"] != rid]
-        beta = fit_ridge(train)
+    ridge_value = 6.0
+    for rid, race in sorted(races.items(), key=lambda item: (item[1].date, item[0])):
+        target_date = pd.Timestamp(race.date)
+        train = teacher[teacher["_teacher_date"] < target_date]
+        train_races = int(train["race_id"].nunique()) if not train.empty else 0
+        train_race_counts.append(train_races)
+
         feats = race.popularity_features.copy()
-        feats["_pred_market"] = predict_strength(feats, beta)
-        # The live engine adds the same class/handicap context adjustment after
-        # the calibrated linear market score.  Apply it here as well.
-        adjustments = []
-        for _, row in feats.iterrows():
-            factors = {name: float(row[name]) for name in FEATURE_COLS}
-            context = {
-                "classLevel": int(row["_current_class_level"]),
-                "lastClassLevel": int(row["_last_class_level"]),
-                "maxRecentClassLevel": int(row["_max_recent_class_level"]),
-                "assignedWeightDelta": float(row["_assigned_weight_delta"]),
-            }
-            adjustments.append(market_context_adjustment(factors, context))
-        feats["_pred_market"] = feats["_pred_market"] + np.asarray(adjustments)
+        fallback = _fallback_market_scores(feats)
+        if len(train) >= 120 and train_races >= 8:
+            beta = fit_ridge(train, ridge=ridge_value)
+            calibrated = predict_strength(feats, beta) + _context_adjustments(feats)
+            # Early expanding windows are noisy.  Increase learned-model weight only
+            # after multiple full cards have accumulated.
+            learned_weight = float(np.clip(train_races / 180.0, 0.35, 0.82))
+            feats["_pred_market"] = (
+                learned_weight * calibrated + (1.0 - learned_weight) * fallback
+            )
+        else:
+            feats["_pred_market"] = fallback
 
-        # Identical tie break to prediction_logic.expected_popularity_from_scores.
         feats = feats.sort_values(
             ["_pred_market", "_recent_index", "_total_display", "horse_number"],
             ascending=[False, False, False, True],
@@ -845,10 +925,6 @@ def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[i
         estimates[rid] = est
 
         actual = race.actual_popularity
-
-        # 検証時だけ非出走馬を除き、実際に走った馬の中で想定人気を振り直す。
-        # これにより、除外馬が想定順位の途中にいた場合でも実人気1〜Nと
-        # 公平に比較できる。ページに保存する est 自体はレース前全頭順位のまま。
         starter_order = [
             int(no) for no in feats["horse_number"].tolist()
             if int(no) in actual
@@ -888,11 +964,11 @@ def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[i
                 ),
             }
 
-    # Final coefficients for future generalization (trained on all selected races).
-    final_beta = fit_ridge(teacher)
+    # Future live model may use every completed teacher race because the target is later.
+    final_beta = fit_ridge(teacher, ridge=ridge_value)
     metrics = {
-        "method": "leave-one-race-out for historical estimates",
-        "ridge": 3.0,
+        "method": "expanding-window past-only validation with deterministic cold-start blend",
+        "ridge": ridge_value,
         "features": FEATURE_COLS,
         "meanAbsolutePopularityRankError": round(float(np.mean(abs_errors)), 4),
         "medianAbsolutePopularityRankError": round(float(np.median(abs_errors)), 4),
@@ -907,6 +983,10 @@ def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[i
         },
         "teacherRows": int(len(teacher)),
         "teacherRaces": int(teacher["race_id"].nunique()),
+        "validationTrainRaceMin": int(min(train_race_counts)) if train_race_counts else 0,
+        "validationTrainRaceMax": int(max(train_race_counts)) if train_race_counts else 0,
+        "sameDayLabelsUsed": False,
+        "futureDateLabelsUsed": False,
     }
     return estimates, metrics
 
@@ -930,11 +1010,32 @@ def build_future_entity_priors(history: pd.DataFrame, target_dates: list[str]) -
             out[str(entity)] = round(float(score), 6)
         return out
 
+    def make_surface_map(col: str, prior_weight: float, overall: dict[str, float]) -> dict[str, float]:
+        out = {}
+        if h.empty or col not in h.columns or "_market_surface_kind" not in h.columns:
+            return out
+        usable = h[h[col].ne("")]
+        for (entity, surface_kind), group in usable.groupby([col, "_market_surface_kind"]):
+            prior = float(overall.get(str(entity), 0.5))
+            score = shrunk_market_mean(
+                group["_market_strength"], prior=prior, prior_weight=prior_weight
+            )
+            out[f"{entity}|{surface_kind}"] = round(float(score), 6)
+        return out
+
+    jockey = make_map("_jockey_id_norm", 20.0)
+    trainer = make_map("_trainer_id_norm", 30.0)
+    jockey_name = make_map("_jockey_name_norm", 20.0)
+    trainer_name = make_map("_trainer_name_norm", 30.0)
     return {
-        "jockey": make_map("_jockey_id_norm", 20.0),
-        "trainer": make_map("_trainer_id_norm", 30.0),
-        "jockeyName": make_map("_jockey_name_norm", 20.0),
-        "trainerName": make_map("_trainer_name_norm", 30.0),
+        "jockey": jockey,
+        "trainer": trainer,
+        "jockeyName": jockey_name,
+        "trainerName": trainer_name,
+        "jockeySurface": make_surface_map("_jockey_id_norm", 10.0, jockey),
+        "trainerSurface": make_surface_map("_trainer_id_norm", 15.0, trainer),
+        "jockeyNameSurface": make_surface_map("_jockey_name_norm", 10.0, jockey_name),
+        "trainerNameSurface": make_surface_map("_trainer_name_norm", 15.0, trainer_name),
     }
 
 
@@ -1380,7 +1481,7 @@ def main() -> int:
                         "走=target-date-prior median/MAD standard clock; 近走=35/25/18/13/9; "
                         "今回=走40/展25/力35; 総合=近走55/今回45"
                     ),
-                    "popularityMethod": "market-memory v2 leave-one-race-out calibrated model",
+                    "popularityMethod": "market-memory v5 temporal-context expanding-window model",
                     "selectionRule": SELECTION_RULE_TEXT,
                     "logicSource": "scripts/prediction_logic_candidate.py",
                     "nonStarters": sorted(
@@ -1548,7 +1649,7 @@ def main() -> int:
             ),
             "raceResultUsedAsPerformanceFeature": False,
             "actualPopularityUse": (
-                "teacher label only; each race excluded from its own estimator training"
+                "teacher label only; validation training uses only races strictly earlier than the target date"
             ),
             "nonStarterHandling": (
                 "cancelled/excluded horses are retained in pre-race prediction candidates "
@@ -1581,7 +1682,7 @@ def main() -> int:
     }
 
     pop_model = {
-        "version": "predictjra-popularity-calibration-generic-v4-unified-market-memory",
+        "version": POPULARITY_MODEL_VERSION,
         "logicSource": "scripts/prediction_logic_candidate.py",
         "modelVersion": MODEL_VERSION,
         "trainedAt": datetime.now(JST).isoformat(timespec="seconds"),
@@ -1601,12 +1702,20 @@ def main() -> int:
             "meanTop3OverlapRate": pop_metrics["meanTop3OverlapRate"],
             "top1Accuracy": pop_metrics["top1Accuracy"],
             "sapporo11CaseStudy": pop_metrics["sapporo11CaseStudy"],
+            "sameDayLabelsUsed": pop_metrics.get("sameDayLabelsUsed", False),
+            "futureDateLabelsUsed": pop_metrics.get("futureDateLabelsUsed", False),
+            "validationTrainRaceMin": pop_metrics.get("validationTrainRaceMin", 0),
+            "validationTrainRaceMax": pop_metrics.get("validationTrainRaceMax", 0),
         },
         "allowedHistoricalMarketInputs": [
             "previous-race popularity",
             "previous assigned weight",
             "historical jockey market tendency",
             "historical trainer market tendency",
+            "previous-popularity trend and stability",
+            "same-surface and nearby-distance market memory",
+            "historical jockey/trainer target-surface market tendency",
+            "past race class transition and days since previous run",
         ],
         "prohibitedInputs": [
             "current odds", "current actual popularity", "horse bodyweight", "horse bodyweight change"
