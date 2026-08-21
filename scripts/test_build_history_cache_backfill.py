@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Focused leakage/completeness/multisource tests for historical backfill v7."""
+"""Focused leakage/completeness/cancellation tests for historical backfill v8."""
 from __future__ import annotations
 
 import tarfile
@@ -268,11 +268,74 @@ def test_netkeiba_parser_still_works() -> None:
     assert int(payout.iloc[0]["amount"]) == 2380
 
 
+
+def test_jra_official_program_excludes_partial_day_cancellations() -> None:
+    html = """<html><body>
+    <h1>2026年2月7日（土曜） 競馬番組</h1>
+    <h2>1回東京3日</h2>
+    <div>1レース 3歳未勝利</div><div>2レース 3歳未勝利</div>
+    <div>3レース</div><div>4レース</div><div>5レース</div><div>6レース</div><div>7レース</div>
+    <p>東京競馬は第8レース以降を取りやめ。</p>
+    <h2>2回京都3日</h2>
+    """ + "".join(f"<div>{r}レース</div>" for r in range(1, 13)) + """
+    </body></html>"""
+    ids = bhc.extract_jra_calendar_race_ids(html, pd.Timestamp("2026-02-07").date())
+    assert [x for x in ids if x.startswith("2026050103")] == [
+        f"2026050103{r:02d}" for r in range(1, 8)
+    ]
+    assert "202605010308" not in ids
+    assert len([x for x in ids if x.startswith("2026080203")]) == 12
+
+
+def test_jra_official_program_excludes_single_cancelled_race_and_whole_meeting() -> None:
+    html = """<html><body>
+    <h1>2026年2月8日（日曜） 競馬番組</h1>
+    <h2>1回東京4日</h2><p>東京競馬は雪のため中止。代替競馬は2月10日に実施。</p>
+    <h2>2回京都4日</h2><p>京都競馬は雪のため中止。代替競馬は2月10日に実施。</p>
+    <h2>1回小倉6日</h2>
+    <div>1レース</div><div>2レース</div><div>3レース</div>
+    <p>小倉競馬は第4レースを取りやめ。</p>
+    """ + "".join(f"<div>{r}レース</div>" for r in range(5, 13)) + """
+    </body></html>"""
+    ids = bhc.extract_jra_calendar_race_ids(html, pd.Timestamp("2026-02-08").date())
+    assert not any(x.startswith("2026050104") for x in ids)
+    assert not any(x.startswith("2026080204") for x in ids)
+    kokura = [x for x in ids if x.startswith("2026100106")]
+    assert kokura == [f"2026100106{r:02d}" for r in list(range(1,4)) + list(range(5,13))]
+    assert "202610010604" not in ids
+
+
+def test_cancelled_missing_result_is_removed_not_unresolved() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "data" / "race_results" / "2026").mkdir(parents=True)
+        (root / "data" / "race_payouts").mkdir(parents=True)
+        rid = "202605010308"
+        old_discover = bhc.discover_expected_race_ids_resilient
+        old_fetch = bhc.fetch_multisource_full_result
+        old_cancel = bhc.confirm_cancelled_race
+        try:
+            bhc.discover_expected_race_ids_resilient = lambda *a, **k: ({"2026-02-07": [rid]}, [])
+            bhc.fetch_multisource_full_result = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("no result"))
+            bhc.confirm_cancelled_race = lambda *a, **k: (True, "test://jra")
+            info = bhc.repair_result_archive_from_web(
+                root,
+                start=pd.Timestamp("2026-02-07").date(),
+                end=pd.Timestamp("2026-02-07").date(),
+            )
+        finally:
+            bhc.discover_expected_race_ids_resilient = old_discover
+            bhc.fetch_multisource_full_result = old_fetch
+            bhc.confirm_cancelled_race = old_cancel
+        assert info["unresolved"] == []
+        assert info["cancelled"][0]["raceId"] == rid
+        assert rid not in sum(info["expectedByDate"].values(), [])
+
 def main() -> int:
     tests = [v for k, v in globals().items() if k.startswith("test_") and callable(v)]
     for test in sorted(tests, key=lambda f: f.__name__):
         test()
-    print(f"OK: {len(tests)} historical backfill v7 tests passed")
+    print(f"OK: {len(tests)} historical backfill v8 tests passed")
     return 0
 
 

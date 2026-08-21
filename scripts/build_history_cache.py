@@ -35,9 +35,18 @@ import requests
 from bs4 import BeautifulSoup
 
 JST = ZoneInfo("Asia/Tokyo")
-CACHE_VERSION = "predictjra-historical-facts-v7-multisource-complete"
+CACHE_VERSION = "predictjra-historical-facts-v8-jra-official-executed"
 SOURCE_REPO = "sugaimo15/keibayosoku"
 SOURCE_REF = "claude/horse-racing-predictor-ak6crm"
+
+JRA_CALENDAR_BASES = (
+    "https://www.jra.go.jp",
+    "https://jra.jp",
+)
+JRA_VENUE_CODES = {
+    "札幌": "01", "函館": "02", "福島": "03", "新潟": "04", "東京": "05",
+    "中山": "06", "中京": "07", "京都": "08", "阪神": "09", "小倉": "10",
+}
 
 PROHIBITED_CURRENT_COLUMNS = {"win_odds", "horse_weight", "popularity"}
 LEGACY_DERIVED_COLUMNS = {"score", "predicted_rank", "ml_win_prob", "ml_ev", "ml_rank"}
@@ -431,6 +440,122 @@ def discover_db_race_ids(target: date) -> list[str]:
     return sorted(ids)
 
 
+def extract_jra_calendar_race_ids(html: str, target: date) -> list[str]:
+    """Extract races actually listed as conducted on JRA's updated program page.
+
+    JRA updates these static pages for cancellations/abandonments.  Crucially, notices
+    such as ``東京競馬は第8レース以降を取りやめ`` contain ``第8レース``; the
+    parser deliberately accepts only row-style ``8レース`` tokens not preceded by 第.
+    Whole-meeting cancellations therefore yield zero races for that meeting.
+    """
+    soup = BeautifulSoup(html, "lxml")
+    text = soup.get_text("\n", strip=True)
+    venue_alt = "|".join(map(re.escape, JRA_VENUE_CODES))
+    heading = re.compile(
+        rf"(?P<meeting>\d+)回(?P<venue>{venue_alt})(?P<day>\d+)日"
+    )
+    matches = list(heading.finditer(text))
+    ids: set[str] = set()
+    for i, match in enumerate(matches):
+        meeting = int(match.group("meeting"))
+        day = int(match.group("day"))
+        venue = match.group("venue")
+        body_end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        body = text[match.end():body_end]
+
+        # Only row-style race numbers count. Cancellation notices use 第Nレース and
+        # must never create an expected result. The line anchor avoids incidental prose.
+        race_nos = {
+            int(x) for x in re.findall(
+                r"(?m)^(?!\s*第)\s*(\d{1,2})\s*(?:レース|R)(?=\s|$)",
+                body,
+            )
+            if 1 <= int(x) <= 12
+        }
+        prefix = (
+            f"{target.year}{JRA_VENUE_CODES[venue]}"
+            f"{meeting:02d}{day:02d}"
+        )
+        ids.update(f"{prefix}{race_no:02d}" for race_no in race_nos)
+    return sorted(ids)
+
+
+def discover_jra_calendar_race_ids(target: date) -> tuple[list[str], str]:
+    """Fetch JRA's official updated daily program with domain fallback."""
+    errors: list[str] = []
+    rel = f"/keiba/calendar{target.year}/{target.year}/{target.month}/{target:%m%d}.html"
+    for base in JRA_CALENDAR_BASES:
+        url = base + rel
+        try:
+            html = _request_web(url, pause=0.04, attempts=4)
+            ids = extract_jra_calendar_race_ids(html, target)
+            # A valid JRA day can be fully cancelled, so zero by itself is not an error.
+            # Require the page to identify the target date/program before trusting it.
+            page_text = BeautifulSoup(html, "lxml").get_text(" ", strip=True)
+            if str(target.year) not in page_text or f"{target.month}月{target.day}日" not in page_text:
+                raise ValueError("JRA calendar page does not identify target date")
+            return ids, url
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"{url}: {type(exc).__name__}: {exc}")
+    raise RuntimeError(" | ".join(errors))
+
+
+def _sportsnavi_cancelled_text(html: str, race_id: str) -> bool:
+    text = BeautifulSoup(html, "lxml").get_text(" ", strip=True)
+    race_no = int(race_id[-2:])
+    # Examples: ``小倉4R 降雪のため中止`` / ``東京8R ... 中止``.
+    return bool(
+        re.search(rf"(?:^|\s){race_no}R(?:\s|[^0-9]).{{0,80}}(?:中止|取りやめ)", text)
+        or re.search(rf"第{race_no}レース.{{0,80}}(?:中止|取りやめ)", text)
+    )
+
+
+def confirm_cancelled_race(race_id: str, target: date) -> tuple[bool, str]:
+    """Confirm that a scheduled race produced no result because it was not conducted.
+
+    This is only called after both result providers failed. A cancellation is accepted
+    from either JRA's official updated program or SportsNavi's race card.  Absence of
+    cancellation evidence remains an error; we never silently discard an unknown race.
+    """
+    # JRA official page is primary. If it parsed successfully and the meeting/day exists
+    # but this exact race is absent, it is a non-conducted race (cancellation/abandonment).
+    try:
+        official_ids, source = discover_jra_calendar_race_ids(target)
+        prefix = race_id[:10]
+        official_same_meeting = [rid for rid in official_ids if rid.startswith(prefix)]
+        # The page can show a whole-meeting cancellation, yielding zero IDs.  To avoid
+        # treating a parser miss as cancellation, separately inspect the page text below.
+        html = _request_web(source, pause=0.02, attempts=2)
+        text = BeautifulSoup(html, "lxml").get_text(" ", strip=True)
+        venue_name = next((name for name, code in JRA_VENUE_CODES.items() if code == race_id[4:6]), "")
+        race_no = int(race_id[-2:])
+        meeting = int(race_id[6:8])
+        day = int(race_id[8:10])
+        heading_present = bool(venue_name and re.search(rf"{meeting}回{re.escape(venue_name)}{day}日", text))
+        explicit = bool(venue_name and (
+            re.search(rf"{re.escape(venue_name)}競馬.{{0,50}}第{race_no}レース.{{0,50}}取りやめ", text)
+            or re.search(rf"{re.escape(venue_name)}競馬.{{0,50}}第(\d+)レース以降.{{0,50}}取りやめ", text)
+            or re.search(rf"{re.escape(venue_name)}競馬.{{0,50}}(?:雪|積雪|降雪|台風|悪天候|安全).{{0,80}}(?:中止|取りやめ)", text)
+        ))
+        after = re.search(rf"{re.escape(venue_name)}競馬.{{0,50}}第(\d+)レース以降.{{0,50}}取りやめ", text) if venue_name else None
+        if after and race_no >= int(after.group(1)):
+            explicit = True
+        if heading_present and race_id not in official_ids and explicit:
+            return True, source
+    except Exception:
+        pass
+
+    # Independent fallback: SportsNavi's denma page retains cancellation text.
+    try:
+        url = f"{SPORTSNAVI_BASE}/race/denma/{race_id[2:]}"
+        html = _request_web(url, pause=0.03, attempts=4)
+        if _sportsnavi_cancelled_text(html, race_id):
+            return True, url
+    except Exception:
+        pass
+    return False, ""
+
+
 def extract_sportsnavi_meeting_race_ids(html: str, prefix: str) -> list[str]:
     """Extract exact result race IDs from SportsNavi SSR meeting-list HTML."""
     if not re.fullmatch(r"20\d{8}", prefix):
@@ -486,6 +611,36 @@ def discover_expected_race_ids_resilient(
             expected.setdefault(slot["date"], set()).update(slot["observed"])
         return {d: sorted(ids) for d, ids in sorted(expected.items())}, warnings
 
+    # Highest authority: JRA's updated static daily program. Unlike third-party race
+    # lists, it removes races that were cancelled after entries were published.
+    observed_by_date: dict[str, set[str]] = {}
+    for slot in slots.values():
+        observed_by_date.setdefault(slot["date"], set()).update(slot["observed"])
+    jra_by_date: dict[str, list[str] | None] = {}
+    jra_complete_dates: set[str] = set()
+    for date_s, observed_ids in sorted(observed_by_date.items()):
+        try:
+            jra_ids, jra_url = discover_jra_calendar_race_ids(pd.Timestamp(date_s).date())
+            jra_set = set(jra_ids)
+            if observed_ids.issubset(jra_set):
+                jra_by_date[date_s] = jra_ids
+                jra_complete_dates.add(date_s)
+                warnings.append(
+                    f"{date_s}: race enumeration source=JRA official updated program, "
+                    f"races={len(jra_ids)} ({jra_url})"
+                )
+            else:
+                jra_by_date[date_s] = None
+                warnings.append(
+                    f"{date_s}: JRA program did not cover all observed results; "
+                    "falling back to independent result lists"
+                )
+        except Exception as exc:  # noqa: BLE001
+            jra_by_date[date_s] = None
+            warnings.append(
+                f"{date_s}: JRA official program unavailable: {type(exc).__name__}: {exc}"
+            )
+
     db_by_date: dict[str, list[str] | None] = {}
     expected_by_date: dict[str, set[str]] = {}
     unverified_prefixes: list[str] = []
@@ -496,8 +651,16 @@ def discover_expected_race_ids_resilient(
         chosen: list[str] = []
         source_name = ""
 
+        if date_s in jra_complete_dates:
+            chosen = [rid for rid in (jra_by_date.get(date_s) or []) if rid.startswith(prefix)]
+            # A meeting that was wholly cancelled on this date can have zero conducted races.
+            # In that case there should also be no observed results for the slot; observed slots
+            # normally prevent this branch, but retain the guard for unusual archive states.
+            if chosen or not observed:
+                source_name = "jra-official"
+
         try:
-            sports = discover_sportsnavi_meeting_race_ids(prefix)
+            sports = [] if chosen else discover_sportsnavi_meeting_race_ids(prefix)
             if _authoritative_list_covers_observed(sports, observed, prefix):
                 chosen = [rid for rid in sports if rid.startswith(prefix)]
                 source_name = "sportsnavi"
@@ -548,6 +711,10 @@ def discover_expected_race_ids_resilient(
     for slot in slots.values():
         observed_by_date.setdefault(slot["date"], set()).update(slot["observed"])
     for date_s, observed_ids in sorted(observed_by_date.items()):
+        if date_s in jra_complete_dates:
+            # Never re-add a race that JRA's updated page removed as cancelled.
+            expected_by_date[date_s] = set(jra_by_date.get(date_s) or [])
+            continue
         if date_s not in db_by_date:
             try:
                 db_by_date[date_s] = discover_db_race_ids(pd.Timestamp(date_s).date())
@@ -1272,6 +1439,7 @@ def repair_result_archive_from_web(
     )
     repaired: list[dict] = []
     unresolved: list[dict] = []
+    cancelled: list[dict] = []
     result_root = source_root / "data" / "race_results" / str(start.year)
     payout_root = source_root / "data" / "race_payouts"
     result_root.mkdir(parents=True, exist_ok=True)
@@ -1376,6 +1544,15 @@ def repair_result_archive_from_web(
                     "source": source_url,
                 })
             except Exception as exc:  # noqa: BLE001
+                is_cancelled, cancel_source = confirm_cancelled_race(rid, target)
+                if is_cancelled:
+                    cancelled.append({
+                        "date": date_s,
+                        "raceId": rid,
+                        "reason": "officially cancelled/not conducted; no result or payout expected",
+                        "source": cancel_source,
+                    })
+                    continue
                 unresolved.append({
                     "date": date_s,
                     "raceId": rid,
@@ -1385,10 +1562,19 @@ def repair_result_archive_from_web(
                     "existingPayout": payout_error or ("present" if payout_path.is_file() else "missing"),
                 })
 
+    cancelled_ids = {item["raceId"] for item in cancelled}
+    if cancelled_ids:
+        expected_by_date = {
+            date_s: [rid for rid in ids if rid not in cancelled_ids]
+            for date_s, ids in expected_by_date.items()
+        }
+        expected_by_date = {date_s: ids for date_s, ids in expected_by_date.items() if ids}
+
     return {
         "calendarDates": sorted(expected_by_date),
         "expectedByDate": expected_by_date,
         "repaired": repaired,
+        "cancelled": cancelled,
         "unresolved": unresolved,
         "discoveryWarnings": discovery_warnings,
     }
@@ -1663,7 +1849,7 @@ def build_cache(
             )
         details.extend(unverified[:5])
         raise RuntimeError(
-            "Historical backfill remains incomplete after SportsNavi/netkeiba repair; "
+            "Historical backfill remains incomplete after JRA/SportsNavi/netkeiba repair; "
             "no date will be silently quarantined. Exact unresolved items: "
             + " | ".join(details)
         )
@@ -1733,7 +1919,7 @@ def build_cache(
             "resultErrors": (result_info or {}).get("errors", []),
         })
 
-    # v7 does not silently quarantine incomplete dates. A successful refresh means the
+    # v8 does not silently quarantine incomplete dates. A successful refresh means the
     # complete authoritative race set is validated, so skippedDates must be empty.
     if skipped_dates:
         details = []
@@ -1919,10 +2105,12 @@ def build_cache(
                 "calendarDates": web_repair.get("calendarDates") or [],
                 "repairedRaceCount": len(web_repair.get("repaired") or []),
                 "repairedRaces": web_repair.get("repaired") or [],
+                "cancelledRaceCount": len(web_repair.get("cancelled") or []),
+                "cancelledRaces": web_repair.get("cancelled") or [],
                 "unresolvedRaceCount": len(web_repair.get("unresolved") or []),
                 "unresolvedRaces": web_repair.get("unresolved") or [],
                 "discoveryWarnings": web_repair.get("discoveryWarnings") or [],
-                "source": "source facts + SportsNavi SSR meeting/results + netkeiba static/result fallback",
+                "source": "JRA official updated program + source facts + SportsNavi/netkeiba result fallback",
             },
             "runnerSnapshotSummary": runner_snapshot_summary,
             "targetHorseCount": len(target_horse_ids),
