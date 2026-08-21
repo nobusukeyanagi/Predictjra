@@ -15,6 +15,7 @@ from statistics import mean
 from typing import Iterable
 
 MODEL_VERSION = "predictjra-live-index-v3-run-flow-power"
+POPULARITY_MODEL_VERSION = "predictjra-popularity-v5-temporal-context-market-memory"
 
 FEATURE_COLS = [
     "total_rank_strength",
@@ -22,12 +23,23 @@ FEATURE_COLS = [
     "last_market_strength",
     "recent3_market_strength",
     "recent5_market_strength",
+    "horse_market_mean_strength",
+    "market_trend_strength",
+    "market_stability_strength",
+    "surface_market_strength",
+    "distance_market_strength",
+    "surface_distance_market_strength",
     "last_finish_strength",
+    "recent_finish_strength",
     "surprise_strength",
     "jockey_market_strength",
     "trainer_market_strength",
+    "jockey_surface_market_strength",
+    "trainer_surface_market_strength",
     "age_strength",
     "carried_change_strength",
+    "class_fit_strength",
+    "layoff_strength",
     "last_lowpop_win",
     "handicap_rebound_risk",
 ]
@@ -544,6 +556,26 @@ def rank_strengths(detail_horses: list[dict], totals: dict[int, float]) -> tuple
     return total_strength, recent_strength
 
 
+def _shrunk_recent_mean(values: list[float], prior: float, prior_weight: float) -> float:
+    vals = [clamp01(v) for v in values if math.isfinite(_float_or_nan(v))]
+    if not vals:
+        return clamp01(prior)
+    return clamp01((sum(vals) + clamp01(prior) * prior_weight) / (len(vals) + prior_weight))
+
+
+def _parse_iso_day(value) -> int | None:
+    s = str(value or "").strip()
+    m = __import__("re").match(r"^(20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})", s)
+    if not m:
+        return None
+    try:
+        from datetime import date
+        d = date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        return d.toordinal()
+    except ValueError:
+        return None
+
+
 def build_market_profile(
     runs: list[dict],
     *,
@@ -554,16 +586,65 @@ def build_market_profile(
     trainer_market_strength: float,
     age: float | int | None,
     current_class_level: int,
+    current_surface: str = "",
+    current_distance: float | None = None,
+    current_date: str = "",
+    jockey_surface_market_strength: float | None = None,
+    trainer_surface_market_strength: float | None = None,
 ) -> tuple[dict, dict]:
-    """Build market-popularity features from facts available before the target race."""
-    market_values = [
-        market_strength(r.get("popularity"), r.get("field"))
+    """Build leakage-safe market-popularity features available before target-race start.
+
+    v5 deliberately models *market memory* rather than today's odds.  It keeps the
+    previous-popularity signal but adds stability/trend and target-condition similarity,
+    which are portable to future races and do not require a race-specific override.
+    """
+    market_pairs = [
+        (r, market_strength(r.get("popularity"), r.get("field")))
         for r in runs
         if isinstance(r.get("popularity"), int) and isinstance(r.get("field"), int)
     ]
+    market_values = [v for _, v in market_pairs]
     last_market = market_values[0] if market_values else 0.5
     recent3_market = market_recency(market_values, 3)
     recent5_market = market_recency(market_values, 5)
+    horse_market_mean = _shrunk_recent_mean(market_values, 0.5, 2.0)
+
+    if len(market_values) >= 2:
+        older = market_values[1:5]
+        market_trend = clamp01(0.5 + (last_market - mean(older)) / 2.0)
+        m = mean(market_values[:5])
+        variance = mean((x - m) ** 2 for x in market_values[:5])
+        market_stability = clamp01(1.0 - math.sqrt(max(0.0, variance)) / 0.45)
+    else:
+        market_trend = 0.5
+        market_stability = 0.5
+
+    current_kind = _surface_kind(current_surface) if current_surface else ""
+    current_distance_num = _float_or_nan(current_distance)
+    surface_values: list[float] = []
+    distance_values: list[float] = []
+    surface_distance_values: list[float] = []
+    for run, strength in market_pairs:
+        run_kind = _surface_kind(str(run.get("surface") or ""))
+        run_distance = _float_or_nan(run.get("distance"))
+        surface_match = bool(current_kind) and run_kind == current_kind
+        distance_match = (
+            math.isfinite(current_distance_num)
+            and math.isfinite(run_distance)
+            and abs(run_distance - current_distance_num) <= 300.0
+        )
+        if surface_match:
+            surface_values.append(strength)
+        if distance_match:
+            distance_values.append(strength)
+        if surface_match and distance_match:
+            surface_distance_values.append(strength)
+
+    surface_market = _shrunk_recent_mean(surface_values, recent5_market, 2.0)
+    distance_market = _shrunk_recent_mean(distance_values, recent5_market, 2.0)
+    surface_distance_market = _shrunk_recent_mean(
+        surface_distance_values, recent5_market, 3.0
+    )
 
     last = runs[0] if runs else {}
     if (
@@ -574,6 +655,12 @@ def build_market_profile(
         last_finish = 1.0 - (last["finish"] - 1) / max(last["field"] - 1, 1)
     else:
         last_finish = 0.5
+    finish_values = [
+        _finish_strength(r.get("finish"), r.get("field"))
+        for r in runs[:5]
+        if isinstance(r.get("finish"), int) and isinstance(r.get("field"), int)
+    ]
+    recent_finish = market_recency(finish_values, 5) if finish_values else 0.5
     surprise_strength = clamp01(0.5 + (last_finish - last_market) / 2.0)
 
     last_pop = last.get("popularity")
@@ -602,31 +689,76 @@ def build_market_profile(
 
     age_strength = clamp01((10.0 - float(age or 5)) / 8.0)
 
+    last_class_level = int(last.get("classLevel", current_class_level)) if last else current_class_level
+    max_recent_class = max(
+        [int(r.get("classLevel", 0)) for r in runs] or [current_class_level]
+    )
+    class_gap = max(int(current_class_level) - int(max_recent_class), 0)
+    class_fit_strength = clamp01(1.0 - class_gap / 4.0)
+
+    target_day = _parse_iso_day(current_date)
+    last_day = _parse_iso_day(last.get("date")) if last else None
+    if target_day is not None and last_day is not None and target_day > last_day:
+        days = target_day - last_day
+        # Market tends to discount both very short turnarounds and very long layoffs.
+        if days < 7:
+            layoff_strength = 0.38
+        elif days <= 70:
+            layoff_strength = 0.62
+        elif days <= 140:
+            layoff_strength = 0.52
+        else:
+            layoff_strength = 0.42
+    else:
+        days = 0
+        layoff_strength = 0.5
+
+    jockey_surface = clamp01(
+        jockey_surface_market_strength
+        if jockey_surface_market_strength is not None
+        else jockey_market_strength
+    )
+    trainer_surface = clamp01(
+        trainer_surface_market_strength
+        if trainer_surface_market_strength is not None
+        else trainer_market_strength
+    )
+
     factors = {
         "total_rank_strength": clamp01(total_rank_strength),
         "recent_rank_strength": clamp01(recent_rank_strength),
         "last_market_strength": clamp01(last_market),
         "recent3_market_strength": clamp01(recent3_market),
         "recent5_market_strength": clamp01(recent5_market),
+        "horse_market_mean_strength": clamp01(horse_market_mean),
+        "market_trend_strength": clamp01(market_trend),
+        "market_stability_strength": clamp01(market_stability),
+        "surface_market_strength": clamp01(surface_market),
+        "distance_market_strength": clamp01(distance_market),
+        "surface_distance_market_strength": clamp01(surface_distance_market),
         "last_finish_strength": clamp01(last_finish),
+        "recent_finish_strength": clamp01(recent_finish),
         "surprise_strength": clamp01(surprise_strength),
         "jockey_market_strength": clamp01(jockey_market_strength),
         "trainer_market_strength": clamp01(trainer_market_strength),
+        "jockey_surface_market_strength": jockey_surface,
+        "trainer_surface_market_strength": trainer_surface,
         "age_strength": clamp01(age_strength),
         "carried_change_strength": clamp01(carried_change_strength),
+        "class_fit_strength": clamp01(class_fit_strength),
+        "layoff_strength": clamp01(layoff_strength),
         "last_lowpop_win": last_lowpop_win,
         "handicap_rebound_risk": clamp01(handicap_rebound_risk, default=0.0),
     }
 
-    last_class_level = int(last.get("classLevel", current_class_level)) if last else current_class_level
-    max_recent_class = max(
-        [int(r.get("classLevel", 0)) for r in runs] or [current_class_level]
-    )
     context = {
         "classLevel": int(current_class_level),
         "lastClassLevel": int(last_class_level),
         "maxRecentClassLevel": int(max_recent_class),
         "assignedWeightDelta": round(float(weight_delta), 1),
+        "daysSinceLastRun": int(days),
+        "surface": str(current_surface or ""),
+        "distanceM": int(round(current_distance_num)) if math.isfinite(current_distance_num) else None,
     }
     return factors, context
 
@@ -655,14 +787,23 @@ def market_score_from_model(factors: dict, context: dict, model: dict) -> float:
             score += float(coeff.get(key, 0.0)) * float(factors[key])
     else:
         score = (
-            0.36 * factors["recent5_market_strength"]
-            + 0.14 * factors["last_market_strength"]
-            + 0.16 * factors["total_rank_strength"]
-            + 0.08 * factors["recent_rank_strength"]
+            0.22 * factors["recent5_market_strength"]
+            + 0.08 * factors["last_market_strength"]
+            + 0.08 * factors["horse_market_mean_strength"]
+            + 0.08 * factors["surface_distance_market_strength"]
+            + 0.04 * factors["surface_market_strength"]
+            + 0.03 * factors["distance_market_strength"]
+            + 0.10 * factors["total_rank_strength"]
+            + 0.05 * factors["recent_rank_strength"]
             + 0.08 * factors["jockey_market_strength"]
-            + 0.06 * factors["trainer_market_strength"]
-            + 0.06 * factors["last_finish_strength"]
-            + 0.06 * factors["age_strength"]
+            + 0.05 * factors["trainer_market_strength"]
+            + 0.04 * factors["jockey_surface_market_strength"]
+            + 0.03 * factors["trainer_surface_market_strength"]
+            + 0.04 * factors["recent_finish_strength"]
+            + 0.03 * factors["market_trend_strength"]
+            + 0.02 * factors["market_stability_strength"]
+            + 0.02 * factors["class_fit_strength"]
+            + 0.01 * factors["layoff_strength"]
         )
     return float(score + market_context_adjustment(factors, context))
 
