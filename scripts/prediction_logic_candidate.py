@@ -17,6 +17,19 @@ from typing import Iterable
 MODEL_VERSION = "predictjra-live-index-v3-run-flow-power-v54-prior-odds-top3"
 POPULARITY_MODEL_VERSION = "predictjra-popularity-v54-hgb-prior-odds"
 
+# Stable, machine-readable policy shared by live/rebuild/tests.
+# Do not test translated/free-form description text; compare these semantic flags.
+DEBUT_RACE_POLICY = {
+    "version": "predictjra-debut-result-only-v1",
+    "mode": "result_only",
+    "excludedFromPrediction": True,
+    "excludedFromWinStake": True,
+    "excludedFromTrifectaStake": True,
+    "excludedFromReturnAggregation": True,
+    "excludedFromPopularityValidation": True,
+    "resultDisplayed": True,
+}
+
 # Leakage-safe Top3 classifier inputs. Every field is available when the draw is fixed.
 # Current-race odds / actual popularity / bodyweight are intentionally absent.
 FEATURE_COLS = [

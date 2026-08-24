@@ -40,6 +40,7 @@ from joblib import dump as joblib_dump
 from sklearn.ensemble import HistGradientBoostingClassifier
 
 from prediction_logic_candidate import (
+    DEBUT_RACE_POLICY,
     FEATURE_COLS,
     MODEL_VERSION,
     POPULARITY_MODEL_VERSION,
@@ -1888,6 +1889,7 @@ def main() -> int:
         "prohibitedInputs": [
             "current odds", "current actual popularity", "horse bodyweight", "horse bodyweight change"
         ],
+        "debutRacePolicy": dict(DEBUT_RACE_POLICY),
     }
 
     live_cutoff = pd.Timestamp(max(target_dates)) + pd.Timedelta(days=1)
