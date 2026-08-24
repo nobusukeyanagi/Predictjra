@@ -77,7 +77,7 @@ body {
 .day-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin: 0 auto 10px; width: fit-content; max-width: 100%; }
 .day-top {
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) 355px 30px;
+  grid-template-columns: minmax(160px, 1fr) 420px 30px;
   align-items: center;
   gap: 18px;
   padding: 6px 10px;
@@ -128,11 +128,11 @@ body {
 }
 .day-summary {
   display: grid;
-  grid-template-columns: 92px 150px 113px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: center;
-  justify-content: end;
-  gap: 0;
-  width: 355px;
+  justify-content: stretch;
+  column-gap: 18px;
+  width: 420px;
   padding-right: 0;
   white-space: nowrap;
 }
@@ -173,7 +173,7 @@ body {
   border-bottom: 0;
   border-radius: 0 0 12px 12px;
 }
-.summary-item { display: flex; align-items: baseline; justify-content: flex-start; gap: 5px; line-height: 1; }
+.summary-item { display: flex; align-items: baseline; justify-content: flex-start; gap: 6px; min-width: 0; line-height: 1; }
 .summary-label { color: var(--muted); font-size: 10px; font-weight: 700; }
 .summary-value { color: var(--ink); font-size: 15px; font-weight: 850; }
 .race-table thead .column-row th:first-child { min-width: 70px; }
@@ -262,21 +262,47 @@ body {
 .payout-hit { color: var(--hit) !important; }
 .payout-miss { color: var(--miss) !important; }
 .payout-neutral { color: var(--ink) !important; }
-.no-prediction-label { color: var(--muted); font-size: 13px; font-weight: 800; }
+.no-prediction-label { display: block; width: 100%; color: var(--muted); font-size: 13px; font-weight: 800; text-align: left; }
 .no-prediction-dash { color: #a9b1ad; }
 .day-toggle-spacer { width: 30px; height: 30px; }
+.overall-card {
+  border: 3px solid var(--hit);
+  border-radius: 0;
+  box-shadow: none;
+}
 .overall-card .day-top { border-bottom: 0; }
 
-/* Result horse-number border = prediction role. Frame fill itself is unchanged. */
-.horse-box.result-role-main {
-  border: 3px solid #b3261e;
-}
-.horse-box.result-role-second {
-  border: 3px solid #16824b;
-}
+/* v57 result-role marker: monochrome badge instead of adding more border colors. */
+.horse-box.result-role-main,
+.horse-box.result-role-second,
 .horse-box.result-role-danger {
-  border: 3px solid #7446b8;
+  position: relative;
 }
+.horse-box.result-role-main::after,
+.horse-box.result-role-second::after,
+.horse-box.result-role-danger::after {
+  position: absolute;
+  top: -5px;
+  right: -3px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  border: 1px solid #59615d;
+  border-radius: 50%;
+  background: #fff;
+  color: #222;
+  font-size: 8px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(0,0,0,.10);
+  pointer-events: none;
+}
+.horse-box.result-role-main::after { content: "本"; }
+.horse-box.result-role-second::after { content: "対"; }
+.horse-box.result-role-danger::after { content: "危"; }
 .empty { padding: 50px 20px; text-align: center; color: var(--muted); background: #fff; border: 1px solid var(--line); border-radius: 14px; font-size: 15px; }
 .loading { padding: 40px; text-align: center; color: var(--muted); font-size: 15px; }
 .error { padding: 18px; border: 1px solid #efc7c4; background: #fff6f5; color: #8f221c; border-radius: 10px; font-size: 15px; }
@@ -471,6 +497,7 @@ body.index-modal-open { overflow: hidden; }
   .site-header { margin: 0; padding: 5px 6px; }
   .site-title { font-size: clamp(24px, 7vw, 34px); line-height: 1; }
   .day-card { border-radius: 12px; margin-bottom: 8px; }
+  .overall-card { border-radius: 0; }
   .day-top {
     grid-template-columns: minmax(0, 1fr) 30px;
     grid-template-areas:
@@ -484,9 +511,9 @@ body.index-modal-open { overflow: hidden; }
   .day-summary {
     grid-area: summary;
     display: grid;
-    grid-template-columns: 26% 42% 32%;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     justify-content: stretch;
-    gap: 0;
+    column-gap: 10px;
     width: 100%;
     padding-right: 0;
   }
@@ -544,6 +571,7 @@ body.index-modal-open { overflow: hidden; }
 }
 
 
+/* 近走 and 今回 are the same width. */
 .index-table th:nth-child(12),
 .index-table td:nth-child(12),
 .index-table th:nth-child(14),

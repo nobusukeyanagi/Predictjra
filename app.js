@@ -194,6 +194,13 @@ Object.values(RACE_INDEX_DETAILS).forEach(finalizeIndexDetail);
 
 const yen = n => `${Number(n || 0).toLocaleString('ja-JP')}円`;
 const percent = n => `${Number(n || 0).toFixed(1)}%`;
+// 100-point evaluations are shown with exactly two digits. Internal values stay unchanged.
+const score2 = value => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '—';
+  const shown = Math.max(0, Math.min(99, Math.round(n)));
+  return String(shown).padStart(2, '0');
+};
 
 const RACE_DETAIL_CACHE = {};
 let INDEX_MODAL_RACE_ORDER = [];
@@ -226,7 +233,7 @@ const INDEX_LOGIC_V2_HTML = `
 const INDEX_LOGIC_V3_HTML = `
   <section class="index-logic-item">
     <h3>基本</h3>
-    <p>能力評価はすべて0〜100点です。近5走は各レースを「走・展・力」で評価し、1走評価＝走40％＋展25％＋力35％。近走総合＝前走35％＋2走前25％＋3走前18％＋4走前13％＋5走前9％（不足時は取得できた走だけで再正規化）。今回評価も走40％＋展25％＋力35％。最終の総合指数＝近走55％＋今回45％です。表示値は整数、順位判定には丸め前の内部値を使います。</p>
+    <p>能力評価はすべて0〜100点です。近5走は各レースを「走・展・力」で評価し、1走評価＝走40％＋展25％＋力35％。近走総合＝前走35％＋2走前25％＋3走前18％＋4走前13％＋5走前9％（不足時は取得できた走だけで再正規化）。今走の走・展・力から今回＝走40％＋展25％＋力35％。最終の総合指数＝近走55％＋今回45％です。表示は2桁に統一し、100点は便宜上99、1桁は0を付けて表示します。順位判定には丸め前の内部値を使います。</p>
   </section>
   <section class="index-logic-item">
     <h3>近走「走」</h3>
@@ -468,7 +475,8 @@ function raceNameCell(race) {
 }
 
 function payoutCellClass({ debut, settled, hit }) {
-  if (debut || !settled) return 'payout-neutral';
+  if (debut) return 'payout-miss';
+  if (!settled) return 'payout-neutral';
   return hit ? 'payout-hit' : 'payout-miss';
 }
 
@@ -517,7 +525,7 @@ function renderDay(day, initiallyExpanded = true) {
       <td>${resultBoxes(r.result, r, prediction)}</td>
       <td>${judgement(r, prediction)}</td>
       <td class="money payout-cell ${payoutCellClass({ debut, settled, hit: winHit })}"><span class="payout-amount">${singleText}</span></td>
-      <td class="money payout-cell trifecta-cell ${payoutCellClass({ debut, settled, hit: triHit })}"><span class="payout-amount">${triText}</span>${triRate == null ? '' : `<span class="payout-rate">${percent(triRate)}</span>`}</td>
+      <td class="money payout-cell trifecta-cell ${payoutCellClass({ debut, settled, hit: triHit })}"><span class="payout-amount">${triText}</span>${debut ? '<span class="payout-rate">-%</span>' : (triRate == null ? '' : `<span class="payout-rate">${percent(triRate)}</span>`)}</td>
     </tr>`;
   }).join('');
 
@@ -564,7 +572,7 @@ function tripleIndexMarkup(value, labels = ['走', '展', '力']) {
   if (value == null || value === '' || value === '評価外') return '<span class="index-recent-na">評価外</span>';
   const parts = String(value).split('/');
   if (parts.length !== 3) return value;
-  return `<span class="index-recent-score">${parts.map((part, i) => `<span class="index-recent-part"><span class="index-recent-label">${labels[i]}</span>${part}</span>`).join('')}</span>`;
+  return `<span class="index-recent-score">${parts.map((part, i) => `<span class="index-recent-part"><span class="index-recent-label">${labels[i]}</span>${score2(part)}</span>`).join('')}</span>`;
 }
 
 function recentIndexMarkup(value, detail) {
@@ -576,7 +584,7 @@ function todayIndexMarkup(horse) {
   if (horse?.todayParts) return tripleIndexMarkup(horse.todayParts, ['走', '展', '力']);
   // Before v3 apply, keep legacy production data truthful instead of relabeling course as power.
   if (Number.isFinite(Number(horse?.pace)) || Number.isFinite(Number(horse?.course))) {
-    return `<span class="index-recent-score"><span class="index-recent-part"><span class="index-recent-label">展</span>${horse?.pace ?? '—'}</span><span class="index-recent-part"><span class="index-recent-label">コ</span>${horse?.course ?? '—'}</span></span>`;
+    return `<span class="index-recent-score"><span class="index-recent-part"><span class="index-recent-label">展</span>${score2(horse?.pace)}</span><span class="index-recent-part"><span class="index-recent-label">コ</span>${score2(horse?.course)}</span></span>`;
   }
   return '<span class="index-recent-na">評価外</span>';
 }
@@ -610,12 +618,12 @@ function indexHorseRow(horse, detail) {
       <td data-sort-value="${horse.no}">${indexHorseNumber(horse.no, detail.horseCount)}</td>
       <td class="index-horse-name" data-sort-value="${horse.name}">${horse.name}</td>
       <td class="index-popularity" data-sort-value="${horse.expectedPopularity}">${horse.expectedPopularity}</td>
-      <td class="index-total" data-sort-value="${horse.total}">${horse.total}</td>
+      <td class="index-total" data-sort-value="${horse.total}">${score2(horse.total)}</td>
       <td class="index-rank" data-sort-value="${horse.rank}">${horse.rank}</td>
       ${horse.recent.map(value => `<td data-sort-value="${recentSortValue(value, detail)}">${recentIndexMarkup(value, detail)}</td>`).join('')}
-      <td class="index-strong index-recent-total" data-sort-value="${horse.recentIndex}">${horse.recentIndex}</td>
+      <td class="index-strong index-recent-total" data-sort-value="${horse.recentIndex}">${score2(horse.recentIndex)}</td>
       <td data-sort-value="${horse.today}">${todayIndexMarkup(horse)}</td>
-      <td class="index-strong index-today" data-sort-value="${horse.today}">${horse.today}</td>
+      <td class="index-strong index-today" data-sort-value="${horse.today}">${score2(horse.today)}</td>
     </tr>`;
 }
 
@@ -676,7 +684,11 @@ function indexModalNeighbor(raceId, offset) {
 
 function renderIndexDetail(detail, raceId) {
   const rows = [...detail.horses]
-    .sort((a, b) => a.no - b.no)
+    .sort((a, b) =>
+      Number(b.total || 0) - Number(a.total || 0) ||
+      Number(b.recentIndex || 0) - Number(a.recentIndex || 0) ||
+      Number(a.no || 0) - Number(b.no || 0)
+    )
     .map(horse => indexHorseRow(horse, detail))
     .join('');
 
@@ -697,7 +709,7 @@ function renderIndexDetail(detail, raceId) {
           <table class="index-table">
             <thead>
               <tr>
-                <th class="index-sortable" tabindex="0" role="button" aria-sort="none">評価</th><th class="index-sortable" tabindex="0" role="button" aria-sort="ascending" data-sort-direction="asc">馬番</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">馬名</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">想人</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">総合</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">順位</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">前走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">2走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">3走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">4走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">5走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">近走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">今回</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">今回評価</th>
+                <th class="index-sortable" tabindex="0" role="button" aria-sort="none">評価</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">馬番</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">馬名</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">想人</th><th class="index-sortable" tabindex="0" role="button" aria-sort="descending" data-sort-direction="desc" data-initial-sort="desc">総合</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">順位</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">前走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">2走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">3走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">4走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">5走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">近走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">今走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">今回</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
