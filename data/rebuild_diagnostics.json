@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-24T11:30:32+09:00",
+  "generatedAt": "2026-08-24T14:27:06+09:00",
   "stage": "complete",
   "targetDates": [
     "2026-01-04",
@@ -219,7 +219,7 @@
   ],
   "skippedDates": [],
   "ignoredFiles": [],
-  "excludedDebutRaces": [
+  "resultOnlyDebutRaces": [
     {
       "date": "2026-01-04",
       "raceId": "202606010103",
