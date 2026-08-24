@@ -62,7 +62,9 @@ jobs:
         run: python -m pip install -r requirements.txt pandas numpy
 
       - name: Validate candidate prediction rules
-        run: python scripts/test_prediction_logic.py
+        run: |
+          python scripts/test_prediction_logic.py
+          python scripts/test_popularity_v54.py
 
       - name: Verify historical backfill implementation
         shell: bash
@@ -119,12 +121,14 @@ jobs:
             DATA_PATH="$RUNNER_TEMP/races-validation.json"
             AUDIT_PATH="$RUNNER_TEMP/rebuild-audit.json"
             POP_MODEL_PATH="$RUNNER_TEMP/popularity-model.json"
+            POP_MODEL_BIN_PATH="$RUNNER_TEMP/popularity-model-v54.joblib"
             TIME_BASELINE_PATH="$RUNNER_TEMP/time-baselines.json"
             DIAGNOSTIC_PATH="$RUNNER_TEMP/rebuild-diagnostics.json"
           else
             DATA_PATH="data/races.json"
             AUDIT_PATH="data/rebuild_audit.json"
             POP_MODEL_PATH="data/popularity_model.json"
+            POP_MODEL_BIN_PATH="data/popularity_model_v54.joblib"
             TIME_BASELINE_PATH="data/time_baselines.json"
             DIAGNOSTIC_PATH="data/rebuild_diagnostics.json"
           fi
@@ -137,6 +141,7 @@ jobs:
           echo "data_path=$DATA_PATH" >> "$GITHUB_OUTPUT"
           echo "audit_path=$AUDIT_PATH" >> "$GITHUB_OUTPUT"
           echo "pop_model_path=$POP_MODEL_PATH" >> "$GITHUB_OUTPUT"
+          echo "pop_model_bin_path=$POP_MODEL_BIN_PATH" >> "$GITHUB_OUTPUT"
           echo "time_baseline_path=$TIME_BASELINE_PATH" >> "$GITHUB_OUTPUT"
           echo "diagnostic_path=$DIAGNOSTIC_PATH" >> "$GITHUB_OUTPUT"
 
@@ -335,6 +340,7 @@ jobs:
             --data-path "${{ steps.args.outputs.data_path }}" \
             --audit-path "${{ steps.args.outputs.audit_path }}" \
             --pop-model-path "${{ steps.args.outputs.pop_model_path }}" \
+            --pop-model-bin-path "${{ steps.args.outputs.pop_model_bin_path }}" \
             --time-baseline-path "${{ steps.args.outputs.time_baseline_path }}" \
             --diagnostic-path "${{ steps.args.outputs.diagnostic_path }}"
 
@@ -494,6 +500,7 @@ jobs:
           path: |
             ${{ steps.args.outputs.audit_path }}
             ${{ steps.args.outputs.pop_model_path }}
+            ${{ steps.args.outputs.pop_model_bin_path }}
             ${{ steps.args.outputs.time_baseline_path }}
             ${{ steps.args.outputs.diagnostic_path }}
             data/history_cache/manifest.json
@@ -514,7 +521,7 @@ jobs:
           fi
 
           if [[ "$MODE" == "apply" ]] && \
-             [[ -n "$(git status --porcelain -- data/races.json data/rebuild_audit.json data/popularity_model.json data/time_baselines.json data/rebuild_diagnostics.json)" ]]; then
+             [[ -n "$(git status --porcelain -- data/races.json data/rebuild_audit.json data/popularity_model.json data/popularity_model_v54.joblib data/time_baselines.json data/rebuild_diagnostics.json)" ]]; then
             echo "production_data_changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "production_data_changed=false" >> "$GITHUB_OUTPUT"
@@ -551,6 +558,7 @@ jobs:
               data/races.json \
               data/rebuild_audit.json \
               data/popularity_model.json \
+              data/popularity_model_v54.joblib \
               data/time_baselines.json \
               data/rebuild_diagnostics.json
           fi

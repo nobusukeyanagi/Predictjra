@@ -59,8 +59,14 @@ jobs:
             --exclude '_site/' \
             --exclude 'scripts/' \
             --exclude 'data/history_cache/' \
+            --exclude 'data/market_history.json' \
+            --exclude 'data/popularity_model.json' \
+            --exclude 'data/popularity_model_v54.joblib' \
+            --exclude 'data/rebuild_audit.json' \
+            --exclude 'data/rebuild_diagnostics.json' \
+            --exclude 'data/time_baselines.json' \
             --exclude 'requirements.txt' \
-            --exclude 'README.md' \
+            --exclude 'README*' \
             --exclude '*.zip' \
             --exclude '__pycache__/' \
             --exclude '*.pyc' \
