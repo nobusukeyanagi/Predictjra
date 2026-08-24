@@ -65,6 +65,7 @@ jobs:
         run: |
           python scripts/test_prediction_logic.py
           python scripts/test_popularity_v54.py
+          python scripts/test_v55_returns_display.py
 
       - name: Verify historical backfill implementation
         shell: bash
@@ -417,19 +418,20 @@ jobs:
                   "",
                   "## 回収率",
                   "",
-                  "| 日付 | レース | 的中 | 投資 | 払戻 | 回収率 |",
-                  "|---|---:|---:|---:|---:|---:|",
+                  "| 日付 | 予想レース | 的中 | 単回収率 | 三回収率 |",
+                  "|---|---:|---:|---:|---:|",
               ]
               for date_s in sorted(daily):
                   row = daily[date_s]
                   lines.append(
-                      f"| {date_s} | {row['races']} | {row['hits']} | "
-                      f"{row['stake']:,}円 | {row['return']:,}円 | **{row['recoveryRate']:.1f}%** |"
+                      f"| {date_s} | {row['predictedRaces']} | {row['hits']} | "
+                      f"**{row['winRecoveryRate']:.1f}%** | **{row['recoveryRate']:.1f}%** |"
                   )
               lines.extend([
-                  f"| **合計** | **{summary['races']}** | **{summary['hits']}** | "
-                  f"**{summary['stake']:,}円** | **{summary['return']:,}円** | "
-                  f"**{summary['recoveryRate']:.1f}%** |",
+                  f"| **合計** | **{summary['predictedRaces']}** | **{summary['hits']}** | "
+                  f"**{summary['winRecoveryRate']:.1f}%** | **{summary['recoveryRate']:.1f}%** |",
+                  "",
+                  f"- 新馬戦（結果表示のみ）: **{summary['resultOnlyDebutRaces']}レース**",
                   "",
               ])
 
