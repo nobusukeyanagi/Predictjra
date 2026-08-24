@@ -61,37 +61,6 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements.txt pandas numpy
 
-      - name: Validate candidate prediction rules
-        run: |
-          python scripts/test_prediction_logic.py
-          python scripts/test_popularity_v54.py
-          python scripts/test_v55_returns_display.py
-
-      - name: Verify historical backfill implementation
-        shell: bash
-        run: |
-          test -f scripts/test_build_history_cache_backfill.py || {
-            echo "::error::v53.5 backfill test file is missing. Re-upload the complete v53.5 diff."
-            exit 1
-          }
-          python - <<'PY'
-          import re
-          from pathlib import Path
-          path = Path("scripts/build_history_cache.py")
-          text = path.read_text(encoding="utf-8")
-          m = re.search(r'^CACHE_VERSION\s*=\s*"([^"]+)"', text, re.MULTILINE)
-          actual = m.group(1) if m else ""
-          expected = "predictjra-historical-facts-v8-jra-official-executed"
-          if actual != expected:
-              raise SystemExit(
-                  f"::error::build_history_cache.py version mismatch: {actual or 'unknown'} != {expected}"
-              )
-          print(f"Backfill cache implementation: {actual}")
-          PY
-
-      - name: Validate historical backfill safety rules
-        run: PYTHONPATH=scripts python scripts/test_build_history_cache_backfill.py
-
       - name: Resolve mode, range and output paths
         id: args
         shell: bash
@@ -145,6 +114,37 @@ jobs:
           echo "pop_model_bin_path=$POP_MODEL_BIN_PATH" >> "$GITHUB_OUTPUT"
           echo "time_baseline_path=$TIME_BASELINE_PATH" >> "$GITHUB_OUTPUT"
           echo "diagnostic_path=$DIAGNOSTIC_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Validate candidate prediction rules
+        run: |
+          python scripts/test_prediction_logic.py
+          python scripts/test_popularity_v54.py
+          python scripts/test_v55_returns_display.py
+
+      - name: Verify historical backfill implementation
+        shell: bash
+        run: |
+          test -f scripts/test_build_history_cache_backfill.py || {
+            echo "::error::v53.5 backfill test file is missing. Re-upload the complete v53.5 diff."
+            exit 1
+          }
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          path = Path("scripts/build_history_cache.py")
+          text = path.read_text(encoding="utf-8")
+          m = re.search(r'^CACHE_VERSION\s*=\s*"([^"]+)"', text, re.MULTILINE)
+          actual = m.group(1) if m else ""
+          expected = "predictjra-historical-facts-v8-jra-official-executed"
+          if actual != expected:
+              raise SystemExit(
+                  f"::error::build_history_cache.py version mismatch: {actual or 'unknown'} != {expected}"
+              )
+          print(f"Backfill cache implementation: {actual}")
+          PY
+
+      - name: Validate historical backfill safety rules
+        run: PYTHONPATH=scripts python scripts/test_build_history_cache_backfill.py
 
       - name: Stage candidate as production for apply
         if: steps.args.outputs.mode == 'apply'
@@ -344,6 +344,14 @@ jobs:
             --pop-model-bin-path "${{ steps.args.outputs.pop_model_bin_path }}" \
             --time-baseline-path "${{ steps.args.outputs.time_baseline_path }}" \
             --diagnostic-path "${{ steps.args.outputs.diagnostic_path }}"
+
+      - name: Verify regenerated popularity-model metadata
+        shell: bash
+        run: |
+          python scripts/test_popularity_v54.py \
+            --metadata-path "${{ steps.args.outputs.pop_model_path }}" \
+            --model-path "${{ steps.args.outputs.pop_model_bin_path }}" \
+            --require-policy
 
       - name: Write result to Actions Summary
         if: always()
