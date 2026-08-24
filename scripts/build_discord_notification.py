@@ -53,17 +53,19 @@ def result_summary(day: dict) -> tuple[int, int, float, float]:
     tri_recovery = tri_return / tri_stake * 100 if tri_stake else 0.0
     return hits, len(races), win_recovery, tri_recovery
 
+
 def build_message(mode: str, target: str, day: dict) -> str:
     d = label(target)
     if mode == "prepare":
+        # Keep the existing prediction-publication notification unchanged.
         return f"🏇{d}のJRA予想を公開しました\n{PAGE_URL}"
 
     hits, total, win_recovery, tri_recovery = result_summary(day)
     return (
         f"🏇{d}のJRA予想結果\n"
-        f"**的中数{hits} / {total}**\n"
-        f"**単回収率{win_recovery:.1f}%**\n"
-        f"**三回収率{tri_recovery:.1f}%**\n"
+        f"**的中数 {hits} / {total}**\n"
+        f"**単回収率 {win_recovery:.1f}%**\n"
+        f"**三回収率 {tri_recovery:.1f}%**\n"
         f"{PAGE_URL}"
     )
 
