@@ -27,8 +27,13 @@ def label(target: str) -> str:
     return f"{target}({WEEKDAYS[d.weekday()]})"
 
 
+def is_debut_race(race: dict) -> bool:
+    title = str(((race.get("modelMeta") or {}).get("indexDetail") or {}).get("title") or "")
+    return "新馬" in title
+
+
 def result_summary(day: dict) -> tuple[int, int, int, float]:
-    races = day.get("races", [])
+    races = [r for r in day.get("races", []) if not is_debut_race(r)]
     finished = [r for r in races if r.get("status") in {"hit", "miss"}]
     hits = sum(1 for r in finished if r.get("status") == "hit")
     payout = sum(int(r.get("payout") or 0) for r in finished)

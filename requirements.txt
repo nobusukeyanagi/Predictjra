@@ -2,3 +2,4 @@ beautifulsoup4==4.13.4
 lxml==6.0.0
 requests==2.32.4
 selenium==4.34.2
+scikit-learn==1.8.0

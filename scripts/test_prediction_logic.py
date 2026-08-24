@@ -87,7 +87,7 @@ def main() -> None:
         "jockey_surface_market_strength", "trainer_surface_market_strength",
         "class_fit_strength", "layoff_strength",
     ):
-        assert key in FEATURE_COLS and 0 <= profile[key] <= 1, key
+        assert key in profile and 0 <= profile[key] <= 1, key
     assert context["distanceM"] == 2000
     assert isinstance(market_score_from_model(profile, context, {}), float)
 

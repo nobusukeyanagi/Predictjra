@@ -17,6 +17,13 @@ from pathlib import Path
 
 import update_races as legacy
 from predict_engine import MODEL_VERSION, build_prediction, fetch_rich_card
+from market_history import (
+    apply_updates as apply_market_updates,
+    enrich_card_with_market_history,
+    load_market_history,
+    result_updates as market_result_updates,
+    save_market_history,
+)
 
 JST = legacy.JST
 
@@ -27,6 +34,13 @@ def write_diagnostics(path: str | None, payload: dict) -> None:
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def is_debut_race_record(race: dict | None) -> bool:
+    if not race:
+        return False
+    title = str(((race.get("modelMeta") or {}).get("indexDetail") or {}).get("title") or "")
+    return "新馬" in title
 
 
 def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
@@ -41,9 +55,20 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
     existing = {r["raceId"]: r for r in day["races"]}
     staged: list[dict] = []
     errors: list[dict] = []
+    excluded_debut_ids: set[str] = set()
+    removed_existing_debuts = 0
+    market_payload = load_market_history()
 
     for race_id in ids:
         existing_race = existing.get(race_id)
+        if is_debut_race_record(existing_race):
+            excluded_debut_ids.add(race_id)
+            removed_existing_debuts += 1
+            diagnostics["races"].append({
+                "raceId": race_id, "status": "debut-excluded", "reason": "新馬戦"
+            })
+            print(f"EXCLUDE {race_id}: 新馬戦")
+            continue
         current_prediction = bool(
             existing_race
             and existing_race.get("prediction")
@@ -95,7 +120,24 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
                 legacy.selenium_html,
             )
             rich_card["targetDate"] = target.isoformat()
+            if "新馬" in str(rich_card.get("raceName") or ""):
+                excluded_debut_ids.add(race_id)
+                diagnostics["races"].append({
+                    "raceId": race_id,
+                    "status": "debut-excluded",
+                    "raceName": rich_card.get("raceName"),
+                })
+                print(f"EXCLUDE {race_id}: {rich_card.get('raceName')} (no historical prediction)")
+                continue
+            odds_attached = enrich_card_with_market_history(
+                rich_card, market_payload, target.isoformat()
+            )
             built = build_prediction(rich_card)
+            built["modelMeta"]["marketHorseIds"] = {
+                str(int(e["no"])): str(e.get("horseId") or "")
+                for e in rich_card.get("entries", []) if e.get("horseId")
+            }
+            built["modelMeta"]["historicalOddsAttached"] = int(odds_attached)
             prediction = built["prediction"]
 
             # 枠番 is a deterministic function of horse number and field size.
@@ -174,7 +216,8 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
         )
     }
     staged_ids = {r["raceId"] for r in staged}
-    missing = set(ids) - already_ok - staged_ids
+    required_ids = set(ids) - excluded_debut_ids
+    missing = required_ids - already_ok - staged_ids
     if missing:
         diagnostics["publishBlocked"] = True
         diagnostics["missingRaceIds"] = sorted(missing)
@@ -187,6 +230,8 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
     staged_map = {r["raceId"]: r for r in staged}
     new_races = []
     for rid in ids:
+        if rid in excluded_debut_ids:
+            continue
         if rid in staged_map:
             new_races.append(staged_map[rid])
         elif rid in existing:
@@ -209,8 +254,9 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
         )
 
     day["races"] = new_races
+    diagnostics["excludedDebutRaceIds"] = sorted(excluded_debut_ids)
     diagnostics["publishBlocked"] = False
-    return len(staged)
+    return len(staged) + removed_existing_debuts
 
 
 def result_day(data: dict, target: date, diagnostics: dict) -> int:
@@ -226,6 +272,8 @@ def result_day(data: dict, target: date, diagnostics: dict) -> int:
     unresolved: list[str] = []
     errors: list[dict] = []
     cancelled: list[dict] = []
+    market_payload = load_market_history()
+    pending_market_updates: list[dict] = []
 
     for original in day.get("races", []):
         race = copy.deepcopy(original)
@@ -241,6 +289,9 @@ def result_day(data: dict, target: date, diagnostics: dict) -> int:
             if race.get("status") in {"hit", "miss"} and race.get("result"):
                 legacy.validate_result_payload(race["result"], race_id)
                 staged_races.append(race)
+                pending_market_updates.extend(
+                    market_result_updates(race, race["result"], target.isoformat())
+                )
                 diagnostics["races"].append({
                     "raceId": race_id,
                     "status": "already-finalized",
@@ -290,6 +341,9 @@ def result_day(data: dict, target: date, diagnostics: dict) -> int:
                 **race.get("dataSources", {}),
                 "result": result_source,
             }
+            pending_market_updates.extend(
+                market_result_updates(race, result, target.isoformat())
+            )
             staged_races.append(race)
             changed += 1
 
@@ -330,6 +384,13 @@ def result_day(data: dict, target: date, diagnostics: dict) -> int:
             "result update incomplete; publication blocked for race IDs: "
             + ", ".join(sorted(set(unresolved)))
         )
+
+    market_changed = apply_market_updates(
+        market_payload, pending_market_updates, target.isoformat()
+    )
+    if market_changed:
+        save_market_history(market_payload)
+    diagnostics["marketHistoryUpdates"] = market_changed
 
     day["races"] = staged_races
     diagnostics["publishBlocked"] = False

@@ -651,13 +651,69 @@ def parse_trifectas_generic(soup: BeautifulSoup) -> list[dict]:
     return combos
 
 
+def parse_runner_market_generic(soup: BeautifulSoup) -> list[dict]:
+    """Parse final runner odds/popularity from a result table when exposed by the source."""
+    page_text = soup.get_text(" ", strip=True)
+    sd = re.search(r"(芝|ダ|障(?:害)?)\s*(\d{3,4})m?", page_text)
+    surface = ""
+    distance = None
+    if sd:
+        surface = "障害" if "障" in sd.group(1) else ("ダート" if "ダ" in sd.group(1) else "芝")
+        distance = int(sd.group(2))
+
+    for table in soup.find_all("table"):
+        header_cells = None
+        for row in table.find_all("tr"):
+            cells = row.find_all(["th", "td"], recursive=False)
+            headers = [clean(c.get_text(" ", strip=True)) for c in cells]
+            if any("馬番" in h for h in headers) and any(("単勝" in h or "オッズ" in h) for h in headers) and any("人気" in h for h in headers):
+                header_cells = headers
+                break
+        if not header_cells:
+            continue
+        horse_i = next((i for i, h in enumerate(header_cells) if "馬番" in h), None)
+        odds_i = next((i for i, h in enumerate(header_cells) if "単勝" in h or "オッズ" in h), None)
+        pop_i = next((i for i, h in enumerate(header_cells) if "人気" in h), None)
+        if None in (horse_i, odds_i, pop_i):
+            continue
+        rows = []
+        for row in table.find_all("tr"):
+            cells = row.find_all(["th", "td"], recursive=False)
+            if len(cells) <= max(horse_i, odds_i, pop_i):
+                continue
+            hm = re.search(r"(?<!\d)(\d{1,2})(?!\d)", clean(cells[horse_i].get_text(" ", strip=True)))
+            om = re.search(r"(\d+(?:\.\d+)?)", clean(cells[odds_i].get_text(" ", strip=True)).replace(",", ""))
+            pm = re.search(r"(?<!\d)(\d{1,2})(?!\d)", clean(cells[pop_i].get_text(" ", strip=True)))
+            if not hm or not om:
+                continue
+            horse = int(hm.group(1))
+            odds = float(om.group(1))
+            popularity = int(pm.group(1)) if pm else None
+            if 1 <= horse <= 18 and odds > 0:
+                rows.append({
+                    "horse": horse,
+                    "odds": odds,
+                    "popularity": popularity,
+                    "surface": surface,
+                    "distance": distance,
+                })
+        if len(rows) >= 2:
+            dedup = {int(r["horse"]): r for r in rows}
+            return [dedup[k] for k in sorted(dedup)]
+    return []
+
+
 def parse_result_generic(html: str) -> dict | None:
     soup = BeautifulSoup(html, "lxml")
     places = parse_result_places_generic(soup)
     trifectas = parse_trifectas_generic(soup)
     if not places or not trifectas:
         return None
-    return {"places": places, "trifectas": trifectas}
+    return {
+        "places": places,
+        "trifectas": trifectas,
+        "runnerMarket": parse_runner_market_generic(soup),
+    }
 
 
 def parse_result_netkeiba(html: str) -> dict | None:
@@ -692,7 +748,11 @@ def parse_result_netkeiba(html: str) -> dict | None:
 
     places = [place_map[p] for p in sorted(place_map)]
     trifectas = parse_trifectas_generic(soup)
-    return {"places": places, "trifectas": trifectas} if places and trifectas else None
+    return {
+        "places": places,
+        "trifectas": trifectas,
+        "runnerMarket": parse_runner_market_generic(soup),
+    } if places and trifectas else None
 
 
 def validate_result_payload(result: dict, race_id: str = "?") -> None:

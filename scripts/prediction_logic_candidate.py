@@ -14,35 +14,45 @@ import math
 from statistics import mean
 from typing import Iterable
 
-MODEL_VERSION = "predictjra-live-index-v3-run-flow-power"
-POPULARITY_MODEL_VERSION = "predictjra-popularity-v5-temporal-context-market-memory"
+MODEL_VERSION = "predictjra-live-index-v3-run-flow-power-v54-prior-odds-top3"
+POPULARITY_MODEL_VERSION = "predictjra-popularity-v54-hgb-prior-odds"
 
+# Leakage-safe Top3 classifier inputs. Every field is available when the draw is fixed.
+# Current-race odds / actual popularity / bodyweight are intentionally absent.
 FEATURE_COLS = [
-    "total_rank_strength",
-    "recent_rank_strength",
+    "recent_index",
+    "total_index",
+    "current_run",
+    "current_flow",
+    "current_power",
+    "today_index",
     "last_market_strength",
     "recent3_market_strength",
     "recent5_market_strength",
-    "horse_market_mean_strength",
     "market_trend_strength",
     "market_stability_strength",
     "surface_market_strength",
-    "distance_market_strength",
     "surface_distance_market_strength",
     "last_finish_strength",
     "recent_finish_strength",
-    "surprise_strength",
-    "jockey_market_strength",
-    "trainer_market_strength",
-    "jockey_surface_market_strength",
-    "trainer_surface_market_strength",
+    "last_odds_strength",
+    "recent3_odds_strength",
+    "recent5_odds_strength",
+    "best5_odds_strength",
+    "odds_trend_strength",
+    "surface_odds_strength",
+    "surface_distance_odds_strength",
+    "history_count",
     "age_strength",
     "carried_change_strength",
     "class_fit_strength",
     "layoff_strength",
-    "last_lowpop_win",
-    "handicap_rebound_risk",
+    "jockey_market_strength",
+    "trainer_market_strength",
+    "jockey_surface_market_strength",
+    "trainer_surface_market_strength",
 ]
+
 
 SELECTION_RULE_TEXT = (
     "danger=lowest total among estimated-popularity top3; "
@@ -149,6 +159,21 @@ def market_strength(popularity: int | None, field: int | None) -> float:
     if not isinstance(popularity, int) or not isinstance(field, int) or field <= 1:
         return 0.5
     return clamp01(1 - (popularity - 1) / (field - 1))
+
+
+def odds_strength(odds) -> float:
+    """Convert a historical win-odds price into a bounded support strength.
+
+    1.0 is extremely short support, 0.0 is roughly 100x or longer.  This uses only
+    odds from races strictly before the target date.
+    """
+    try:
+        value = float(odds)
+    except (TypeError, ValueError):
+        return 0.5
+    if not math.isfinite(value) or value <= 0:
+        return 0.5
+    return clamp01(1.0 - math.log10(max(value, 1.0)) / 2.0)
 
 
 def market_recency(values: Iterable[float], limit: int = 5) -> float:
@@ -619,6 +644,23 @@ def build_market_profile(
         market_trend = 0.5
         market_stability = 0.5
 
+    odds_pairs = []
+    for run in runs:
+        raw_odds = _float_or_nan(run.get("odds"))
+        if math.isfinite(raw_odds) and raw_odds > 0:
+            odds_pairs.append((run, odds_strength(raw_odds)))
+    odds_values = [value for _, value in odds_pairs]
+    last_odds = odds_values[0] if odds_values else 0.5
+    recent3_odds = market_recency(odds_values, 3) if odds_values else 0.5
+    recent5_odds = market_recency(odds_values, 5) if odds_values else 0.5
+    best5_odds = max(odds_values[:5]) if odds_values else 0.5
+    if len(odds_values) >= 2:
+        older_odds = odds_values[1:5]
+        odds_trend = clamp01(0.5 + (last_odds - mean(older_odds)) / 2.0)
+    else:
+        odds_trend = 0.5
+    history_count = clamp01(len(odds_values[:5]) / 5.0)
+
     current_kind = _surface_kind(current_surface) if current_surface else ""
     current_distance_num = _float_or_nan(current_distance)
     surface_values: list[float] = []
@@ -644,6 +686,26 @@ def build_market_profile(
     distance_market = _shrunk_recent_mean(distance_values, recent5_market, 2.0)
     surface_distance_market = _shrunk_recent_mean(
         surface_distance_values, recent5_market, 3.0
+    )
+
+    surface_odds_values: list[float] = []
+    surface_distance_odds_values: list[float] = []
+    for run, strength in odds_pairs:
+        run_kind = _surface_kind(str(run.get("surface") or ""))
+        run_distance = _float_or_nan(run.get("distance"))
+        surface_match = bool(current_kind) and run_kind == current_kind
+        distance_match = (
+            math.isfinite(current_distance_num)
+            and math.isfinite(run_distance)
+            and abs(run_distance - current_distance_num) <= 300.0
+        )
+        if surface_match:
+            surface_odds_values.append(strength)
+        if surface_match and distance_match:
+            surface_distance_odds_values.append(strength)
+    surface_odds = _shrunk_recent_mean(surface_odds_values, recent5_odds, 2.0)
+    surface_distance_odds = _shrunk_recent_mean(
+        surface_distance_odds_values, recent5_odds, 3.0
     )
 
     last = runs[0] if runs else {}
@@ -738,6 +800,14 @@ def build_market_profile(
         "surface_distance_market_strength": clamp01(surface_distance_market),
         "last_finish_strength": clamp01(last_finish),
         "recent_finish_strength": clamp01(recent_finish),
+        "last_odds_strength": clamp01(last_odds),
+        "recent3_odds_strength": clamp01(recent3_odds),
+        "recent5_odds_strength": clamp01(recent5_odds),
+        "best5_odds_strength": clamp01(best5_odds),
+        "odds_trend_strength": clamp01(odds_trend),
+        "surface_odds_strength": clamp01(surface_odds),
+        "surface_distance_odds_strength": clamp01(surface_distance_odds),
+        "history_count": clamp01(history_count),
         "surprise_strength": clamp01(surprise_strength),
         "jockey_market_strength": clamp01(jockey_market_strength),
         "trainer_market_strength": clamp01(trainer_market_strength),
@@ -761,6 +831,33 @@ def build_market_profile(
         "distanceM": int(round(current_distance_num)) if math.isfinite(current_distance_num) else None,
     }
     return factors, context
+
+
+def build_popularity_feature_row(horse: dict, factors: dict) -> dict:
+    """Return the exact normalized feature vector used by v54 Top3 classifier."""
+    return {
+        "recent_index": clamp01(float(horse.get("recentIndex", 50)) / 100.0),
+        "total_index": clamp01(float(horse.get("total", 50)) / 100.0),
+        "current_run": clamp01(float(horse.get("currentRun", 50)) / 100.0),
+        "current_flow": clamp01(float(horse.get("currentFlow", 50)) / 100.0),
+        "current_power": clamp01(float(horse.get("currentPower", 50)) / 100.0),
+        "today_index": clamp01(float(horse.get("today", 50)) / 100.0),
+        **{key: clamp01(float(factors.get(key, 0.5))) for key in FEATURE_COLS if key not in {
+            "recent_index", "total_index", "current_run", "current_flow", "current_power", "today_index"
+        }},
+    }
+
+
+def fallback_top3_score(features: dict) -> float:
+    """Cold-start / model-file fallback tuned only from pre-race information."""
+    return float(
+        0.35 * features.get("recent3_market_strength", 0.5)
+        + 0.20 * features.get("last_market_strength", 0.5)
+        + 0.15 * features.get("recent_index", 0.5)
+        + 0.12 * features.get("total_index", 0.5)
+        + 0.10 * features.get("recent3_odds_strength", 0.5)
+        + 0.08 * features.get("jockey_market_strength", 0.5)
+    )
 
 
 def market_context_adjustment(factors: dict, context: dict) -> float:

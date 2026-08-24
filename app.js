@@ -420,6 +420,11 @@ function judgement(race, prediction) {
     : '';
 }
 
+function isDebutRace(race) {
+  const title = race?.modelMeta?.indexDetail?.title || '';
+  return String(title).includes('新馬');
+}
+
 function daySummary(day) {
   const finished = day.races.filter(r => r.status === 'hit' || r.status === 'miss');
   const hits = finished.filter(r => r.status === 'hit').length;
@@ -918,7 +923,10 @@ async function boot() {
     const res = await fetch(`./data/races.json?v=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    const days = [...(data.days || [])].sort((a,b) => b.date.localeCompare(a.date));
+    const days = [...(data.days || [])]
+      .map(day => ({ ...day, races: (day.races || []).filter(race => !isDebutRace(race)) }))
+      .filter(day => day.races.length > 0)
+      .sort((a,b) => b.date.localeCompare(a.date));
     days.forEach(day => (day.races || []).forEach(syncRaceDetailFromData));
 
     INDEX_MODAL_RACE_ORDER = days.flatMap(day =>

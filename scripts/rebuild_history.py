@@ -36,6 +36,8 @@ from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
+from joblib import dump as joblib_dump
+from sklearn.ensemble import HistGradientBoostingClassifier
 
 from prediction_logic_candidate import (
     FEATURE_COLS,
@@ -44,8 +46,9 @@ from prediction_logic_candidate import (
     SELECTION_RULE_TEXT,
     build_index_core,
     build_market_profile,
-    market_context_adjustment,
-    market_score_from_model,
+    build_popularity_feature_row,
+    fallback_top3_score,
+    odds_strength,
     parse_class_level,
     prediction_target_count,
     rank_strengths,
@@ -64,7 +67,7 @@ TRACK_ORDER = {name: i for i, name in enumerate(TRACKS.values(), start=1)}
 # prediction score override is allowed; all races use prediction_logic_candidate.py.
 SAPPORO11_ID = "202601010811"
 
-REBUILD_VERSION = "predictjra-history-generic-v9-temporal-context-popularity"
+REBUILD_VERSION = "predictjra-history-v54-prior-odds-top3-debut-excluded"
 SOURCE_REPO = "sugaimo15/keibayosoku"
 SOURCE_REF = "claude/horse-racing-predictor-ak6crm"
 
@@ -288,6 +291,13 @@ def load_target_history(source_root: Path, target_horse_ids: set[str]) -> pd.Dat
         hist.get("popularity", pd.Series(index=hist.index, dtype=float)),
         errors="coerce",
     )
+    hist["_win_odds_num"] = pd.to_numeric(
+        hist.get("win_odds", pd.Series(index=hist.index, dtype=float)),
+        errors="coerce",
+    )
+    hist["_odds_strength"] = hist["_win_odds_num"].apply(
+        lambda v: odds_strength(v) if pd.notna(v) and float(v) > 0 else np.nan
+    )
     pop_denom = (hist["_field_size"] - 1).replace(0, np.nan)
     hist["_market_strength"] = (
         1 - (hist["_popularity"] - 1) / pop_denom
@@ -460,6 +470,7 @@ def normalize_historical_run(row: pd.Series) -> dict:
         "finish": finish,
         "field": field,
         "popularity": popularity,
+        "odds": float(row.get("_win_odds_num")) if pd.notna(row.get("_win_odds_num")) else math.nan,
         "classLevel": parse_class_level(race_name),
         "carriedWeight": carried,
         "surface": surface,
@@ -756,13 +767,11 @@ def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: p
             current_distance=current_distance,
             current_date=date_s,
         )
+        horse_detail = next(h for h in detail_horses if int(h["no"]) == no)
+        feature_row = build_popularity_feature_row(horse_detail, factors)
         market_rows.append({
             "horse_number": no,
-            **factors,
-            "_current_class_level": int(context["classLevel"]),
-            "_last_class_level": int(context["lastClassLevel"]),
-            "_max_recent_class_level": int(context["maxRecentClassLevel"]),
-            "_assigned_weight_delta": float(context["assignedWeightDelta"]),
+            **feature_row,
             "_recent_index": float(recent_map.get(no, 72.0)),
             "_total_display": int(total_display[no]),
         })
@@ -858,13 +867,13 @@ def _context_adjustments(features: pd.DataFrame) -> np.ndarray:
     return np.asarray(adjustments, dtype=float)
 
 
-def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[int, int]], dict]:
-    """Estimate popularity with strict past->future validation.
+def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[int, int]], dict, HistGradientBoostingClassifier]:
+    """Estimate Top3 popularity with strict past->future validation.
 
-    Unlike v4 leave-one-race-out, the target date and every later date are excluded
-    from training.  The first date uses the public fixed market-memory blend; later
-    dates gradually blend an expanding-window ridge model as teacher history grows.
-    This makes the audit a much closer proxy for future live races.
+    v54 changes the objective from rank regression to direct Top3 classification and adds
+    previous-race win-odds memory.  Every validation race is scored by a classifier trained
+    only on dates strictly earlier than that race date.  New-race (debut) races are removed
+    before this function is called.
     """
     teacher_parts = []
     for rid, race in races.items():
@@ -872,14 +881,10 @@ def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[i
         actual_starter_count = len(race.actual_popularity)
         if actual_starter_count < 2:
             raise ValueError(f"{rid}: too few actual starters for popularity calibration")
-
         f["field_size"] = actual_starter_count
         f["actual_popularity"] = f["horse_number"].map(race.actual_popularity)
         f = f[f["actual_popularity"].notna()].copy()
-        f["market_strength"] = [
-            target_market_strength(int(p), actual_starter_count)
-            for p in f["actual_popularity"]
-        ]
+        f["is_top3"] = (f["actual_popularity"].astype(int) <= 3).astype(int)
         f["_teacher_date"] = pd.Timestamp(race.date)
         teacher_parts.append(f)
     teacher = pd.concat(teacher_parts, ignore_index=True)
@@ -892,26 +897,36 @@ def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[i
     sapporo_case: dict = {}
     train_race_counts: list[int] = []
 
-    ridge_value = 6.0
+    model_params = {
+        "max_iter": 100,
+        "max_leaf_nodes": 12,
+        "learning_rate": 0.04,
+        "l2_regularization": 4.0,
+        "min_samples_leaf": 40,
+        "random_state": 1,
+    }
+
     for rid, race in sorted(races.items(), key=lambda item: (item[1].date, item[0])):
         target_date = pd.Timestamp(race.date)
         train = teacher[teacher["_teacher_date"] < target_date]
         train_races = int(train["race_id"].nunique()) if not train.empty else 0
         train_race_counts.append(train_races)
-
         feats = race.popularity_features.copy()
-        fallback = _fallback_market_scores(feats)
-        if len(train) >= 120 and train_races >= 8:
-            beta = fit_ridge(train, ridge=ridge_value)
-            calibrated = predict_strength(feats, beta) + _context_adjustments(feats)
-            # Early expanding windows are noisy.  Increase learned-model weight only
-            # after multiple full cards have accumulated.
-            learned_weight = float(np.clip(train_races / 180.0, 0.35, 0.82))
-            feats["_pred_market"] = (
-                learned_weight * calibrated + (1.0 - learned_weight) * fallback
+
+        if len(train) >= 500 and train_races >= 8:
+            classifier = HistGradientBoostingClassifier(**model_params)
+            classifier.fit(
+                train[FEATURE_COLS].astype(float).fillna(0.5).to_numpy(),
+                train["is_top3"].astype(int).to_numpy(),
             )
+            feats["_pred_market"] = classifier.predict_proba(
+                feats[FEATURE_COLS].astype(float).fillna(0.5).to_numpy()
+            )[:, 1]
         else:
-            feats["_pred_market"] = fallback
+            feats["_pred_market"] = [
+                fallback_top3_score({name: float(row.get(name, 0.5)) for name in FEATURE_COLS})
+                for _, row in feats.iterrows()
+            ]
 
         feats = feats.sort_values(
             ["_pred_market", "_recent_index", "_total_display", "horse_number"],
@@ -925,51 +940,39 @@ def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[i
         estimates[rid] = est
 
         actual = race.actual_popularity
-        starter_order = [
-            int(no) for no in feats["horse_number"].tolist()
-            if int(no) in actual
-        ]
+        starter_order = [int(no) for no in feats["horse_number"].tolist() if int(no) in actual]
         est_starter = {no: i + 1 for i, no in enumerate(starter_order)}
-
         for no, ep in est_starter.items():
             abs_errors.append(abs(ep - actual[no]))
 
-        est_top3 = {no for no, p in est_starter.items() if p <= 3}
-        act_top3 = {no for no, p in actual.items() if p <= 3}
+        est_top3 = {no for no, rank in est_starter.items() if rank <= 3}
+        act_top3 = {no for no, rank in actual.items() if rank <= 3}
         top_n = min(3, len(actual))
-        top3_overlaps.append(
-            len(est_top3 & act_top3) / top_n if top_n else 0.0
-        )
-        actual_top1 = next((no for no, p in actual.items() if p == 1), None)
-        estimated_top1 = next((no for no, p in est_starter.items() if p == 1), None)
+        top3_overlaps.append(len(est_top3 & act_top3) / top_n if top_n else 0.0)
+        actual_top1 = next((no for no, rank in actual.items() if rank == 1), None)
+        estimated_top1 = next((no for no, rank in est_starter.items() if rank == 1), None)
         top1_hits.append(float(actual_top1 == estimated_top1))
-        race_errors = [
-            abs(est_starter[no] - actual[no])
-            for no in est_starter
-        ]
-        large_errors.extend(float(err >= 5) for err in race_errors)
+        large_errors.extend(float(abs(est_starter[no] - actual[no]) >= 5) for no in est_starter)
 
         if rid == SAPPORO11_ID:
             sapporo_case = {
                 "zendanHayabusaHorseNumber": 12,
                 "zendanHayabusaEstimatedPopularity": int(est_starter.get(12, -1)),
                 "zendanHayabusaActualPopularity": int(actual.get(12, -1)),
-                "estimatedTop3": sorted(
-                    [int(no) for no, p in est_starter.items() if p <= 3],
-                    key=lambda no: est_starter[no],
-                ),
-                "actualTop3": sorted(
-                    [int(no) for no, p in actual.items() if p <= 3],
-                    key=lambda no: actual[no],
-                ),
+                "estimatedTop3": sorted([int(no) for no, rank in est_starter.items() if rank <= 3], key=lambda no: est_starter[no]),
+                "actualTop3": sorted([int(no) for no, rank in actual.items() if rank <= 3], key=lambda no: actual[no]),
             }
 
-    # Future live model may use every completed teacher race because the target is later.
-    final_beta = fit_ridge(teacher, ridge=ridge_value)
+    final_classifier = HistGradientBoostingClassifier(**model_params)
+    final_classifier.fit(
+        teacher[FEATURE_COLS].astype(float).fillna(0.5).to_numpy(),
+        teacher["is_top3"].astype(int).to_numpy(),
+    )
     metrics = {
-        "method": "expanding-window past-only validation with deterministic cold-start blend",
-        "ridge": ridge_value,
+        "method": "expanding-window past-only HistGradientBoosting Top3 classifier; debut races excluded",
         "features": FEATURE_COLS,
+        "classifier": "HistGradientBoostingClassifier",
+        "classifierParams": model_params,
         "meanAbsolutePopularityRankError": round(float(np.mean(abs_errors)), 4),
         "medianAbsolutePopularityRankError": round(float(np.median(abs_errors)), 4),
         "maxAbsolutePopularityRankError": int(np.max(abs_errors)) if abs_errors else 0,
@@ -977,10 +980,6 @@ def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[i
         "meanTop3OverlapRate": round(float(np.mean(top3_overlaps)), 4),
         "top1Accuracy": round(float(np.mean(top1_hits)), 4) if top1_hits else 0.0,
         "sapporo11CaseStudy": sapporo_case,
-        "futureModelCoefficients": {
-            "intercept": float(final_beta[0]),
-            **{name: float(v) for name, v in zip(FEATURE_COLS, final_beta[1:])},
-        },
         "teacherRows": int(len(teacher)),
         "teacherRaces": int(teacher["race_id"].nunique()),
         "validationTrainRaceMin": int(min(train_race_counts)) if train_race_counts else 0,
@@ -988,8 +987,7 @@ def estimate_popularities(races: dict[str, RaceModel]) -> tuple[dict[str, dict[i
         "sameDayLabelsUsed": False,
         "futureDateLabelsUsed": False,
     }
-    return estimates, metrics
-
+    return estimates, metrics, final_classifier
 
 def build_future_entity_priors(history: pd.DataFrame, target_dates: list[str]) -> dict:
     """Market priors for current jockey/trainer, trained only on past race popularity."""
@@ -1251,6 +1249,8 @@ def main() -> int:
     parser.add_argument("--data-path", default="data/races.json", type=Path)
     parser.add_argument("--audit-path", default="data/rebuild_audit.json", type=Path)
     parser.add_argument("--pop-model-path", default="data/popularity_model.json", type=Path)
+    parser.add_argument("--pop-model-bin-path", default="data/popularity_model_v54.joblib", type=Path)
+    parser.add_argument("--market-history-path", default="data/market_history.json", type=Path)
     parser.add_argument("--time-baseline-path", default="data/time_baselines.json", type=Path)
     parser.add_argument("--diagnostic-path", default=DIAGNOSTIC_PATH_DEFAULT, type=Path)
     args = parser.parse_args()
@@ -1286,6 +1286,7 @@ def main() -> int:
     target_files: list[tuple[str, Path]] = []
     target_horse_ids: set[str] = set()
     expected_by_date: dict[str, int] = {}
+    excluded_debut_races: list[dict] = []
 
     for date_s in target_dates:
         pred_dir = source_root / "data" / "predictions" / date_s.replace("-", "")
@@ -1295,16 +1296,25 @@ def main() -> int:
         )
         if not files:
             raise RuntimeError(f"{date_s}: no valid 12-digit race prediction files")
-        expected_by_date[date_s] = len(files)
+        kept_for_date = 0
         for f in files:
-            target_files.append((date_s, f))
             card_path = (
                 source_root / "data" / "race_cards" / date_s.replace("-", "")
                 / f"{f.stem}.csv"
             )
             card = read_csv(card_path)
+            race_name = clean_str(card.get("race_name", pd.Series([""])).iloc[0])
+            if "新馬" in race_name:
+                excluded_debut_races.append({
+                    "date": date_s, "raceId": f.stem, "raceName": race_name
+                })
+                print(f"EXCLUDE DEBUT {f.stem} {race_name}")
+                continue
+            target_files.append((date_s, f))
+            kept_for_date += 1
             if "horse_id" in card.columns:
                 target_horse_ids.update(card["horse_id"].apply(clean_str))
+        expected_by_date[date_s] = kept_for_date
 
     expected_total_races = sum(expected_by_date.values())
     print(
@@ -1361,6 +1371,7 @@ def main() -> int:
             "requestedDates": discovery["requestedDates"],
             "skippedDates": discovery["skippedDates"],
             "ignoredFiles": discovery["ignoredFiles"],
+            "excludedDebutRaces": excluded_debut_races,
             "expectedRaces": expected_total_races,
             "builtRaces": len(races),
             "errorCount": len(build_errors),
@@ -1380,7 +1391,7 @@ def main() -> int:
             f"({len(races)}/{expected_total_races} built).\n{summary}"
         )
 
-    estimated_pops, pop_metrics = estimate_popularities(races)
+    estimated_pops, pop_metrics, future_classifier = estimate_popularities(races)
     future_entity_priors = build_future_entity_priors(history, target_dates)
 
     data = json.loads(args.data_path.read_text(encoding="utf-8"))
@@ -1615,6 +1626,7 @@ def main() -> int:
         "requestedDates": discovery["requestedDates"],
         "skippedDates": discovery["skippedDates"],
         "ignoredFiles": discovery["ignoredFiles"],
+        "excludedDebutRaces": excluded_debut_races,
         "sourceRepository": SOURCE_REPO,
         "sourceRef": SOURCE_REF,
         "sourceCommit": source_sha,
@@ -1655,6 +1667,10 @@ def main() -> int:
                 "cancelled/excluded horses are retained in pre-race prediction candidates "
                 "but omitted from final-popularity teacher rows and validation metrics"
             ),
+            "debutRaceHandling": (
+                "race names containing 新馬 are excluded from prediction publication, stake, "
+                "return/recovery aggregation and popularity-model validation"
+            ),
             "indexDetailHistoryCutoff": (
                 "previous-run/detail indices use only cached archived race results with date < target race date"
             ),
@@ -1690,8 +1706,9 @@ def main() -> int:
         "teacherRaces": pop_metrics["teacherRaces"],
         "teacherRows": pop_metrics["teacherRows"],
         "features": pop_metrics["features"],
-        "ridge": pop_metrics["ridge"],
-        "coefficients": pop_metrics["futureModelCoefficients"],
+        "classifier": pop_metrics["classifier"],
+        "classifierParams": pop_metrics["classifierParams"],
+        "classifierFile": "data/popularity_model_v54.joblib",
         "entityPriors": future_entity_priors,
         "validation": {
             "method": pop_metrics["method"],
@@ -1709,6 +1726,7 @@ def main() -> int:
         },
         "allowedHistoricalMarketInputs": [
             "previous-race popularity",
+            "previous-race win odds",
             "previous assigned weight",
             "historical jockey market tendency",
             "historical trainer market tendency",
@@ -1732,6 +1750,7 @@ def main() -> int:
     args.data_path.parent.mkdir(parents=True, exist_ok=True)
     args.audit_path.parent.mkdir(parents=True, exist_ok=True)
     args.pop_model_path.parent.mkdir(parents=True, exist_ok=True)
+    args.pop_model_bin_path.parent.mkdir(parents=True, exist_ok=True)
     args.time_baseline_path.parent.mkdir(parents=True, exist_ok=True)
     args.data_path.write_text(
         json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -1742,6 +1761,7 @@ def main() -> int:
     args.pop_model_path.write_text(
         json.dumps(pop_model, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    joblib_dump(future_classifier, args.pop_model_bin_path)
     args.time_baseline_path.write_text(
         json.dumps(live_time_baselines, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
@@ -1755,6 +1775,7 @@ def main() -> int:
             "requestedDates": discovery["requestedDates"],
             "skippedDates": discovery["skippedDates"],
             "ignoredFiles": discovery["ignoredFiles"],
+            "excludedDebutRaces": excluded_debut_races,
             "expectedRaces": expected_total_races,
             "builtRaces": len(audit_races),
             "errorCount": 0,

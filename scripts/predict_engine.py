@@ -30,13 +30,18 @@ from datetime import date
 from pathlib import Path
 from typing import Callable
 
+import numpy as np
+from joblib import load as joblib_load
 from bs4 import BeautifulSoup
 
 from prediction_logic_production import (
+    FEATURE_COLS,
     MODEL_VERSION,
     SELECTION_RULE_TEXT,
     build_index_core,
     build_market_profile,
+    build_popularity_feature_row,
+    fallback_top3_score,
     clamp,
     clamp01,
     expected_popularity_from_scores,
@@ -140,9 +145,30 @@ def load_popularity_model() -> dict:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except Exception:
             continue
-        if "coefficients" in payload and "features" in payload:
+        if "features" in payload or "entityPriors" in payload:
             return payload
     return {}
+
+
+_POPULARITY_CLASSIFIER = None
+_POPULARITY_CLASSIFIER_LOADED = False
+
+
+def load_popularity_classifier():
+    global _POPULARITY_CLASSIFIER, _POPULARITY_CLASSIFIER_LOADED
+    if _POPULARITY_CLASSIFIER_LOADED:
+        return _POPULARITY_CLASSIFIER
+    _POPULARITY_CLASSIFIER_LOADED = True
+    path = Path(__file__).resolve().parents[1] / "data" / "popularity_model_v54.joblib"
+    try:
+        model = joblib_load(path)
+        if not hasattr(model, "predict_proba"):
+            raise TypeError("classifier does not expose predict_proba")
+        _POPULARITY_CLASSIFIER = model
+    except Exception as exc:
+        print(f"POPULARITY_MODEL_FALLBACK: {exc}")
+        _POPULARITY_CLASSIFIER = None
+    return _POPULARITY_CLASSIFIER
 
 
 def load_time_baselines() -> dict:
@@ -539,8 +565,10 @@ def build_prediction(card: dict) -> dict:
     total_rank_strength, recent_rank_strength = rank_strengths(detail_horses, totals)
     entry_by_no = {int(e["no"]): e for e in entries}
 
+    feature_rows: list[dict] = []
+    feature_horses: list[dict] = []
     for h in detail_horses:
-        no = int(h["no"] )
+        no = int(h["no"])
         entry = entry_by_no[no]
         jockey_market, jockey_surface_market = entity_context_prior(
             popularity_model, "jockey",
@@ -552,46 +580,45 @@ def build_prediction(card: dict) -> dict:
             entry.get("trainerId", ""), entry.get("trainerName", ""),
             card.get("surface", ""),
         )
-        try:
-            factors, context = build_market_profile(
-                runs_by_no.get(no, []),
-                total_rank_strength=total_rank_strength[no],
-                recent_rank_strength=recent_rank_strength[no],
-                current_carried_weight=parse_float(entry.get("currentCarriedWeight")),
-                jockey_market_strength=jockey_market,
-                trainer_market_strength=trainer_market,
-                jockey_surface_market_strength=jockey_surface_market,
-                trainer_surface_market_strength=trainer_surface_market,
-                age=entry.get("age"),
-                current_class_level=current_class_level,
-                current_surface=card.get("surface", ""),
-                current_distance=card.get("distanceM"),
-                current_date=card.get("targetDate") or date.today().isoformat(),
-            )
-        except TypeError as exc:
-            # Candidate and production are intentionally isolated.  While a v5
-            # candidate is being validated, live production can still be v4.
-            # Fall back only for the old signature; do not hide unrelated errors.
-            if "unexpected keyword argument" not in str(exc):
-                raise
-            factors, context = build_market_profile(
-                runs_by_no.get(no, []),
-                total_rank_strength=total_rank_strength[no],
-                recent_rank_strength=recent_rank_strength[no],
-                current_carried_weight=parse_float(entry.get("currentCarriedWeight")),
-                jockey_market_strength=jockey_market,
-                trainer_market_strength=trainer_market,
-                age=entry.get("age"),
-                current_class_level=current_class_level,
-            )
-        h["_popScore"] = market_score_from_model(factors, context, popularity_model)
+        factors, context = build_market_profile(
+            runs_by_no.get(no, []),
+            total_rank_strength=total_rank_strength[no],
+            recent_rank_strength=recent_rank_strength[no],
+            current_carried_weight=parse_float(entry.get("currentCarriedWeight")),
+            jockey_market_strength=jockey_market,
+            trainer_market_strength=trainer_market,
+            jockey_surface_market_strength=jockey_surface_market,
+            trainer_surface_market_strength=trainer_surface_market,
+            age=entry.get("age"),
+            current_class_level=current_class_level,
+            current_surface=card.get("surface", ""),
+            current_distance=card.get("distanceM"),
+            current_date=card.get("targetDate") or date.today().isoformat(),
+        )
+        feature_row = build_popularity_feature_row(h, factors)
+        feature_rows.append(feature_row)
+        feature_horses.append(h)
         h["popularityFactors"] = {
             key: round(float(value) * 100, 1) for key, value in factors.items()
         }
         h["popularityContext"] = {
             **context,
-            "model": popularity_model.get("version") or "fallback-market-memory",
+            "model": popularity_model.get("version") or "fallback-v54",
+            "historicalOddsRuns": int(round(feature_row.get("history_count", 0.0) * 5)),
         }
+
+    classifier = load_popularity_classifier()
+    if classifier is not None and feature_rows:
+        X = np.asarray(
+            [[float(row.get(name, 0.5)) for name in FEATURE_COLS] for row in feature_rows],
+            dtype=float,
+        )
+        probabilities = classifier.predict_proba(X)[:, 1]
+        for h, score in zip(feature_horses, probabilities):
+            h["_popScore"] = float(score)
+    else:
+        for h, row in zip(feature_horses, feature_rows):
+            h["_popScore"] = fallback_top3_score(row)
 
     expected_popularity = expected_popularity_from_scores(detail_horses)
     for h in detail_horses:
@@ -639,9 +666,9 @@ def build_prediction(card: dict) -> dict:
                      "近走60% + 今回40%; 今回=展開50%+コース50%"
             ),
             "popularityMethod": (
-                "market-memory v2: previous-race popularity, recent market memory, "
-                "ability rank, jockey/trainer market priors, age and assigned-weight change; "
-                "current odds/actual popularity/bodyweight are not used"
+                "v54 Top3 classifier: previous-race popularity + previous win odds, "
+                "recent ability indices, jockey/trainer historical market priors and context; "
+                "current-race odds/actual popularity/bodyweight are not used"
             ),
             "selectionRule": SELECTION_RULE_TEXT,
             "logicSource": "scripts/prediction_logic_production.py",

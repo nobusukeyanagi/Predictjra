@@ -1,8 +1,8 @@
 {
-  "version": "predictjra-popularity-v5-temporal-context-market-memory",
-  "logicSource": "scripts/prediction_logic_candidate.py",
-  "modelVersion": "predictjra-live-index-v3-run-flow-power",
-  "trainedAt": "2026-08-21T15:30:33+09:00",
+  "version": "predictjra-popularity-v54-hgb-prior-odds",
+  "logicSource": "scripts/prediction_logic_production.py",
+  "modelVersion": "predictjra-live-index-v3-run-flow-power-v54-prior-odds-top3",
+  "trainedAt": "2026-08-24T10:28:12+09:00",
   "teacherDates": [
     "2026-01-04",
     "2026-01-05",
@@ -73,62 +73,51 @@
     "2026-08-15",
     "2026-08-16"
   ],
-  "teacherRaces": 2226,
-  "teacherRows": 30829,
+  "teacherRaces": 2094,
+  "teacherRows": 29067,
   "features": [
-    "total_rank_strength",
-    "recent_rank_strength",
+    "recent_index",
+    "total_index",
+    "current_run",
+    "current_flow",
+    "current_power",
+    "today_index",
     "last_market_strength",
     "recent3_market_strength",
     "recent5_market_strength",
-    "horse_market_mean_strength",
     "market_trend_strength",
     "market_stability_strength",
     "surface_market_strength",
-    "distance_market_strength",
     "surface_distance_market_strength",
     "last_finish_strength",
     "recent_finish_strength",
-    "surprise_strength",
-    "jockey_market_strength",
-    "trainer_market_strength",
-    "jockey_surface_market_strength",
-    "trainer_surface_market_strength",
+    "last_odds_strength",
+    "recent3_odds_strength",
+    "recent5_odds_strength",
+    "best5_odds_strength",
+    "odds_trend_strength",
+    "surface_odds_strength",
+    "surface_distance_odds_strength",
+    "history_count",
     "age_strength",
     "carried_change_strength",
     "class_fit_strength",
     "layoff_strength",
-    "last_lowpop_win",
-    "handicap_rebound_risk"
+    "jockey_market_strength",
+    "trainer_market_strength",
+    "jockey_surface_market_strength",
+    "trainer_surface_market_strength"
   ],
-  "ridge": 6.0,
-  "coefficients": {
-    "intercept": -0.873378594483268,
-    "total_rank_strength": -0.09258004548636706,
-    "recent_rank_strength": 0.3345651904742588,
-    "last_market_strength": 0.10889486760451046,
-    "recent3_market_strength": 0.12480334657284484,
-    "recent5_market_strength": -0.12735862448647453,
-    "horse_market_mean_strength": 0.03910176651709884,
-    "market_trend_strength": 0.07643132335106177,
-    "market_stability_strength": 0.009957366341965137,
-    "surface_market_strength": 0.08558416515671197,
-    "distance_market_strength": 0.09313787169659482,
-    "surface_distance_market_strength": 0.06904147207298907,
-    "last_finish_strength": 0.17330053186726083,
-    "recent_finish_strength": 0.009352329573552452,
-    "surprise_strength": 0.032202832132475455,
-    "jockey_market_strength": 0.134190084150184,
-    "trainer_market_strength": 0.10140891085372825,
-    "jockey_surface_market_strength": 0.29522895352536566,
-    "trainer_surface_market_strength": 0.14694577895195032,
-    "age_strength": 0.1400702895757399,
-    "carried_change_strength": 0.09464972983352976,
-    "class_fit_strength": 0.2853448414765263,
-    "layoff_strength": 0.2078567588306557,
-    "last_lowpop_win": -0.0028226427095222805,
-    "handicap_rebound_risk": -0.0412784513975907
+  "classifier": "HistGradientBoostingClassifier",
+  "classifierParams": {
+    "max_iter": 100,
+    "max_leaf_nodes": 12,
+    "learning_rate": 0.04,
+    "l2_regularization": 4.0,
+    "min_samples_leaf": 40,
+    "random_state": 1
   },
+  "classifierFile": "data/popularity_model_v54.joblib",
   "entityPriors": {
     "jockey": {
       "00000": 0.486138,
@@ -7708,47 +7697,26 @@
     }
   },
   "validation": {
-    "method": "expanding-window past-only validation with deterministic cold-start blend",
-    "meanAbsolutePopularityRankError": 1.9279,
-    "medianAbsolutePopularityRankError": 1.0,
-    "maxAbsolutePopularityRankError": 16,
-    "largeError5PlusRate": 0.1005,
-    "meanTop3OverlapRate": 0.6944,
-    "top1Accuracy": 0.5085,
-    "sapporo11CaseStudy": {
-      "zendanHayabusaHorseNumber": 12,
-      "zendanHayabusaEstimatedPopularity": 11,
-      "zendanHayabusaActualPopularity": 13,
-      "estimatedTop3": [
-        10,
-        13,
-        8
-      ],
-      "actualTop3": [
-        7,
-        10,
-        15
-      ]
-    },
+    "method": "expanding-window past-only validation; debut races excluded",
+    "meanTop3OverlapRate": 0.7229,
+    "top3AgreementPercent": 72.29,
+    "evaluatedRaces": 2094,
     "sameDayLabelsUsed": false,
-    "futureDateLabelsUsed": false,
-    "validationTrainRaceMin": 0,
-    "validationTrainRaceMax": 2190
+    "futureDateLabelsUsed": false
   },
   "allowedHistoricalMarketInputs": [
     "previous-race popularity",
-    "previous assigned weight",
-    "historical jockey market tendency",
-    "historical trainer market tendency",
-    "previous-popularity trend and stability",
-    "same-surface and nearby-distance market memory",
-    "historical jockey/trainer target-surface market tendency",
-    "past race class transition and days since previous run"
+    "previous-race win odds",
+    "recent historical market memory",
+    "historical jockey/trainer market tendency",
+    "past race class transition",
+    "days since previous run"
   ],
   "prohibitedInputs": [
     "current odds",
     "current actual popularity",
     "horse bodyweight",
     "horse bodyweight change"
-  ]
+  ],
+  "debutRacePolicy": "新馬戦は予想・投資額・払戻・回収率・想定人気精度検証の対象外"
 }
