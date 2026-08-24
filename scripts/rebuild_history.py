@@ -67,7 +67,7 @@ TRACK_ORDER = {name: i for i, name in enumerate(TRACKS.values(), start=1)}
 # prediction score override is allowed; all races use prediction_logic_candidate.py.
 SAPPORO11_ID = "202601010811"
 
-REBUILD_VERSION = "predictjra-history-v54-prior-odds-top3-debut-excluded"
+REBUILD_VERSION = "predictjra-history-v55-win-return-debut-result-only"
 SOURCE_REPO = "sugaimo15/keibayosoku"
 SOURCE_REF = "claude/horse-racing-predictor-ak6crm"
 
@@ -1038,13 +1038,13 @@ def build_future_entity_priors(history: pd.DataFrame, target_dates: list[str]) -
 
 
 
-def build_result(race: RaceModel) -> tuple[dict, list[int]]:
-    r = race.result.copy()
+def build_result_from_frames(race_id: str, result_df: pd.DataFrame, payout_df: pd.DataFrame) -> tuple[dict, list[int]]:
+    r = result_df.copy()
     r["finish_num"] = pd.to_numeric(r["finish_position"], errors="coerce")
     r["horse_num"] = pd.to_numeric(r["horse_number"], errors="coerce")
     top = r[r["finish_num"].notna() & (r["finish_num"] <= 3)].copy()
     if top.empty:
-        raise ValueError(f"{race.race_id}: no top-3 result")
+        raise ValueError(f"{race_id}: no top-3 result")
 
     places = []
     for pos in sorted(top["finish_num"].astype(int).unique()):
@@ -1052,21 +1052,112 @@ def build_result(race: RaceModel) -> tuple[dict, list[int]]:
         if group:
             places.append(group)
 
-    p = race.payout.copy()
+    p = payout_df.copy()
+    win = p[p["bet_type"].astype(str).eq("単勝")].copy()
+    if win.empty:
+        raise ValueError(f"{race_id}: no win payout row")
+    win_payouts = []
+    for _, row in win.iterrows():
+        nums = [int(x) for x in re.findall(r"\d+", clean_str(row["combination"]))]
+        if len(nums) != 1:
+            raise ValueError(f"{race_id}: bad win combination {row['combination']}")
+        amount = int(pd.to_numeric(pd.Series([row["amount"]]), errors="raise").iloc[0])
+        win_payouts.append({"horses": nums, "payout": amount})
+
+    first_place = set(int(x) for x in places[0])
+    win_horses = set(int(x) for item in win_payouts for x in item["horses"])
+    if first_place != win_horses:
+        raise ValueError(
+            f"{race_id}: win payout horses {sorted(win_horses)} != "
+            f"first-place horses {sorted(first_place)}"
+        )
+
     tri = p[p["bet_type"].astype(str).isin(["三連単", "3連単"])].copy()
     if tri.empty:
-        raise ValueError(f"{race.race_id}: no trifecta payout row")
+        raise ValueError(f"{race_id}: no trifecta payout row")
 
     trifectas = []
     for _, row in tri.iterrows():
         nums = [int(x) for x in re.findall(r"\d+", clean_str(row["combination"]))]
         if len(nums) != 3:
-            raise ValueError(f"{race.race_id}: bad trifecta combination {row['combination']}")
+            raise ValueError(f"{race_id}: bad trifecta combination {row['combination']}")
         amount = int(pd.to_numeric(pd.Series([row["amount"]]), errors="raise").iloc[0])
         trifectas.append({"horses": nums, "payout": amount})
 
-    return {"places": places, "trifectas": trifectas}, [t["payout"] for t in trifectas]
+    return {
+        "places": places,
+        "winPayouts": win_payouts,
+        "trifectas": trifectas,
+    }, [t["payout"] for t in trifectas]
 
+
+def build_result(race: RaceModel) -> tuple[dict, list[int]]:
+    return build_result_from_frames(race.race_id, race.result, race.payout)
+
+
+def build_debut_result_only(source_root: Path, date_s: str, pred_path: Path) -> dict:
+    """Build a display-only row for a 新馬戦 without running any prediction logic."""
+    race_id = pred_path.stem
+    card_path = source_root / "data" / "race_cards" / date_s.replace("-", "") / f"{race_id}.csv"
+    result_path = source_root / "data" / "race_results" / "2026" / f"{race_id}.csv"
+    payout_path = source_root / "data" / "race_payouts" / f"{race_id}.csv"
+
+    card = sanitize_card(read_csv(card_path))
+    result_df = read_csv(result_path)
+    payout_df = read_csv(payout_path)
+    if card.empty or result_df.empty or payout_df.empty:
+        raise ValueError(f"{race_id}: empty new-race card/result/payout")
+
+    card["horse_number"] = pd.to_numeric(card["horse_number"], errors="raise").astype(int)
+    race_name = clean_str(card.get("race_name", pd.Series(["新馬"])).iloc[0])
+    result, tri_payouts = build_result_from_frames(race_id, result_df, payout_df)
+    frames = {
+        str(int(row["horse_number"])): int(row["waku"])
+        for _, row in card.iterrows()
+        if pd.notna(row.get("waku"))
+    }
+    names = {
+        str(int(row["horse_number"])): clean_str(row["horse_name"])
+        for _, row in card.iterrows()
+    }
+    venue = TRACKS.get(race_id[4:6], race_id[4:6])
+    race_no = int(race_id[-2:])
+    return {
+        "raceId": race_id,
+        "venue": venue,
+        "raceNo": race_no,
+        "raceName": race_name,
+        "horseCount": int(len(card)),
+        "horseFrames": frames,
+        "horseNames": names,
+        "prediction": None,
+        "danger": [],
+        "predictionDisabled": True,
+        "predictionDisabledReason": "新馬戦",
+        "result": result,
+        "status": "result-only",
+        "payout": 0,
+        "trifectaPayouts": [int(x) for x in tri_payouts],
+        "stake": 0,
+        "winReturn": 0,
+        "winStake": 0,
+        "modelMeta": {
+            "version": MODEL_VERSION,
+            "rebuildVersion": REBUILD_VERSION,
+            "indexDetail": {
+                "title": f"{venue}{race_no}R {race_name}".strip(),
+                "horseCount": int(len(card)),
+                "horses": [],
+            },
+            "selectionRule": "新馬戦は予想対象外。結果・払戻のみ表示。",
+            "logicSource": "none (debut result-only)",
+        },
+        "dataSources": {
+            "preRaceSnapshot": "historical archive (result-only; no prediction)",
+            "resultArchive": "historical archive",
+            "payoutArchive": "historical archive",
+        },
+    }
 
 def covered(prediction: dict, horses: list[int]) -> bool:
     combo = set(horses)
@@ -1284,9 +1375,10 @@ def main() -> int:
     source_sha = args.source_commit.strip() or cache_manifest.get("sourceCommit", "") or source_commit(source_root)
     races: dict[str, RaceModel] = {}
     target_files: list[tuple[str, Path]] = []
+    debut_files_by_date: dict[str, list[Path]] = {}
     target_horse_ids: set[str] = set()
     expected_by_date: dict[str, int] = {}
-    excluded_debut_races: list[dict] = []
+    result_only_debut_races: list[dict] = []
 
     for date_s in target_dates:
         pred_dir = source_root / "data" / "predictions" / date_s.replace("-", "")
@@ -1305,10 +1397,11 @@ def main() -> int:
             card = read_csv(card_path)
             race_name = clean_str(card.get("race_name", pd.Series([""])).iloc[0])
             if "新馬" in race_name:
-                excluded_debut_races.append({
+                result_only_debut_races.append({
                     "date": date_s, "raceId": f.stem, "raceName": race_name
                 })
-                print(f"EXCLUDE DEBUT {f.stem} {race_name}")
+                debut_files_by_date.setdefault(date_s, []).append(f)
+                print(f"RESULT-ONLY DEBUT {f.stem} {race_name}")
                 continue
             target_files.append((date_s, f))
             kept_for_date += 1
@@ -1371,7 +1464,7 @@ def main() -> int:
             "requestedDates": discovery["requestedDates"],
             "skippedDates": discovery["skippedDates"],
             "ignoredFiles": discovery["ignoredFiles"],
-            "excludedDebutRaces": excluded_debut_races,
+            "resultOnlyDebutRaces": result_only_debut_races,
             "expectedRaces": expected_total_races,
             "builtRaces": len(races),
             "errorCount": len(build_errors),
@@ -1415,6 +1508,8 @@ def main() -> int:
         day_races.sort(key=lambda x: (int(x.race_id[4:6]), int(x.race_id[-2:])))
 
         day_hits = 0
+        day_win_return = 0
+        day_win_stake = 0
         day_payout = 0
         day_stake = 0
 
@@ -1436,9 +1531,18 @@ def main() -> int:
             payout_return = sum(int(t["payout"]) for t in winners)
             stake = len(prediction["opponents"]) * 6 * 100
             status = "hit" if winners else "miss"
+            main_horse = int(prediction["axes"][0])
+            win_return = sum(
+                int(item["payout"])
+                for item in result.get("winPayouts", [])
+                if main_horse in [int(x) for x in item.get("horses", [])]
+            )
+            any_hit = bool(win_return or payout_return)
 
-            if status == "hit":
+            if any_hit:
                 day_hits += 1
+            day_win_return += win_return
+            day_win_stake += 100
             day_payout += payout_return
             day_stake += stake
 
@@ -1476,11 +1580,15 @@ def main() -> int:
                 "horseNames": names,
                 "prediction": prediction,
                 "danger": [int(danger)],
+                "predictionDisabled": False,
+                "predictionDisabledReason": "",
                 "result": result,
                 "status": status,
                 "payout": int(payout_return),
                 "trifectaPayouts": [int(x) for x in tri_payouts],
                 "stake": int(stake),
+                "winReturn": int(win_return),
+                "winStake": 100,
                 "modelMeta": {
                     "version": MODEL_VERSION,
                     "rebuildVersion": REBUILD_VERSION,
@@ -1527,6 +1635,10 @@ def main() -> int:
                 "result": result["places"],
                 "trifectas": result["trifectas"],
                 "status": status,
+                "anyHit": any_hit,
+                "winReturn": win_return,
+                "winStake": 100,
+                "winRecoveryRate": round(win_return / 100 * 100, 1),
                 "return": payout_return,
                 "stake": stake,
                 "recoveryRate": round(payout_return / stake * 100, 1) if stake else 0.0,
@@ -1541,14 +1653,32 @@ def main() -> int:
                 "oldResultMatchedArchive": rid not in old_result_mismatches,
             })
 
-        expected_for_day = expected_by_date[date_s]
+        # New-race races are restored as result-only rows after all predicted races.
+        for pred_path in debut_files_by_date.get(date_s, []):
+            rid = pred_path.stem
+            result_only = build_debut_result_only(source_root, date_s, pred_path)
+            old = old_by_id.get(rid, {})
+            updated = dict(old)
+            updated.pop("seedNote", None)
+            updated.update(result_only)
+            rebuilt.append(updated)
+
+        expected_for_day = expected_by_date[date_s] + len(debut_files_by_date.get(date_s, []))
         if len(rebuilt) != expected_for_day:
             raise RuntimeError(f"{date_s}: rebuilt {len(rebuilt)} != {expected_for_day} races")
 
+        rebuilt.sort(
+            key=lambda r: (TRACK_ORDER.get(r.get("venue", ""), 99), int(r.get("raceNo", 99)))
+        )
         day["races"] = rebuilt
         daily[date_s] = {
             "races": len(rebuilt),
+            "predictedRaces": expected_by_date[date_s],
+            "resultOnlyDebutRaces": len(debut_files_by_date.get(date_s, [])),
             "hits": day_hits,
+            "winReturn": day_win_return,
+            "winStake": day_win_stake,
+            "winRecoveryRate": round(day_win_return / day_win_stake * 100, 1) if day_win_stake else 0.0,
             "return": day_payout,
             "stake": day_stake,
             "recoveryRate": round(day_payout / day_stake * 100, 1) if day_stake else 0.0,
@@ -1564,13 +1694,24 @@ def main() -> int:
 
     for date_s in target_dates:
         day = next(d for d in data["days"] if d.get("date") == date_s)
-        expected_for_day = expected_by_date[date_s]
+        expected_for_day = expected_by_date[date_s] + len(debut_files_by_date.get(date_s, []))
         if len(day["races"]) != expected_for_day:
             raise RuntimeError(f"{date_s}: final race count invalid")
         ids = [r["raceId"] for r in day["races"]]
         if len(ids) != len(set(ids)):
             raise RuntimeError(f"{date_s}: duplicate race IDs")
         for r in day["races"]:
+            if r.get("predictionDisabled") is True:
+                if r.get("prediction"):
+                    raise RuntimeError(f"{r['raceId']}: debut row must not contain prediction")
+                if r.get("stake") != 0 or r.get("winStake") != 0:
+                    raise RuntimeError(f"{r['raceId']}: debut row must not contain stake")
+                if r.get("status") != "result-only":
+                    raise RuntimeError(f"{r['raceId']}: debut row status invalid")
+                if not (r.get("result") or {}).get("winPayouts"):
+                    raise RuntimeError(f"{r['raceId']}: debut win payout missing")
+                continue
+
             p = r["prediction"]
             target_n = prediction_target_count(r["horseCount"])
             if 2 + len(p["opponents"]) != target_n:
@@ -1582,6 +1723,8 @@ def main() -> int:
             expected_stake = len(p["opponents"]) * 600
             if r["stake"] != expected_stake:
                 raise RuntimeError(f"{r['raceId']}: stake invalid")
+            if r.get("winStake") != 100:
+                raise RuntimeError(f"{r['raceId']}: win stake invalid")
 
             detail = r.get("modelMeta", {}).get("indexDetail")
             if not detail:
@@ -1610,10 +1753,17 @@ def main() -> int:
     summary_totals = {
         "dates": len(target_dates),
         "races": sum(v["races"] for v in daily.values()),
+        "predictedRaces": sum(v["predictedRaces"] for v in daily.values()),
+        "resultOnlyDebutRaces": sum(v["resultOnlyDebutRaces"] for v in daily.values()),
         "hits": sum(v["hits"] for v in daily.values()),
+        "winReturn": sum(v["winReturn"] for v in daily.values()),
+        "winStake": sum(v["winStake"] for v in daily.values()),
         "return": sum(v["return"] for v in daily.values()),
         "stake": sum(v["stake"] for v in daily.values()),
     }
+    summary_totals["winRecoveryRate"] = round(
+        summary_totals["winReturn"] / summary_totals["winStake"] * 100, 1
+    ) if summary_totals["winStake"] else 0.0
     summary_totals["recoveryRate"] = round(
         summary_totals["return"] / summary_totals["stake"] * 100, 1
     ) if summary_totals["stake"] else 0.0
@@ -1626,7 +1776,7 @@ def main() -> int:
         "requestedDates": discovery["requestedDates"],
         "skippedDates": discovery["skippedDates"],
         "ignoredFiles": discovery["ignoredFiles"],
-        "excludedDebutRaces": excluded_debut_races,
+        "resultOnlyDebutRaces": result_only_debut_races,
         "sourceRepository": SOURCE_REPO,
         "sourceRef": SOURCE_REF,
         "sourceCommit": source_sha,
@@ -1668,8 +1818,8 @@ def main() -> int:
                 "but omitted from final-popularity teacher rows and validation metrics"
             ),
             "debutRaceHandling": (
-                "race names containing 新馬 are excluded from prediction publication, stake, "
-                "return/recovery aggregation and popularity-model validation"
+                "race names containing 新馬 are excluded from prediction/stake/return aggregation "
+                "and popularity-model validation, but retained as result-only rows with official payouts"
             ),
             "indexDetailHistoryCutoff": (
                 "previous-run/detail indices use only cached archived race results with date < target race date"
@@ -1775,7 +1925,7 @@ def main() -> int:
             "requestedDates": discovery["requestedDates"],
             "skippedDates": discovery["skippedDates"],
             "ignoredFiles": discovery["ignoredFiles"],
-            "excludedDebutRaces": excluded_debut_races,
+            "resultOnlyDebutRaces": result_only_debut_races,
             "expectedRaces": expected_total_races,
             "builtRaces": len(audit_races),
             "errorCount": 0,

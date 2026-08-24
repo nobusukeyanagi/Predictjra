@@ -28,31 +28,42 @@ def label(target: str) -> str:
 
 
 def is_debut_race(race: dict) -> bool:
+    if race.get("predictionDisabledReason") == "新馬戦" or race.get("predictionDisabled") is True:
+        return True
     title = str(((race.get("modelMeta") or {}).get("indexDetail") or {}).get("title") or "")
-    return "新馬" in title
+    race_name = str(race.get("raceName") or "")
+    return "新馬" in title or "新馬" in race_name
 
 
-def result_summary(day: dict) -> tuple[int, int, int, float]:
-    races = [r for r in day.get("races", []) if not is_debut_race(r)]
-    finished = [r for r in races if r.get("status") in {"hit", "miss"}]
-    hits = sum(1 for r in finished if r.get("status") == "hit")
-    payout = sum(int(r.get("payout") or 0) for r in finished)
-    stake = sum(int(r.get("stake") or DEFAULT_STAKE) for r in finished)
-    recovery = payout / stake * 100 if stake else 0.0
-    return hits, len(races), payout, recovery
-
+def result_summary(day: dict) -> tuple[int, int, float, float]:
+    races = [
+        r for r in day.get("races", [])
+        if not is_debut_race(r) and r.get("prediction")
+    ]
+    finished = [r for r in races if r.get("status") in {"hit", "miss"} and r.get("result")]
+    hits = sum(
+        1 for r in finished
+        if int(r.get("winReturn") or 0) > 0 or int(r.get("payout") or 0) > 0
+    )
+    win_return = sum(int(r.get("winReturn") or 0) for r in finished)
+    win_stake = len(finished) * 100
+    tri_return = sum(int(r.get("payout") or 0) for r in finished)
+    tri_stake = sum(int(r.get("stake") or DEFAULT_STAKE) for r in finished)
+    win_recovery = win_return / win_stake * 100 if win_stake else 0.0
+    tri_recovery = tri_return / tri_stake * 100 if tri_stake else 0.0
+    return hits, len(races), win_recovery, tri_recovery
 
 def build_message(mode: str, target: str, day: dict) -> str:
     d = label(target)
     if mode == "prepare":
         return f"🏇{d}のJRA予想を公開しました\n{PAGE_URL}"
 
-    hits, total, payout, recovery = result_summary(day)
+    hits, total, win_recovery, tri_recovery = result_summary(day)
     return (
         f"🏇{d}のJRA予想結果\n"
         f"**的中数{hits} / {total}**\n"
-        f"**払戻総額{payout:,}円**\n"
-        f"**総回収率{recovery:.1f}%**\n"
+        f"**単回収率{win_recovery:.1f}%**\n"
+        f"**三回収率{tri_recovery:.1f}%**\n"
         f"{PAGE_URL}"
     )
 

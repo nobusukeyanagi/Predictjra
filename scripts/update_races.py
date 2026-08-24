@@ -651,6 +651,36 @@ def parse_trifectas_generic(soup: BeautifulSoup) -> list[dict]:
     return combos
 
 
+def parse_win_payouts_generic(soup: BeautifulSoup) -> list[dict]:
+    """Parse official 単勝 payouts, including dead-heat multiple winners."""
+    payouts: list[dict] = []
+    seen: set[tuple[int, int]] = set()
+
+    for row in soup.find_all("tr"):
+        text = row.get_text(" ", strip=True)
+        if "単勝" not in text or "円" not in text:
+            continue
+        normalized = re.sub(r"\s+", " ", text)
+        # A payout row is typically `単勝 7 380円 3人気`.  Match only a horse
+        # number immediately followed by a yen amount so result-table odds /
+        # popularity columns cannot be mistaken for a payout.
+        for horse_s, payout_s in re.findall(
+            r"(?<!\d)(\d{1,2})(?!\d)\s+([\d,]+)\s*円",
+            normalized,
+        ):
+            horse = int(horse_s)
+            payout = int(payout_s.replace(",", ""))
+            if not (1 <= horse <= 18 and payout > 0):
+                continue
+            key = (horse, payout)
+            if key in seen:
+                continue
+            seen.add(key)
+            payouts.append({"horses": [horse], "payout": payout})
+
+    return payouts
+
+
 def parse_runner_market_generic(soup: BeautifulSoup) -> list[dict]:
     """Parse final runner odds/popularity from a result table when exposed by the source."""
     page_text = soup.get_text(" ", strip=True)
@@ -706,11 +736,13 @@ def parse_runner_market_generic(soup: BeautifulSoup) -> list[dict]:
 def parse_result_generic(html: str) -> dict | None:
     soup = BeautifulSoup(html, "lxml")
     places = parse_result_places_generic(soup)
+    win_payouts = parse_win_payouts_generic(soup)
     trifectas = parse_trifectas_generic(soup)
-    if not places or not trifectas:
+    if not places or not win_payouts or not trifectas:
         return None
     return {
         "places": places,
+        "winPayouts": win_payouts,
         "trifectas": trifectas,
         "runnerMarket": parse_runner_market_generic(soup),
     }
@@ -747,12 +779,14 @@ def parse_result_netkeiba(html: str) -> dict | None:
             place_map.setdefault(place, []).append(int(hm.group(1)))
 
     places = [place_map[p] for p in sorted(place_map)]
+    win_payouts = parse_win_payouts_generic(soup)
     trifectas = parse_trifectas_generic(soup)
     return {
         "places": places,
+        "winPayouts": win_payouts,
         "trifectas": trifectas,
         "runnerMarket": parse_runner_market_generic(soup),
-    } if places and trifectas else None
+    } if places and win_payouts and trifectas else None
 
 
 def validate_result_payload(result: dict, race_id: str = "?") -> None:
@@ -760,9 +794,12 @@ def validate_result_payload(result: dict, race_id: str = "?") -> None:
     if not isinstance(result, dict):
         raise ValueError(f"{race_id}: result payload is not an object")
     places = result.get("places")
+    win_payouts = result.get("winPayouts")
     trifectas = result.get("trifectas")
     if not isinstance(places, list) or not places:
         raise ValueError(f"{race_id}: result places missing")
+    if not isinstance(win_payouts, list) or not win_payouts:
+        raise ValueError(f"{race_id}: win payout missing")
     if not isinstance(trifectas, list) or not trifectas:
         raise ValueError(f"{race_id}: trifecta payout missing")
 
@@ -781,6 +818,22 @@ def validate_result_payload(result: dict, race_id: str = "?") -> None:
             finish_by_horse[horse] = place
     if len(finish_by_horse) < 3 or 1 not in set(finish_by_horse.values()):
         raise ValueError(f"{race_id}: fewer than three official top finishers")
+
+    first_place_horses = set(int(x) for x in places[0])
+    win_horses: set[int] = set()
+    for item in win_payouts:
+        if not isinstance(item, dict):
+            raise ValueError(f"{race_id}: malformed win payout row")
+        horses = [int(x) for x in item.get("horses", [])]
+        payout = int(item.get("payout", 0) or 0)
+        if len(horses) != 1 or not 1 <= horses[0] <= 18 or payout <= 0:
+            raise ValueError(f"{race_id}: malformed win payout row {item}")
+        win_horses.add(horses[0])
+    if win_horses != first_place_horses:
+        raise ValueError(
+            f"{race_id}: win payout horses {sorted(win_horses)} conflict with "
+            f"first-place horses {sorted(first_place_horses)}"
+        )
 
     for item in trifectas:
         if not isinstance(item, dict):

@@ -304,7 +304,8 @@ function effectiveHorseCount(race) {
 }
 
 function effectivePrediction(race) {
-  return raceDetail(race)?.prediction || race?.prediction || { axes: [], opponents: [] };
+  if (isDebutRace(race)) return { axes: [], opponents: [], excluded: [] };
+  return raceDetail(race)?.prediction || race?.prediction || { axes: [], opponents: [], excluded: [] };
 }
 
 function frameNumber(horseNo, horseCount) {
@@ -322,7 +323,7 @@ function frameNumber(horseNo, horseCount) {
   return 8;
 }
 
-function horseBox(no, race) {
+function horseBox(no, race, extraClass = '') {
   const count = Number(effectiveHorseCount(race));
   const derived = frameNumber(no, count);
   const saved = race?.horseFrames?.[String(no)] ?? race?.horseFrames?.[no];
@@ -334,18 +335,36 @@ function horseBox(no, race) {
   const frame = hasReliableCount
     ? derived
     : (Number.isInteger(savedFrame) && savedFrame >= 1 && savedFrame <= 8 ? savedFrame : derived);
-  return `<span class="horse-box frame-${frame}" title="馬番 ${no} / ${frame}枠">${no}</span>`;
+  const classes = [`horse-box`, `frame-${frame}`, extraClass].filter(Boolean).join(' ');
+  return `<span class="${classes}" title="馬番 ${no} / ${frame}枠">${no}</span>`;
 }
 
 function predictionBoxes(numbers, race) {
   return `<div class="horses">${numbers.map(n => horseBox(n, race)).join('')}</div>`;
 }
 
-function resultBoxes(result, race) {
+function resultRoleClass(no, race, prediction) {
+  if (isDebutRace(race)) return '';
+  const horseNo = Number(no);
+  const main = Number(prediction?.axes?.[0]);
+  const second = Number(prediction?.axes?.[1]);
+  const danger = new Set([
+    ...(Array.isArray(race?.danger) ? race.danger : []),
+    ...(Array.isArray(race?.prediction?.excluded) ? race.prediction.excluded : []),
+    ...(Array.isArray(prediction?.excluded) ? prediction.excluded : [])
+  ].map(Number));
+  if (horseNo === main) return 'result-role-main';
+  if (horseNo === second) return 'result-role-second';
+  if (danger.has(horseNo)) return 'result-role-danger';
+  return '';
+}
+
+function resultBoxes(result, race, prediction) {
   if (!result?.places?.length) return '<span class="place-sep">—</span>';
+  const box = no => horseBox(no, race, resultRoleClass(no, race, prediction));
   const groups = result.places.map(group => {
-    if (group.length === 1) return horseBox(group[0], race);
-    return `<span class="horses">${group.map(n => horseBox(n, race)).join('<span class="place-sep">=</span>')}</span>`;
+    if (group.length === 1) return box(group[0]);
+    return `<span class="horses">${group.map(n => box(n)).join('<span class="place-sep">=</span>')}</span>`;
   });
   return `<div class="horses">${groups.join('<span class="place-sep">›</span>')}</div>`;
 }
@@ -357,81 +376,78 @@ function mainHorseWon(race, prediction) {
   return firstPlace.map(Number).includes(main);
 }
 
-function horseTop3(race, horseNo) {
-  const no = Number(horseNo);
-  if (!Number.isFinite(no)) return false;
-  const top3 = (race?.result?.places || [])
-    .slice(0, 3)
-    .flat()
-    .map(Number);
-  return top3.includes(no);
+function isDebutRace(race) {
+  if (race?.predictionDisabledReason === '新馬戦' || race?.predictionDisabled === true) return true;
+  const title = race?.modelMeta?.indexDetail?.title || '';
+  const raceName = race?.raceName || '';
+  return String(title).includes('新馬') || String(raceName).includes('新馬');
 }
 
-function mainHorseTop3(race, prediction) {
-  return horseTop3(race, prediction?.axes?.[0]);
+function hasPublishedPrediction(race) {
+  if (isDebutRace(race)) return false;
+  return Array.isArray(race?.prediction?.axes) && race.prediction.axes.length === 2;
 }
 
-function secondHorseTop3(race, prediction) {
-  return horseTop3(race, prediction?.axes?.[1]);
+function predictionSettled(race) {
+  return hasPublishedPrediction(race)
+    && (race?.status === 'hit' || race?.status === 'miss')
+    && Array.isArray(race?.result?.places)
+    && race.result.places.length > 0;
 }
 
-function dangerHorseTop3(race, prediction) {
-  const dangerNumbers = [
-    ...(Array.isArray(race?.danger) ? race.danger : []),
-    ...(Array.isArray(race?.prediction?.excluded) ? race.prediction.excluded : []),
-    ...(Array.isArray(prediction?.excluded) ? prediction.excluded : [])
-  ]
-    .map(Number)
-    .filter(Number.isFinite);
-
-  return [...new Set(dangerNumbers)].some(no => horseTop3(race, no));
+function trifectaHit(race) {
+  return predictionSettled(race) && Number(race?.payout || 0) > 0;
 }
 
-function dangerJudgementMarkup(race, prediction) {
-  return dangerHorseTop3(race, prediction)
-    ? '<span class="prediction-danger-mark">危</span>'
-    : '';
+function winReturn(race, prediction = effectivePrediction(race)) {
+  if (!predictionSettled(race)) return 0;
+  const stored = Number(race?.winReturn);
+  if (Number.isFinite(stored) && stored >= 0 && race?.result?.winPayouts) return stored;
+  const main = Number(prediction?.axes?.[0]);
+  if (!Number.isFinite(main)) return 0;
+  return (race?.result?.winPayouts || []).reduce((sum, item) => {
+    const horses = (item?.horses || []).map(Number);
+    return sum + (horses.includes(main) ? Number(item?.payout || 0) : 0);
+  }, 0);
+}
+
+function anyPredictionHit(race, prediction = effectivePrediction(race)) {
+  if (!predictionSettled(race)) return false;
+  return mainHorseWon(race, prediction) || trifectaHit(race);
 }
 
 function judgement(race, prediction) {
-  if (race?.status !== 'hit' && race?.status !== 'miss') {
-    return '<span class="judgement pending">未確定</span>';
-  }
-
-  const dangerMark = dangerJudgementMarkup(race, prediction);
-
-  // 三連単的中時は「的中」を最優先しつつ、
-  // 危険馬が3着以内なら紫字の「危」だけを横に併記する。
-  if (race?.status === 'hit') {
-    return `<span class="judgement-combo"><span class="judgement hit">的中</span>${dangerMark}</span>`;
-  }
-
-  // 単: 本命1着 / 本: 本命3着以内 / 対: 対抗3着以内。
-  // 本命1着時は「単」を優先するため、通常の併記は「単対」「本対」のみ。
-  const mainMark = mainHorseWon(race, prediction)
-    ? '単'
-    : (mainHorseTop3(race, prediction) ? '本' : '');
-  const secondMark = secondHorseTop3(race, prediction) ? '対' : '';
-  const mark = `${mainMark}${secondMark}`;
-  const resultMark = mark ? `<span class="prediction-result-mark">${mark}</span>` : '';
-
-  return (resultMark || dangerMark)
-    ? `<span class="judgement-combo">${resultMark}${dangerMark}</span>`
+  if (isDebutRace(race)) return '';
+  if (!predictionSettled(race)) return '<span class="judgement pending">未確定</span>';
+  return anyPredictionHit(race, prediction)
+    ? '<span class="judgement hit">的中</span>'
     : '';
 }
 
-function isDebutRace(race) {
-  const title = race?.modelMeta?.indexDetail?.title || '';
-  return String(title).includes('新馬');
+function performanceSummary(races) {
+  const predicted = races.filter(hasPublishedPrediction);
+  const finished = predicted.filter(predictionSettled);
+  const hits = finished.filter(r => anyPredictionHit(r, effectivePrediction(r))).length;
+  const winPayout = finished.reduce((sum, r) => sum + winReturn(r, effectivePrediction(r)), 0);
+  const winStake = finished.length * 100;
+  const triPayout = finished.reduce((sum, r) => sum + Number(r.payout || 0), 0);
+  const triStake = finished.reduce((sum, r) => sum + Number(r.stake || STAKE_PER_RACE), 0);
+  return {
+    hits,
+    predictedCount: predicted.length,
+    finishedCount: finished.length,
+    winRecovery: winStake ? winPayout / winStake * 100 : 0,
+    triRecovery: triStake ? triPayout / triStake * 100 : 0,
+  };
 }
 
 function daySummary(day) {
-  const finished = day.races.filter(r => r.status === 'hit' || r.status === 'miss');
-  const hits = finished.filter(r => r.status === 'hit').length;
-  const payout = finished.reduce((sum, r) => sum + Number(r.payout || 0), 0);
-  const stake = finished.reduce((sum, r) => sum + Number(r.stake || STAKE_PER_RACE), 0);
-  const recovery = stake ? payout / stake * 100 : 0;
-  return { hits, payout, recovery };
+  return performanceSummary(day.races || []);
+}
+
+function overallSummary(days) {
+  const races = days.flatMap(day => day.races || []);
+  return performanceSummary(races);
 }
 
 function dateLabel(iso) {
@@ -440,16 +456,35 @@ function dateLabel(iso) {
   return `${iso}（${weekdays[d.getDay()]}）`;
 }
 
-function actualTrifectaPayout(race) {
-  const trifectas = race?.result?.trifectas || [];
-  if (!trifectas.length) return null;
-  return trifectas.reduce((sum, item) => sum + Number(item.payout || 0), 0);
+function actualPayoutText(items) {
+  if (!Array.isArray(items) || !items.length) return '—';
+  return items.map(item => yen(Number(item?.payout || 0))).join(' / ');
 }
 
 function raceNameCell(race) {
   const label = `<span class="venue">${race.venue}</span> ${race.raceNo}R`;
-  if (!raceDetail(race)) return label;
+  if (isDebutRace(race) || !raceDetail(race)) return label;
   return `<button class="race-detail-trigger" type="button" data-race-id="${race.raceId}" aria-label="${race.venue}${race.raceNo}Rの指数表を表示">${label}</button>`;
+}
+
+function payoutCellClass({ debut, settled, hit }) {
+  if (debut || !settled) return 'payout-neutral';
+  return hit ? 'payout-hit' : 'payout-miss';
+}
+
+function renderOverallSummary(days) {
+  const summary = overallSummary(days);
+  return `<section class="day-card overall-card" aria-label="総合成績">
+    <div class="day-top overall-top">
+      <div class="date-wrap"><span class="date-label">総合成績</span></div>
+      <div class="day-summary">
+        <div class="summary-item"><span class="summary-label">的中数</span><span class="summary-value">${summary.hits} / ${summary.finishedCount}</span></div>
+        <div class="summary-item"><span class="summary-label">単回収率</span><span class="summary-value${summary.winRecovery > 100 ? ' summary-profit' : ''}">${percent(summary.winRecovery)}</span></div>
+        <div class="summary-item"><span class="summary-label">三回収率</span><span class="summary-value${summary.triRecovery > 100 ? ' summary-profit' : ''}">${percent(summary.triRecovery)}</span></div>
+      </div>
+      <div class="day-toggle-spacer" aria-hidden="true"></div>
+    </div>
+  </section>`;
 }
 
 function renderDay(day, initiallyExpanded = true) {
@@ -457,19 +492,32 @@ function renderDay(day, initiallyExpanded = true) {
   const dl = dateLabel(day.date);
   const races = [...day.races].sort((a,b) => (VENUE_ORDER[a.venue] ?? 99) - (VENUE_ORDER[b.venue] ?? 99) || a.raceNo - b.raceNo);
   const rows = races.map(r => {
-    const wonPayout = Number(r.payout || 0);
-    const actualPayout = actualTrifectaPayout(r);
-    const rate = (r.status === 'hit' || r.status === 'miss') ? (wonPayout / Number(r.stake || STAKE_PER_RACE) * 100) : null;
+    const debut = isDebutRace(r);
     const prediction = effectivePrediction(r);
-    return `<tr class="${r.status === 'hit' ? 'hit-row' : r.status === 'miss' ? 'miss-row' : ''}">
+    const settled = debut
+      ? Array.isArray(r?.result?.places) && r.result.places.length > 0
+      : predictionSettled(r);
+    const winHit = !debut && settled && mainHorseWon(r, prediction);
+    const triHit = !debut && settled && trifectaHit(r);
+    const anyHit = winHit || triHit;
+    const triRate = !debut && settled
+      ? (Number(r.payout || 0) / Number(r.stake || STAKE_PER_RACE) * 100)
+      : null;
+    const rowClass = anyHit ? 'hit-row' : (debut ? 'debut-row' : (settled ? 'miss-row' : ''));
+    const singleText = actualPayoutText(r?.result?.winPayouts || []);
+    const triText = actualPayoutText(r?.result?.trifectas || []);
+    const mainCell = debut ? '<span class="no-prediction-dash">—</span>' : predictionBoxes(prediction.axes?.slice(0,1) || [], r);
+    const secondCell = debut ? '<span class="no-prediction-dash">—</span>' : predictionBoxes(prediction.axes?.slice(1,2) || [], r);
+    const opponentCell = debut ? '<span class="no-prediction-label">予想無し</span>' : predictionBoxes(prediction.opponents || [], r);
+    return `<tr class="${rowClass}">
       <td class="race-name">${raceNameCell(r)}</td>
-      <td>${predictionBoxes(prediction.axes?.slice(0,1) || [], r)}</td>
-      <td>${predictionBoxes(prediction.axes?.slice(1,2) || [], r)}</td>
-      <td>${predictionBoxes(prediction.opponents || [], r)}</td>
-      <td>${resultBoxes(r.result, r)}</td>
+      <td>${mainCell}</td>
+      <td>${secondCell}</td>
+      <td>${opponentCell}</td>
+      <td>${resultBoxes(r.result, r, prediction)}</td>
       <td>${judgement(r, prediction)}</td>
-      <td class="money">${actualPayout == null ? '—' : yen(actualPayout)}</td>
-      <td class="rate">${rate == null ? '—' : percent(rate)}</td>
+      <td class="money payout-cell ${payoutCellClass({ debut, settled, hit: winHit })}"><span class="payout-amount">${singleText}</span></td>
+      <td class="money payout-cell trifecta-cell ${payoutCellClass({ debut, settled, hit: triHit })}"><span class="payout-amount">${triText}</span>${triRate == null ? '' : `<span class="payout-rate">${percent(triRate)}</span>`}</td>
     </tr>`;
   }).join('');
 
@@ -478,9 +526,9 @@ function renderDay(day, initiallyExpanded = true) {
     <div class="day-top">
       <div class="date-wrap"><span class="date-label">${dl}</span></div>
       <div class="day-summary">
-        <div class="summary-item"><span class="summary-label">的中数</span><span class="summary-value">${summary.hits} / ${races.length}</span></div>
-        <div class="summary-item"><span class="summary-label">払戻総額</span><span class="summary-value">${yen(summary.payout)}</span></div>
-        <div class="summary-item"><span class="summary-label">総回収率</span><span class="summary-value${summary.recovery > 100 ? ' summary-profit' : ''}">${percent(summary.recovery)}</span></div>
+        <div class="summary-item"><span class="summary-label">的中数</span><span class="summary-value">${summary.hits} / ${summary.predictedCount}</span></div>
+        <div class="summary-item"><span class="summary-label">単回収率</span><span class="summary-value${summary.winRecovery > 100 ? ' summary-profit' : ''}">${percent(summary.winRecovery)}</span></div>
+        <div class="summary-item"><span class="summary-label">三回収率</span><span class="summary-value${summary.triRecovery > 100 ? ' summary-profit' : ''}">${percent(summary.triRecovery)}</span></div>
       </div>
       <button class="day-toggle" type="button" aria-label="${initiallyExpanded ? 'この日付を折りたたむ' : 'この日付を開く'}" aria-expanded="${initiallyExpanded ? 'true' : 'false'}">
         <span class="day-toggle-icon" aria-hidden="true"></span>
@@ -490,7 +538,7 @@ function renderDay(day, initiallyExpanded = true) {
       <div class="table-scroll">
         <table class="race-table">
           <thead>
-            <tr class="column-row"><th>レース</th><th>本命</th><th>対抗</th><th>相手</th><th>結果</th><th>判定</th><th>三連単</th><th>回収率</th></tr>
+            <tr class="column-row"><th>レース</th><th>本命</th><th>対抗</th><th>相手</th><th>結果</th><th>判定</th><th>単勝</th><th>三連単</th></tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
@@ -924,7 +972,7 @@ async function boot() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     const days = [...(data.days || [])]
-      .map(day => ({ ...day, races: (day.races || []).filter(race => !isDebutRace(race)) }))
+      .map(day => ({ ...day, races: [...(day.races || [])] }))
       .filter(day => day.races.length > 0)
       .sort((a,b) => b.date.localeCompare(a.date));
     days.forEach(day => (day.races || []).forEach(syncRaceDetailFromData));
@@ -935,11 +983,13 @@ async function boot() {
           (VENUE_ORDER[a.venue] ?? 99) - (VENUE_ORDER[b.venue] ?? 99)
           || a.raceNo - b.raceNo
         )
-        .filter(race => raceDetail(race))
+        .filter(race => !isDebutRace(race) && raceDetail(race))
         .map(race => race.raceId)
     );
 
-    app.innerHTML = days.length ? days.map((day, index) => renderDay(day, index < 2)).join('') : '<div class="empty">表示できるレースがまだありません。</div>';
+    app.innerHTML = days.length
+      ? `${renderOverallSummary(days)}${days.map((day, index) => renderDay(day, index < 2)).join('')}`
+      : '<div class="empty">表示できるレースがまだありません。</div>';
     requestAnimationFrame(syncDesktopRaceCardWidths);
   } catch (e) {
     console.error(e);

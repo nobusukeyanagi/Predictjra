@@ -6,7 +6,7 @@
   --line: #dce3df;
   --green: #174c35;
   --hit: #b3261e;
-  --miss: #6b746f;
+  --miss: #a0aaa4;
   --shadow: 0 8px 28px rgba(17, 54, 37, .08);
 }
 * { box-sizing: border-box; }
@@ -189,8 +189,6 @@ body {
 .race-table tbody tr:hover { background: #fbfcfb; }
 .race-table tbody tr.hit-row { background: #fff8d6; }
 .race-table tbody tr.hit-row:hover { background: #fff4bd; }
-.race-table tbody tr.miss-row .money,
-.race-table tbody tr.miss-row .rate { color: var(--miss); }
 .race-name { font-weight: 800; white-space: nowrap; }
 .venue { color: #000; }
 .race-detail-trigger {
@@ -240,7 +238,45 @@ body {
   white-space: nowrap;
 }
 .money, .rate { text-align: right !important; font-weight: 800; white-space: nowrap; padding-left: 10px !important; padding-right: 10px !important; }
-.hit-row .money, .hit-row .rate { color: var(--hit); }
+
+/* v55: ticket-specific payout colors and compact two-line trifecta cell. */
+.payout-cell {
+  text-align: right !important;
+  vertical-align: middle;
+  height: 39px !important;
+  line-height: 1;
+}
+.payout-cell .payout-amount {
+  display: block;
+  font-size: 15px;
+  font-weight: 850;
+  line-height: 15px;
+}
+.payout-cell .payout-rate {
+  display: block;
+  margin-top: 1px;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 10px;
+}
+.payout-hit { color: var(--hit) !important; }
+.payout-miss { color: var(--miss) !important; }
+.payout-neutral { color: var(--ink) !important; }
+.no-prediction-label { color: var(--muted); font-size: 13px; font-weight: 800; }
+.no-prediction-dash { color: #a9b1ad; }
+.day-toggle-spacer { width: 30px; height: 30px; }
+.overall-card .day-top { border-bottom: 0; }
+
+/* Result horse-number border = prediction role. Frame fill itself is unchanged. */
+.horse-box.result-role-main {
+  border: 3px solid #b3261e;
+}
+.horse-box.result-role-second {
+  border: 3px solid #16824b;
+}
+.horse-box.result-role-danger {
+  border: 3px solid #7446b8;
+}
 .empty { padding: 50px 20px; text-align: center; color: var(--muted); background: #fff; border: 1px solid var(--line); border-radius: 14px; font-size: 15px; }
 .loading { padding: 40px; text-align: center; color: var(--muted); font-size: 15px; }
 .error { padding: 18px; border: 1px solid #efc7c4; background: #fff6f5; color: #8f221c; border-radius: 10px; font-size: 15px; }
@@ -455,6 +491,7 @@ body.index-modal-open { overflow: hidden; }
     padding-right: 0;
   }
   .day-toggle { grid-area: toggle; align-self: center; }
+  .day-toggle-spacer { grid-area: toggle; }
   .summary-item { gap: 3px; }
   .date-label { font-size: 15px; }
 

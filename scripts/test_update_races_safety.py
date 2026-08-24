@@ -15,6 +15,7 @@ RID2 = "202601010802"
 def sample_result(combo=(1, 2, 3), payout=2380):
     return {
         "places": [[1], [2], [3]],
+        "winPayouts": [{"horses": [1], "payout": 380}],
         "trifectas": [{"horses": list(combo), "payout": payout}],
     }
 
@@ -117,6 +118,66 @@ def test_result_payout_mismatch_is_rejected() -> None:
         raise AssertionError("contradictory trifecta payout must be rejected")
 
 
+def test_single_win_is_stored_even_when_trifecta_misses() -> None:
+    data = sample_data(RID1)
+    # Opponent 3 is removed so the official 1-2-3 trifecta is not covered,
+    # while main horse 1 still wins the 100-yen win bet.
+    data["days"][0]["races"][0]["prediction"] = {
+        "axes": [1, 2], "opponents": [4, 5, 6, 7, 8]
+    }
+    diagnostics = {"races": []}
+    original_fetch = legacy.fetch_result
+    try:
+        legacy.fetch_result = lambda *_args: (sample_result(), "test")
+        updater.result_day(data, TARGET, diagnostics)
+    finally:
+        legacy.fetch_result = original_fetch
+    race = data["days"][0]["races"][0]
+    assert race["status"] == "miss"
+    assert race["payout"] == 0
+    assert race["winReturn"] == 380
+    assert race["winStake"] == 100
+
+
+def test_debut_result_only_has_no_prediction_or_stake() -> None:
+    race = sample_race(RID1)
+    race.update({
+        "raceName": "2歳新馬",
+        "prediction": None,
+        "danger": [],
+        "predictionDisabled": True,
+        "predictionDisabledReason": "新馬戦",
+        "stake": 0,
+        "winStake": 0,
+    })
+    data = {"days": [{"date": TARGET.isoformat(), "races": [race]}]}
+    diagnostics = {"races": []}
+    original_fetch = legacy.fetch_result
+    try:
+        legacy.fetch_result = lambda *_args: (sample_result(), "test")
+        updater.result_day(data, TARGET, diagnostics)
+    finally:
+        legacy.fetch_result = original_fetch
+    out = data["days"][0]["races"][0]
+    assert out["status"] == "result-only"
+    assert out["prediction"] is None
+    assert out["stake"] == 0
+    assert out["winStake"] == 0
+    assert out["result"]["winPayouts"][0]["payout"] == 380
+
+
+def test_win_payout_parser_and_validation() -> None:
+    from bs4 import BeautifulSoup
+    html = """
+    <table>
+      <tr><th>単勝</th><td>1</td><td>380円</td><td>3人気</td></tr>
+    </table>
+    """
+    wins = legacy.parse_win_payouts_generic(BeautifulSoup(html, "lxml"))
+    assert wins == [{"horses": [1], "payout": 380}]
+    legacy.validate_result_payload(sample_result(), RID1)
+
+
 def test_jra_program_parser_does_not_create_cancelled_notice_race() -> None:
     html = """
     <html><body>
@@ -137,6 +198,9 @@ if __name__ == "__main__":
         test_partial_result_does_not_mutate_day,
         test_confirmed_cancellation_is_removed_only_after_full_resolution,
         test_result_payout_mismatch_is_rejected,
+        test_single_win_is_stored_even_when_trifecta_misses,
+        test_debut_result_only_has_no_prediction_or_stake,
+        test_win_payout_parser_and_validation,
         test_jra_program_parser_does_not_create_cancelled_notice_race,
     ]
     for test in tests:
