@@ -1,9 +1,9 @@
 {
   "cacheVersion": "predictjra-historical-facts-v8-jra-official-executed",
-  "generatedAt": "2026-08-21T14:39:41+09:00",
+  "generatedAt": "2026-08-24T10:55:27+09:00",
   "sourceRepository": "sugaimo15/keibayosoku",
   "sourceRef": "claude/horse-racing-predictor-ak6crm",
-  "sourceCommit": "7bb22ee1d44ee309ea792e264210f7460aad117d",
+  "sourceCommit": "e231b0b3003be3b2f89a07b8c9ffcac78d0358d1",
   "availableDates": [
     "2026-01-04",
     "2026-01-05",
@@ -72,7 +72,9 @@
     "2026-08-08",
     "2026-08-09",
     "2026-08-15",
-    "2026-08-16"
+    "2026-08-16",
+    "2026-08-22",
+    "2026-08-23"
   ],
   "safeDates": [
     "2026-01-04",
@@ -142,7 +144,9 @@
     "2026-08-08",
     "2026-08-09",
     "2026-08-15",
-    "2026-08-16"
+    "2026-08-16",
+    "2026-08-22",
+    "2026-08-23"
   ],
   "skippedDates": [],
   "ignoredFiles": [
@@ -221,7 +225,9 @@
     "2026-08-08": 36,
     "2026-08-09": 36,
     "2026-08-15": 36,
-    "2026-08-16": 36
+    "2026-08-16": 36,
+    "2026-08-22": 36,
+    "2026-08-23": 36
   },
   "dateSources": {
     "2026-01-04": "result-derived-pre-race-card",
@@ -291,7 +297,9 @@
     "2026-08-08": "archived-race-card",
     "2026-08-09": "archived-race-card",
     "2026-08-15": "archived-race-card",
-    "2026-08-16": "archived-race-card"
+    "2026-08-16": "archived-race-card",
+    "2026-08-22": "archived-race-card",
+    "2026-08-23": "archived-race-card"
   },
   "resultDerivedDates": [
     "2026-01-04",
@@ -356,7 +364,7 @@
   "cacheReuse": {
     "restoredResults": 0,
     "restoredPayouts": 0,
-    "sourceVersion": "predictjra-historical-facts-v6-resilient-repair"
+    "sourceVersion": "predictjra-historical-facts-v8-jra-official-executed"
   },
   "webRepair": {
     "enabled": true,
@@ -428,7 +436,9 @@
       "2026-08-08",
       "2026-08-09",
       "2026-08-15",
-      "2026-08-16"
+      "2026-08-16",
+      "2026-08-22",
+      "2026-08-23"
     ],
     "repairedRaceCount": 265,
     "repairedRaces": [
@@ -3156,6 +3166,8 @@
       "2026-08-09: race enumeration source=JRA official updated program, races=36 (https://www.jra.go.jp/keiba/calendar2026/2026/8/0809.html)",
       "2026-08-15: race enumeration source=JRA official updated program, races=36 (https://www.jra.go.jp/keiba/calendar2026/2026/8/0815.html)",
       "2026-08-16: race enumeration source=JRA official updated program, races=36 (https://www.jra.go.jp/keiba/calendar2026/2026/8/0816.html)",
+      "2026-08-22: race enumeration source=JRA official updated program, races=36 (https://www.jra.go.jp/keiba/calendar2026/2026/8/0822.html)",
+      "2026-08-23: race enumeration source=JRA official updated program, races=36 (https://www.jra.go.jp/keiba/calendar2026/2026/8/0823.html)",
       "2026060101: race enumeration source=jra-official, races=12",
       "2026080101: race enumeration source=jra-official, races=12",
       "2026060102: race enumeration source=jra-official, races=12",
@@ -3341,7 +3353,13 @@
       "2026070207: race enumeration source=jra-official, races=12",
       "2026010108: race enumeration source=jra-official, races=12",
       "2026040208: race enumeration source=jra-official, races=12",
-      "2026070208: race enumeration source=jra-official, races=12"
+      "2026070208: race enumeration source=jra-official, races=12",
+      "2026010201: race enumeration source=jra-official, races=12",
+      "2026040301: race enumeration source=jra-official, races=12",
+      "2026070301: race enumeration source=jra-official, races=12",
+      "2026010202: race enumeration source=jra-official, races=12",
+      "2026040302: race enumeration source=jra-official, races=12",
+      "2026070302: race enumeration source=jra-official, races=12"
     ],
     "source": "JRA official updated program + source facts + SportsNavi/netkeiba result fallback"
   },
@@ -11623,16 +11641,52 @@
         "win_odds"
       ],
       "synthesizedReasons": []
+    },
+    {
+      "date": "2026-08-22",
+      "races": 36,
+      "cardSource": "archived-race-card",
+      "resultDerivedCards": 0,
+      "sanitizedLegacySnapshots": 36,
+      "synthesizedFromCards": 0,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ],
+      "synthesizedReasons": []
+    },
+    {
+      "date": "2026-08-23",
+      "races": 36,
+      "cardSource": "archived-race-card",
+      "resultDerivedCards": 0,
+      "sanitizedLegacySnapshots": 36,
+      "synthesizedFromCards": 0,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ],
+      "synthesizedReasons": []
     }
   ],
-  "targetHorseCount": 9286,
-  "historicalResultFiles": 14117,
-  "cachedFileCount": 20795,
+  "targetHorseCount": 9397,
+  "historicalResultFiles": 14222,
+  "cachedFileCount": 21116,
   "archive": {
     "path": "history-source.tar.gz",
     "parts": [],
-    "sizeBytes": 12961170,
-    "sha256": "304d919b1b13cbde5c085b9035bcf7d5f7c6bbc2365d44084e0a4133329ac416"
+    "sizeBytes": 13099564,
+    "sha256": "5b6eb5c1564df8db812f5ddc8eda0fd1056d57c638f92a04edf0dd493214665c"
   },
   "policy": {
     "raceEnumeration": "use exact race IDs from SportsNavi SSR meeting lists, cross-check with netkeiba static date lists, and never synthesize nonexistent 1R..12R slots",
