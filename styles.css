@@ -1101,3 +1101,56 @@ body.logic-modal-open { overflow: hidden; }
   color: var(--muted);
   background: #eef1ef;
 }
+
+
+/* v65: one official trifecta combination per line; payout rows line up with the same combination. */
+.trifecta-result-stack,
+.trifecta-payout-stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+}
+.trifecta-result-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 27px;
+  white-space: nowrap;
+}
+.trifecta-payout-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-height: 27px;
+  white-space: nowrap;
+}
+.trifecta-payout-row .payout-amount {
+  display: inline-block;
+  line-height: 27px;
+}
+.trifecta-payout-row .payout-rate-inline {
+  display: inline-block;
+  margin: 0;
+  line-height: 27px;
+}
+.race-table tbody tr.multi-trifecta-row td {
+  height: auto;
+  min-height: 66px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  vertical-align: middle;
+}
+.race-table tbody tr.multi-trifecta-row .payout-cell {
+  height: auto !important;
+}
+/* Keep all dates on identical fixed columns; widen result/trifecta columns for stacked outcomes. */
+.race-table {
+  width: 780px !important;
+  min-width: 780px !important;
+  max-width: 780px !important;
+}
+.race-table th:nth-child(5), .race-table td:nth-child(5) { width: 156px !important; min-width: 156px !important; max-width: 156px !important; }
+.race-table th:nth-child(8), .race-table td:nth-child(8) { width: 126px !important; min-width: 126px !important; max-width: 126px !important; }

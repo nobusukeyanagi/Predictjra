@@ -233,31 +233,31 @@ const INDEX_LOGIC_V2_HTML = `
 const INDEX_LOGIC_V3_HTML = `
   <section class="index-logic-item">
     <h3>基本</h3>
-    <p>能力評価はすべて0〜100点です。近5走は各レースを「走・展・力」で評価し、1走評価＝走40％＋展25％＋力35％。近走総合＝前走35％＋2走前25％＋3走前18％＋4走前13％＋5走前9％（不足時は取得できた走だけで再正規化）。今走の走・展・力から今回＝走40％＋展25％＋力35％。最終の総合指数＝近走55％＋今回45％です。表示は2桁に統一し、100点は便宜上99、1桁は0を付けて表示します。順位判定には丸め前の内部値を使います。</p>
+    <p>能力評価はすべて0〜100点です。近5走は各レースを「時・展・実」で評価し、1走評価＝時40％＋展25％＋実35％。近走総合＝前走35％＋2走前25％＋3走前18％＋4走前13％＋5走前9％（不足時は取得できた走だけで再正規化）。今走の時・展・実から今回＝時40％＋展25％＋実35％。最終の総合指数＝近走55％＋今回45％です。表示は2桁に統一し、100点は便宜上99、1桁は0を付けて表示します。順位判定には丸め前の内部値を使います。</p>
   </section>
   <section class="index-logic-item">
-    <h3>近走「走」</h3>
-    <p>競走タイムそのものの強さです。4着以下で実走タイムが3着タイム＋1.0秒より遅い場合、評価用タイム＝3着タイム＋1.0秒として、それ以上の大敗差は付けません。過去データに3着タイムがない場合は、勝ち馬とのタイム差のうち1.0秒を超える部分を評価用タイムから除く代替処理を使います。評価用1000m秒＝評価用タイム×1000÷距離。標準時計は、予想対象日より前に終了したレースだけから「競馬場×芝/ダート/障害×距離×馬場状態」ごとの3着1000m秒を集め、その中央値Mを使います。MAD＝median(|各3着1000m秒−M|)、σ＝max(0.20, 1.4826×MAD)。標準化値Z＝(M−評価用1000m秒)÷σ、走＝clamp(50＋15×Z, 0, 100)。基準群は①同競馬場・同路面・同距離・同馬場、②同競馬場・同路面・同距離、③全競馬場・同路面・同距離・同馬場、④全競馬場・同路面・同距離の順で、まず5レース以上、なければ3レース以上を採用します。履歴不足時だけ固定公開式へフォールバックし、基準1000m秒＝芝58.4＋0.0015×max(距離−1000,0)、ダート60.6＋0.0018×max(距離−1000,0)、障害64.0＋0.0007×max(距離−2500,0)、馬場補正は芝:稍重+0.6/重+1.4/不良+2.4、ダート:稍重−0.2/重−0.4/不良−0.2、障害:稍重+0.3/重+0.7/不良+1.0、σ=1.25とします。</p>
+    <h3>近走「時」</h3>
+    <p>競走タイムそのものの強さです。4着以下で実走タイムが3着タイム＋1.0秒より遅い場合、評価用タイム＝3着タイム＋1.0秒として、それ以上の大敗差は付けません。過去データに3着タイムがない場合は、勝ち馬とのタイム差のうち1.0秒を超える部分を評価用タイムから除く代替処理を使います。評価用1000m秒＝評価用タイム×1000÷距離。標準時計は、予想対象日より前に終了したレースだけから「競馬場×芝/ダート/障害×距離×馬場状態」ごとの3着1000m秒を集め、その中央値Mを使います。MAD＝median(|各3着1000m秒−M|)、σ＝max(0.20, 1.4826×MAD)。標準化値Z＝(M−評価用1000m秒)÷σ、時＝clamp(50＋15×Z, 0, 100)。基準群は①同競馬場・同路面・同距離・同馬場、②同競馬場・同路面・同距離、③全競馬場・同路面・同距離・同馬場、④全競馬場・同路面・同距離の順で、まず5レース以上、なければ3レース以上を採用します。履歴不足時だけ固定公開式へフォールバックし、基準1000m秒＝芝58.4＋0.0015×max(距離−1000,0)、ダート60.6＋0.0018×max(距離−1000,0)、障害64.0＋0.0007×max(距離−2500,0)、馬場補正は芝:稍重+0.6/重+1.4/不良+2.4、ダート:稍重−0.2/重−0.4/不良−0.2、障害:稍重+0.3/重+0.7/不良+1.0、σ=1.25とします。</p>
   </section>
   <section class="index-logic-item">
     <h3>近走「展」</h3>
     <p>展開に対してどれだけ頑張ったかです。頭数補正した前方度＝最初の2つまでの通過順位について平均{1−(通過順位−1)÷(頭数−1)}、追上げ度＝(最終通過順位−着順)÷(頭数−1)。過去レース全体の通過順位が取れる場合、前方半分の平均着順強度−後方半分の平均着順強度をレース前方バイアス（−1〜+1）とします。恩恵＝前方バイアス×(2×前方度−1)、不利=max(0,−恩恵)、有利=max(0,恩恵)。着順強度＝1−(着順−1)÷(頭数−1)。展＝50＋30×追上げ度＋30×不利×着順強度＋15×(着順強度−0.5)−12×有利。通過順位がない場合は50＋10×(着順強度−0.5)で補完し、0〜100に収めます。前残りで差して健闘、差し決着で前に残る、といった内容を高く評価します。</p>
   </section>
   <section class="index-logic-item">
-    <h3>近走「力」</h3>
-    <p>着順とレースレベルだけで能力を評価します。レース格点は、新馬・未勝利45、1勝55、2勝64、3勝73、OP・L82、GIII 88、GII 94、GI 100。着順点＝100×{1−(着順−1)÷(頭数−1)}。力＝レース格点50％＋着順点50％で、0〜100に収めます。</p>
+    <h3>近走「実」</h3>
+    <p>着順とレースレベルだけで能力を評価します。レース格点は、新馬・未勝利45、1勝55、2勝64、3勝73、OP・L82、GIII 88、GII 94、GI 100。着順点＝100×{1−(着順−1)÷(頭数−1)}。実＝レース格点50％＋着順点50％で、0〜100に収めます。</p>
   </section>
   <section class="index-logic-item">
-    <h3>今回「走」</h3>
-    <p>過去5走の「走」から今回の想定競走タイムの強さを作ります。各走の基礎重みは35・25・18・13・9％。同じ芝/ダート/障害なら表面係数1.00、異なる場合0.35、不明0.75。距離係数＝max(0.40, 1−|過去距離−今回距離|÷1200)（距離不明は0.70）。条件加重平均を算出し、今回走＝条件加重平均80％＋過去5走の走最高点20％。データがない場合は50です。</p>
+    <h3>今回「時」</h3>
+    <p>過去5走の「時」から今回の想定競走タイムの強さを作ります。各走の基礎重みは35・25・18・13・9％。同じ芝/ダート/障害なら表面係数1.00、異なる場合0.35、不明0.75。距離係数＝max(0.40, 1−|過去距離−今回距離|÷1200)（距離不明は0.70）。条件加重平均を算出し、今回時＝条件加重平均80％＋過去5走の時最高点20％。データがない場合は50です。</p>
   </section>
   <section class="index-logic-item">
     <h3>今回「展」</h3>
     <p>各馬の過去通過順位から前方度を求め、前方度0.62以上の馬が3頭以上なら速い流れ、1頭以下なら遅い流れ、それ以外を平均と想定します。速い流れは今回展＝35＋65×(1−前方度)、遅い流れは35＋65×前方度、平均は50＋20×{1−|前方度−0.5|×2}。脚質データがない場合は50です。ここは能力ではなく「今回どれだけ展開の恩恵を受けそうか」を表します。</p>
   </section>
   <section class="index-logic-item">
-    <h3>今回「力」</h3>
-    <p>基礎力は過去5走の「力」を35・25・18・13・9％で集約します。コース実績は、①同競馬場＋同芝/ダート/障害＋今回距離±100m、②同競馬場＋同芝/ダート/障害、③同芝/ダート/障害＋今回距離±200mの順に探し、その条件での1走総合評価を直近重視で集約します。該当実績がなければ基礎力をそのまま使います。今回力＝基礎力75％＋コース実績25％です。</p>
+    <h3>今回「実」</h3>
+    <p>基礎評価は過去5走の「実」を35・25・18・13・9％で集約します。コース実績は、①同競馬場＋同芝/ダート/障害＋今回距離±100m、②同競馬場＋同芝/ダート/障害、③同芝/ダート/障害＋今回距離±200mの順に探し、その条件での1走総合評価を直近重視で集約します。該当実績がなければ基礎評価をそのまま使います。今回実＝基礎評価75％＋コース実績25％です。</p>
   </section>
   <section class="index-logic-item">
     <h3>想人・予想選定</h3>
@@ -398,8 +398,18 @@ function resultRoleClass(no, race, prediction) {
 }
 
 function resultBoxes(result, race, prediction) {
-  if (!result?.places?.length) return '<span class="place-sep">—</span>';
   const box = no => horseBox(no, race, resultRoleClass(no, race, prediction));
+  const trifectas = Array.isArray(result?.trifectas)
+    ? result.trifectas.filter(item => Array.isArray(item?.horses) && item.horses.length === 3)
+    : [];
+
+  if (trifectas.length) {
+    return `<div class="trifecta-result-stack">${trifectas.map(item =>
+      `<div class="trifecta-result-line">${item.horses.map(no => box(Number(no))).join('<span class="place-sep">&gt;</span>')}</div>`
+    ).join('')}</div>`;
+  }
+
+  if (!result?.places?.length) return '<span class="place-sep">—</span>';
   const groups = result.places.map(group => {
     if (group.length === 1) return box(group[0]);
     return `<span class="horses">${group.map(n => box(n)).join('<span class="place-sep">=</span>')}</span>`;
@@ -515,6 +525,14 @@ function payoutAmountMarkup(items, rateText = '') {
   return `<span class="payout-amount payout-line">${amounts[0]}</span><span class="payout-amount payout-line">${second}${rateText ? `<span class="payout-rate payout-rate-inline">${rateText}</span>` : ''}</span>`;
 }
 
+function trifectaPayoutMarkup(items, rateText = '') {
+  const rows = Array.isArray(items) ? items : [];
+  if (rows.length <= 1) return payoutAmountMarkup(rows, rateText);
+  return `<div class="trifecta-payout-stack">${rows.map((item, index) =>
+    `<div class="trifecta-payout-row"><span class="payout-amount">${yen(Number(item?.payout || 0))}</span>${index === rows.length - 1 && rateText ? `<span class="payout-rate payout-rate-inline">${rateText}</span>` : ''}</div>`
+  ).join('')}</div>`;
+}
+
 function raceNameCell(race) {
   const label = `<span class="venue">${race.venue}</span> ${race.raceNo}R`;
   if (!raceDetail(race)) return label;
@@ -558,12 +576,15 @@ function renderDay(day, initiallyExpanded = true) {
     const triRate = !debut && settled
       ? (Number(r.payout || 0) / Number(r.stake || STAKE_PER_RACE) * 100)
       : null;
-    const rowClass = anyHit ? 'hit-row' : (debut ? 'debut-row' : (settled ? 'miss-row' : ''));
+    const rowClassBase = anyHit ? 'hit-row' : (debut ? 'debut-row' : (settled ? 'miss-row' : ''));
     const singleMarkup = payoutAmountMarkup(r?.result?.winPayouts || []);
-    const triMarkup = payoutAmountMarkup(
-      r?.result?.trifectas || [],
+    const trifectaItems = r?.result?.trifectas || [];
+    const triMarkup = trifectaPayoutMarkup(
+      trifectaItems,
       triHit && triRate != null ? percent(triRate) : ''
     );
+    const multiTrifecta = Array.isArray(trifectaItems) && trifectaItems.length > 1;
+    const rowClass = `${rowClassBase}${multiTrifecta ? ' multi-trifecta-row' : ''}`.trim();
     const mainCell = debut ? '<span class="no-prediction-dash">—</span>' : predictionBoxes(prediction.axes?.slice(0,1) || [], r);
     const secondCell = debut ? '<span class="no-prediction-dash">—</span>' : predictionBoxes(prediction.axes?.slice(1,2) || [], r);
     const opponentCell = debut ? '<span class="no-prediction-label">予想対象外</span>' : predictionBoxes(prediction.opponents || [], r);
@@ -572,7 +593,7 @@ function renderDay(day, initiallyExpanded = true) {
       <td>${mainCell}</td>
       <td>${secondCell}</td>
       <td>${opponentCell}</td>
-      <td>${resultBoxes(r.result, r, prediction)}</td>
+      <td class="result-cell">${resultBoxes(r.result, r, prediction)}</td>
       <td>${judgement(r, prediction)}</td>
       <td class="money payout-cell ${payoutCellClass({ debut, settled, hit: winHit })}">${singleMarkup}</td>
       <td class="money payout-cell trifecta-cell ${payoutCellClass({ debut, settled, hit: triHit })}">${triMarkup}</td>
@@ -619,7 +640,7 @@ function selectionLabel(horse, detail) {
   return '<span class="index-eval-empty">—</span>';
 }
 
-function tripleIndexMarkup(value, labels = ['走', '展', '力']) {
+function tripleIndexMarkup(value, labels = ['時', '展', '実']) {
   if (value == null || value === '' || value === '評価外') return '<span class="index-recent-na">評価外</span>';
   const parts = String(value).split('/');
   if (parts.length !== 3) return value;
@@ -628,11 +649,11 @@ function tripleIndexMarkup(value, labels = ['走', '展', '力']) {
 
 function recentIndexMarkup(value, detail) {
   const v3 = String(detail?.logicVersion || '').includes('v3-run-flow-power');
-  return tripleIndexMarkup(value, v3 ? ['走', '展', '力'] : ['展', '時', '成']);
+  return tripleIndexMarkup(value, v3 ? ['時', '展', '実'] : ['展', '時', '成']);
 }
 
 function todayIndexMarkup(horse) {
-  if (horse?.todayParts) return tripleIndexMarkup(horse.todayParts, ['走', '展', '力']);
+  if (horse?.todayParts) return tripleIndexMarkup(horse.todayParts, ['時', '展', '実']);
   // Before v3 apply, keep legacy production data truthful instead of relabeling course as power.
   if (Number.isFinite(Number(horse?.pace)) || Number.isFinite(Number(horse?.course))) {
     return `<span class="index-recent-score"><span class="index-recent-part"><span class="index-recent-label">展</span>${score2(horse?.pace)}</span><span class="index-recent-part"><span class="index-recent-label">コ</span>${score2(horse?.course)}</span></span>`;
