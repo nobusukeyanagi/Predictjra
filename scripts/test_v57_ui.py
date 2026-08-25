@@ -18,8 +18,8 @@ def test_summary_layout_and_overall_frame() -> None:
 
 def test_debut_result_display() -> None:
     assert "if (debut) return 'payout-miss';" in app
-    assert "予想無し" in app
-    assert "<span class=\"payout-rate\">-%</span>" in app
+    assert "予想対象外" in app
+    assert "debut ? '-%'" not in app
     assert ".no-prediction-label" in css and "text-align: left;" in css
 
 

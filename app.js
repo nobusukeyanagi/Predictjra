@@ -266,14 +266,44 @@ const INDEX_LOGIC_V3_HTML = `
 
 function raceDetail(race) {
   if (!race?.raceId) return null;
-  return race?.modelMeta?.indexDetail
-    || RACE_DETAIL_CACHE[race.raceId]
+  return RACE_DETAIL_CACHE[race.raceId]
+    || race?.modelMeta?.indexDetail
     || RACE_INDEX_DETAILS[race.raceId]
     || null;
 }
 
-function syncRaceDetailFromData(race) {
+function predictionDisabledDetail(race) {
+  const horseCount = Number(race?.horseCount || Object.keys(race?.horseNames || {}).length || Object.keys(race?.horseFrames || {}).length || 0);
+  const names = race?.horseNames || {};
+  const frameKeys = Object.keys(race?.horseFrames || {}).map(Number).filter(Number.isFinite);
+  const nameKeys = Object.keys(names).map(Number).filter(Number.isFinite);
+  const numbers = [...new Set([...nameKeys, ...frameKeys, ...Array.from({ length: horseCount }, (_, i) => i + 1)])]
+    .filter(no => no > 0 && (!horseCount || no <= horseCount))
+    .sort((a, b) => a - b);
+  return {
+    title: race?.modelMeta?.indexDetail?.title || `${race?.venue || ''}${race?.raceNo || ''}R ${race?.raceName || ''}`.trim(),
+    horseCount: horseCount || numbers.length,
+    logicVersion: race?.modelMeta?.version || '',
+    predictionDisabled: true,
+    prediction: { axes: [], opponents: [], excluded: [] },
+    horses: numbers.map(no => ({
+      no,
+      name: String(names[String(no)] ?? names[no] ?? `馬番${no}`),
+      expectedPopularity: 0, total: 0, rank: 0, recentIndex: 0, today: 0,
+      recent: ['00/00/00','00/00/00','00/00/00','00/00/00','00/00/00'],
+      todayParts: '00/00/00', pace: 0, course: 0, excluded: false
+    }))
+  };
+}
+
+function syncRaceDetailFromData(race, dayDate) {
   if (!race?.raceId) return;
+  if (isDebutRace(race)) {
+    const disabledDetail = predictionDisabledDetail(race);
+    disabledDetail.date = dayDate || disabledDetail.date || '';
+    RACE_DETAIL_CACHE[race.raceId] = disabledDetail;
+    return;
+  }
   const detail = race?.modelMeta?.indexDetail || RACE_INDEX_DETAILS[race.raceId];
   if (!detail) return;
 
@@ -285,6 +315,7 @@ function syncRaceDetailFromData(race) {
 
   detail.horseCount = Number(detail.horseCount || race.horseCount || detail.horses?.length || 0);
   detail.title = detail.title || `${race.venue}${race.raceNo}R`;
+  detail.date = dayDate || detail.date || '';
   detail.logicVersion = race?.modelMeta?.version || detail.logicVersion || '';
 
   detail.horses.forEach(horse => {
@@ -463,14 +494,30 @@ function dateLabel(iso) {
   return `${iso}（${weekdays[d.getDay()]}）`;
 }
 
-function actualPayoutText(items) {
-  if (!Array.isArray(items) || !items.length) return '—';
-  return items.map(item => yen(Number(item?.payout || 0))).join(' / ');
+function modalDateLabel(iso) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso || ''))) return '';
+  const d = new Date(`${iso}T00:00:00+09:00`);
+  const weekdays = ['日','月','火','水','木','金','土'];
+  return `${String(iso).slice(5)}(${weekdays[d.getDay()]})`;
+}
+
+function actualPayoutAmounts(items) {
+  if (!Array.isArray(items) || !items.length) return ['—'];
+  return items.map(item => yen(Number(item?.payout || 0)));
+}
+
+function payoutAmountMarkup(items, rateText = '') {
+  const amounts = actualPayoutAmounts(items);
+  if (amounts.length <= 1) {
+    return `<span class="payout-amount payout-line">${amounts[0]}</span>${rateText ? `<span class="payout-rate">${rateText}</span>` : ''}`;
+  }
+  const second = amounts.slice(1).join(' / ');
+  return `<span class="payout-amount payout-line">${amounts[0]}</span><span class="payout-amount payout-line">${second}${rateText ? `<span class="payout-rate payout-rate-inline">${rateText}</span>` : ''}</span>`;
 }
 
 function raceNameCell(race) {
   const label = `<span class="venue">${race.venue}</span> ${race.raceNo}R`;
-  if (isDebutRace(race) || !raceDetail(race)) return label;
+  if (!raceDetail(race)) return label;
   return `<button class="race-detail-trigger" type="button" data-race-id="${race.raceId}" aria-label="${race.venue}${race.raceNo}Rの指数表を表示">${label}</button>`;
 }
 
@@ -512,11 +559,14 @@ function renderDay(day, initiallyExpanded = true) {
       ? (Number(r.payout || 0) / Number(r.stake || STAKE_PER_RACE) * 100)
       : null;
     const rowClass = anyHit ? 'hit-row' : (debut ? 'debut-row' : (settled ? 'miss-row' : ''));
-    const singleText = actualPayoutText(r?.result?.winPayouts || []);
-    const triText = actualPayoutText(r?.result?.trifectas || []);
+    const singleMarkup = payoutAmountMarkup(r?.result?.winPayouts || []);
+    const triMarkup = payoutAmountMarkup(
+      r?.result?.trifectas || [],
+      triHit && triRate != null ? percent(triRate) : ''
+    );
     const mainCell = debut ? '<span class="no-prediction-dash">—</span>' : predictionBoxes(prediction.axes?.slice(0,1) || [], r);
     const secondCell = debut ? '<span class="no-prediction-dash">—</span>' : predictionBoxes(prediction.axes?.slice(1,2) || [], r);
-    const opponentCell = debut ? '<span class="no-prediction-label">予想無し</span>' : predictionBoxes(prediction.opponents || [], r);
+    const opponentCell = debut ? '<span class="no-prediction-label">予想対象外</span>' : predictionBoxes(prediction.opponents || [], r);
     return `<tr class="${rowClass}">
       <td class="race-name">${raceNameCell(r)}</td>
       <td>${mainCell}</td>
@@ -524,8 +574,8 @@ function renderDay(day, initiallyExpanded = true) {
       <td>${opponentCell}</td>
       <td>${resultBoxes(r.result, r, prediction)}</td>
       <td>${judgement(r, prediction)}</td>
-      <td class="money payout-cell ${payoutCellClass({ debut, settled, hit: winHit })}"><span class="payout-amount">${singleText}</span></td>
-      <td class="money payout-cell trifecta-cell ${payoutCellClass({ debut, settled, hit: triHit })}"><span class="payout-amount">${triText}</span>${debut ? '<span class="payout-rate">-%</span>' : (triRate == null ? '' : `<span class="payout-rate">${percent(triRate)}</span>`)}</td>
+      <td class="money payout-cell ${payoutCellClass({ debut, settled, hit: winHit })}">${singleMarkup}</td>
+      <td class="money payout-cell trifecta-cell ${payoutCellClass({ debut, settled, hit: triHit })}">${triMarkup}</td>
     </tr>`;
   }).join('');
 
@@ -561,6 +611,7 @@ function indexHorseNumber(no, horseCount) {
 }
 
 function selectionLabel(horse, detail) {
+  if (detail?.predictionDisabled) return '<span class="index-pick pick-disabled">対象外</span>';
   if (horse.no === detail.prediction.axes[0]) return '<span class="index-pick pick-main">本命</span>';
   if (horse.no === detail.prediction.axes[1]) return '<span class="index-pick pick-second">対抗</span>';
   if (detail.prediction.opponents.includes(horse.no)) return '<span class="index-pick pick-opponent">相手</span>';
@@ -600,6 +651,7 @@ function recentSortValue(value, detail) {
 }
 
 function evaluationSortValue(horse, detail) {
+  if (detail?.predictionDisabled) return 5;
   const firstAxis = detail.prediction?.axes?.[0];
   const secondAxis = detail.prediction?.axes?.[1];
   const opponents = detail.prediction?.opponents || [];
@@ -612,14 +664,16 @@ function evaluationSortValue(horse, detail) {
 }
 
 function indexHorseRow(horse, detail) {
+  const popularityText = detail?.predictionDisabled ? '00' : horse.expectedPopularity;
+  const rankText = detail?.predictionDisabled ? '00' : horse.rank;
   return `
     <tr>
       <td class="index-evaluation" data-sort-value="${evaluationSortValue(horse, detail)}">${selectionLabel(horse, detail)}</td>
       <td data-sort-value="${horse.no}">${indexHorseNumber(horse.no, detail.horseCount)}</td>
       <td class="index-horse-name" data-sort-value="${horse.name}">${horse.name}</td>
-      <td class="index-popularity" data-sort-value="${horse.expectedPopularity}">${horse.expectedPopularity}</td>
+      <td class="index-popularity" data-sort-value="${horse.expectedPopularity}">${popularityText}</td>
       <td class="index-total" data-sort-value="${horse.total}">${score2(horse.total)}</td>
-      <td class="index-rank" data-sort-value="${horse.rank}">${horse.rank}</td>
+      <td class="index-rank" data-sort-value="${horse.rank}">${rankText}</td>
       ${horse.recent.map(value => `<td data-sort-value="${recentSortValue(value, detail)}">${recentIndexMarkup(value, detail)}</td>`).join('')}
       <td class="index-strong index-recent-total" data-sort-value="${horse.recentIndex}">${score2(horse.recentIndex)}</td>
       <td data-sort-value="${horse.today}">${todayIndexMarkup(horse)}</td>
@@ -701,7 +755,7 @@ function renderIndexDetail(detail, raceId) {
               <button class="index-modal-nav-button" type="button" data-index-nav="-1" aria-label="前のレースへ"${indexModalNeighbor(raceId, -1) ? '' : ' disabled'}>＜</button>
               <button class="index-modal-nav-button" type="button" data-index-nav="1" aria-label="次のレースへ"${indexModalNeighbor(raceId, 1) ? '' : ' disabled'}>＞</button>
             </div>
-            <h2 id="index-modal-title">${detail.title}</h2>
+            <h2 id="index-modal-title">${modalDateLabel(detail.date) ? `${modalDateLabel(detail.date)} ` : ''}${detail.title}</h2>
           </div>
           <button class="index-modal-close" type="button" data-index-close="true" aria-label="指数表を閉じる">×</button>
         </div>
@@ -987,7 +1041,7 @@ async function boot() {
       .map(day => ({ ...day, races: [...(day.races || [])] }))
       .filter(day => day.races.length > 0)
       .sort((a,b) => b.date.localeCompare(a.date));
-    days.forEach(day => (day.races || []).forEach(syncRaceDetailFromData));
+    days.forEach(day => (day.races || []).forEach(race => syncRaceDetailFromData(race, day.date)));
 
     INDEX_MODAL_RACE_ORDER = days.flatMap(day =>
       [...(day.races || [])]
@@ -995,7 +1049,7 @@ async function boot() {
           (VENUE_ORDER[a.venue] ?? 99) - (VENUE_ORDER[b.venue] ?? 99)
           || a.raceNo - b.raceNo
         )
-        .filter(race => !isDebutRace(race) && raceDetail(race))
+        .filter(race => raceDetail(race))
         .map(race => race.raceId)
     );
 

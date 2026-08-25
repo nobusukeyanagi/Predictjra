@@ -878,13 +878,32 @@ body.logic-modal-open { overflow: hidden; }
   .index-table th:nth-child(14), .index-table td:nth-child(14) { width: 7.4% !important; }
 }
 
-/* SP: title row and index header row share the same height; modal buttons are larger. */
+/* v61 SP: controls occupy the first row; dated race title occupies the second row. */
 @media (max-width: 760px) {
   .site-info-button { width: 27px; height: 27px; font-size: 17px; left: calc(100% + 6px); }
   .index-modal-header {
-    height: 42px;
-    min-height: 42px;
-    padding: 4px 8px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "nav close"
+      "title title";
+    align-items: center;
+    height: auto;
+    min-height: 76px;
+    row-gap: 4px;
+    padding: 4px 8px 6px;
+  }
+  .index-modal-heading { display: contents; }
+  .index-modal-nav { grid-area: nav; justify-self: start; }
+  .index-modal-close { grid-area: close; justify-self: end; }
+  .index-modal-header h2 {
+    grid-area: title;
+    width: 100%;
+    font-size: 18px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .index-modal-nav-button {
     width: 34px;
@@ -897,7 +916,6 @@ body.logic-modal-open { overflow: hidden; }
     height: 34px;
     font-size: 21px;
   }
-  .index-modal-header h2 { font-size: 18px; }
   .index-table thead tr { height: 42px; }
   .index-table th,
   .index-table th.index-sortable {
@@ -1001,3 +1019,65 @@ body.logic-modal-open { overflow: hidden; }
   }
 }
 
+
+
+/* v58: race-table widths are invariant across every date. */
+.race-table {
+  width: 732px !important;
+  min-width: 732px !important;
+  max-width: 732px !important;
+  table-layout: fixed !important;
+}
+.race-table th,
+.race-table td {
+  overflow: hidden;
+  text-overflow: clip;
+}
+.race-table th:nth-child(1), .race-table td:nth-child(1) { width: 76px !important; min-width: 76px !important; max-width: 76px !important; }
+.race-table th:nth-child(2), .race-table td:nth-child(2) { width: 42px !important; min-width: 42px !important; max-width: 42px !important; }
+.race-table th:nth-child(3), .race-table td:nth-child(3) { width: 42px !important; min-width: 42px !important; max-width: 42px !important; }
+.race-table th:nth-child(4), .race-table td:nth-child(4) { width: 158px !important; min-width: 158px !important; max-width: 158px !important; }
+.race-table th:nth-child(5), .race-table td:nth-child(5) { width: 150px !important; min-width: 150px !important; max-width: 150px !important; }
+.race-table th:nth-child(6), .race-table td:nth-child(6) { width: 66px !important; min-width: 66px !important; max-width: 66px !important; }
+.race-table th:nth-child(7), .race-table td:nth-child(7) { width: 90px !important; min-width: 90px !important; max-width: 90px !important; }
+.race-table th:nth-child(8), .race-table td:nth-child(8) { width: 108px !important; min-width: 108px !important; max-width: 108px !important; }
+
+/* Multiple dead-heat payouts stay inside the fixed payout columns. */
+.payout-cell .payout-line {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
+}
+.payout-cell .payout-rate-inline {
+  display: inline;
+  margin: 0 0 0 4px;
+  font-size: 9px;
+  vertical-align: baseline;
+}
+
+/* v58 role badges: main/second red text; danger purple triangular badge. */
+.horse-box.result-role-main::after,
+.horse-box.result-role-second::after {
+  color: var(--hit);
+}
+.horse-box.result-role-danger::after {
+  top: -7px;
+  right: -4px;
+  width: 15px;
+  height: 14px;
+  padding-top: 4px;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  color: #6f42c1;
+  font-size: 7px;
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+  filter: drop-shadow(0 0 1px #6f42c1);
+  box-shadow: none;
+}
+
+.index-pick.pick-disabled {
+  color: var(--muted);
+  background: #eef1ef;
+}
