@@ -1062,11 +1062,11 @@ body.logic-modal-open { overflow: hidden; }
 
 
 
-/* v58: race-table widths are invariant across every date. */
+/* v64: race-table widths are invariant across every date; Main/Second columns widened so 27px horse boxes are never clipped by cell padding. */
 .race-table {
-  width: 732px !important;
-  min-width: 732px !important;
-  max-width: 732px !important;
+  width: 756px !important;
+  min-width: 756px !important;
+  max-width: 756px !important;
   table-layout: fixed !important;
 }
 .race-table th,
@@ -1075,8 +1075,8 @@ body.logic-modal-open { overflow: hidden; }
   text-overflow: clip;
 }
 .race-table th:nth-child(1), .race-table td:nth-child(1) { width: 76px !important; min-width: 76px !important; max-width: 76px !important; }
-.race-table th:nth-child(2), .race-table td:nth-child(2) { width: 42px !important; min-width: 42px !important; max-width: 42px !important; }
-.race-table th:nth-child(3), .race-table td:nth-child(3) { width: 42px !important; min-width: 42px !important; max-width: 42px !important; }
+.race-table th:nth-child(2), .race-table td:nth-child(2) { width: 54px !important; min-width: 54px !important; max-width: 54px !important; }
+.race-table th:nth-child(3), .race-table td:nth-child(3) { width: 54px !important; min-width: 54px !important; max-width: 54px !important; }
 .race-table th:nth-child(4), .race-table td:nth-child(4) { width: 158px !important; min-width: 158px !important; max-width: 158px !important; }
 .race-table th:nth-child(5), .race-table td:nth-child(5) { width: 150px !important; min-width: 150px !important; max-width: 150px !important; }
 .race-table th:nth-child(6), .race-table td:nth-child(6) { width: 66px !important; min-width: 66px !important; max-width: 66px !important; }
