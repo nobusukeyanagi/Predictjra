@@ -2,7 +2,7 @@
   "version": "predictjra-popularity-v54-hgb-prior-odds",
   "logicSource": "scripts/prediction_logic_candidate.py",
   "modelVersion": "predictjra-live-index-v3-run-flow-power-v54-prior-odds-top3",
-  "trainedAt": "2026-08-24T17:26:00+09:00",
+  "trainedAt": "2026-08-25T15:50:02+09:00",
   "teacherDates": [
     "2026-01-04",
     "2026-01-05",

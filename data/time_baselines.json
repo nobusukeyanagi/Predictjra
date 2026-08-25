@@ -1,20 +1,14 @@
 {
   "version": "predictjra-time-baseline-v1-median-mad",
   "cutoffDateExclusive": "2026-08-24",
-  "sourceCommit": "e231b0b3003be3b2f89a07b8c9ffcac78d0358d1",
+  "sourceCommit": "4ef9eb6aab6175bdabfd02d862b3cf7e21a7dcce",
   "formula": "median third-place sec/1000; MAD; sigma=max(0.20,1.4826*MAD)",
   "groups": {
-    "札幌|芝|1200|良": {
-      "n": 60,
-      "medianSecPer1000": 57.583333,
-      "madSecPer1000": 0.416667,
-      "sigmaSecPer1000": 0.61775
-    },
-    "札幌|芝|1200|*": {
-      "n": 88,
-      "medianSecPer1000": 57.916667,
-      "madSecPer1000": 0.666667,
-      "sigmaSecPer1000": 0.9884
+    "*|芝|1200|*": {
+      "n": 844,
+      "medianSecPer1000": 57.666667,
+      "madSecPer1000": 0.583333,
+      "sigmaSecPer1000": 0.86485
     },
     "*|芝|1200|良": {
       "n": 651,
@@ -22,23 +16,17 @@
       "madSecPer1000": 0.5,
       "sigmaSecPer1000": 0.7413
     },
-    "*|芝|1200|*": {
-      "n": 844,
-      "medianSecPer1000": 57.666667,
-      "madSecPer1000": 0.583333,
-      "sigmaSecPer1000": 0.86485
+    "札幌|芝|1200|*": {
+      "n": 88,
+      "medianSecPer1000": 57.916667,
+      "madSecPer1000": 0.666667,
+      "sigmaSecPer1000": 0.9884
     },
-    "札幌|ダート|1000|良": {
-      "n": 41,
-      "medianSecPer1000": 59.6,
-      "madSecPer1000": 0.3,
-      "sigmaSecPer1000": 0.44478
-    },
-    "札幌|ダート|1000|*": {
-      "n": 58,
-      "medianSecPer1000": 59.55,
-      "madSecPer1000": 0.35,
-      "sigmaSecPer1000": 0.51891
+    "札幌|芝|1200|良": {
+      "n": 60,
+      "medianSecPer1000": 57.583333,
+      "madSecPer1000": 0.416667,
+      "sigmaSecPer1000": 0.61775
     },
     "*|ダート|1000|良": {
       "n": 179,
@@ -46,11 +34,29 @@
       "madSecPer1000": 0.7,
       "sigmaSecPer1000": 1.03782
     },
+    "札幌|ダート|1000|*": {
+      "n": 58,
+      "medianSecPer1000": 59.55,
+      "madSecPer1000": 0.35,
+      "sigmaSecPer1000": 0.51891
+    },
     "*|ダート|1000|*": {
       "n": 303,
       "medianSecPer1000": 59.8,
       "madSecPer1000": 1.1,
       "sigmaSecPer1000": 1.63086
+    },
+    "札幌|ダート|1000|良": {
+      "n": 41,
+      "medianSecPer1000": 59.6,
+      "madSecPer1000": 0.3,
+      "sigmaSecPer1000": 0.44478
+    },
+    "札幌|ダート|1700|*": {
+      "n": 178,
+      "medianSecPer1000": 62.823529,
+      "madSecPer1000": 0.5,
+      "sigmaSecPer1000": 0.7413
     },
     "札幌|ダート|1700|良": {
       "n": 116,
@@ -70,13 +76,7 @@
       "madSecPer1000": 0.647059,
       "sigmaSecPer1000": 0.959329
     },
-    "札幌|ダート|1700|*": {
-      "n": 178,
-      "medianSecPer1000": 62.823529,
-      "madSecPer1000": 0.5,
-      "sigmaSecPer1000": 0.7413
-    },
-    "*|芝|1500|良": {
+    "札幌|芝|1500|良": {
       "n": 50,
       "medianSecPer1000": 59.533333,
       "madSecPer1000": 0.6,
@@ -88,7 +88,7 @@
       "madSecPer1000": 0.7,
       "sigmaSecPer1000": 1.03782
     },
-    "札幌|芝|1500|良": {
+    "*|芝|1500|良": {
       "n": 50,
       "medianSecPer1000": 59.533333,
       "madSecPer1000": 0.6,
@@ -99,18 +99,6 @@
       "medianSecPer1000": 59.733333,
       "madSecPer1000": 0.7,
       "sigmaSecPer1000": 1.03782
-    },
-    "*|芝|1800|*": {
-      "n": 706,
-      "medianSecPer1000": 60.222222,
-      "madSecPer1000": 0.722222,
-      "sigmaSecPer1000": 1.070767
-    },
-    "*|芝|1800|良": {
-      "n": 565,
-      "medianSecPer1000": 60.055556,
-      "madSecPer1000": 0.666667,
-      "sigmaSecPer1000": 0.9884
     },
     "札幌|芝|1800|良": {
       "n": 53,
@@ -124,11 +112,17 @@
       "madSecPer1000": 0.611111,
       "sigmaSecPer1000": 0.906033
     },
-    "*|芝|2000|良": {
-      "n": 843,
-      "medianSecPer1000": 60.45,
-      "madSecPer1000": 0.55,
-      "sigmaSecPer1000": 0.81543
+    "*|芝|1800|*": {
+      "n": 706,
+      "medianSecPer1000": 60.222222,
+      "madSecPer1000": 0.722222,
+      "sigmaSecPer1000": 1.070767
+    },
+    "*|芝|1800|良": {
+      "n": 565,
+      "medianSecPer1000": 60.055556,
+      "madSecPer1000": 0.666667,
+      "sigmaSecPer1000": 0.9884
     },
     "*|芝|2000|*": {
       "n": 1041,
@@ -136,35 +130,23 @@
       "madSecPer1000": 0.6,
       "sigmaSecPer1000": 0.88956
     },
-    "札幌|芝|2000|良": {
-      "n": 56,
-      "medianSecPer1000": 60.525,
-      "madSecPer1000": 0.375,
-      "sigmaSecPer1000": 0.555975
-    },
     "札幌|芝|2000|*": {
       "n": 82,
       "medianSecPer1000": 60.9,
       "madSecPer1000": 0.55,
       "sigmaSecPer1000": 0.81543
     },
-    "*|芝|2600|*": {
-      "n": 124,
-      "medianSecPer1000": 62.211538,
-      "madSecPer1000": 0.596154,
-      "sigmaSecPer1000": 0.883858
+    "*|芝|2000|良": {
+      "n": 843,
+      "medianSecPer1000": 60.45,
+      "madSecPer1000": 0.55,
+      "sigmaSecPer1000": 0.81543
     },
-    "*|芝|2600|良": {
-      "n": 98,
-      "medianSecPer1000": 62.0,
-      "madSecPer1000": 0.519231,
-      "sigmaSecPer1000": 0.769812
-    },
-    "札幌|芝|2600|*": {
-      "n": 34,
-      "medianSecPer1000": 62.423077,
-      "madSecPer1000": 0.442308,
-      "sigmaSecPer1000": 0.655765
+    "札幌|芝|2000|良": {
+      "n": 56,
+      "medianSecPer1000": 60.525,
+      "madSecPer1000": 0.375,
+      "sigmaSecPer1000": 0.555975
     },
     "札幌|芝|2600|良": {
       "n": 24,
@@ -172,17 +154,35 @@
       "madSecPer1000": 0.403846,
       "sigmaSecPer1000": 0.598742
     },
-    "*|ダート|1700|不良": {
-      "n": 40,
-      "medianSecPer1000": 62.205882,
-      "madSecPer1000": 1.088235,
-      "sigmaSecPer1000": 1.613418
+    "札幌|芝|2600|*": {
+      "n": 34,
+      "medianSecPer1000": 62.423077,
+      "madSecPer1000": 0.442308,
+      "sigmaSecPer1000": 0.655765
+    },
+    "*|芝|2600|良": {
+      "n": 98,
+      "medianSecPer1000": 62.0,
+      "madSecPer1000": 0.519231,
+      "sigmaSecPer1000": 0.769812
+    },
+    "*|芝|2600|*": {
+      "n": 124,
+      "medianSecPer1000": 62.211538,
+      "madSecPer1000": 0.596154,
+      "sigmaSecPer1000": 0.883858
     },
     "札幌|ダート|1700|不良": {
       "n": 10,
       "medianSecPer1000": 62.176471,
       "madSecPer1000": 0.588235,
       "sigmaSecPer1000": 0.872118
+    },
+    "*|ダート|1700|不良": {
+      "n": 40,
+      "medianSecPer1000": 62.205882,
+      "madSecPer1000": 1.088235,
+      "sigmaSecPer1000": 1.613418
     },
     "*|芝|1200|稍重": {
       "n": 134,
@@ -196,17 +196,17 @@
       "madSecPer1000": 0.333333,
       "sigmaSecPer1000": 0.4942
     },
-    "*|芝|2000|稍重": {
-      "n": 138,
-      "medianSecPer1000": 61.25,
-      "madSecPer1000": 0.5,
-      "sigmaSecPer1000": 0.7413
-    },
     "札幌|芝|2000|稍重": {
       "n": 18,
       "medianSecPer1000": 61.575,
       "madSecPer1000": 0.275,
       "sigmaSecPer1000": 0.407715
+    },
+    "*|芝|2000|稍重": {
+      "n": 138,
+      "medianSecPer1000": 61.25,
+      "madSecPer1000": 0.5,
+      "sigmaSecPer1000": 0.7413
     },
     "*|芝|1800|稍重": {
       "n": 97,
@@ -220,17 +220,17 @@
       "madSecPer1000": 0.611111,
       "sigmaSecPer1000": 0.906033
     },
-    "*|ダート|1700|重": {
-      "n": 98,
-      "medianSecPer1000": 62.264706,
-      "madSecPer1000": 0.882353,
-      "sigmaSecPer1000": 1.308176
-    },
     "札幌|ダート|1700|重": {
       "n": 21,
       "medianSecPer1000": 62.176471,
       "madSecPer1000": 0.411765,
       "sigmaSecPer1000": 0.610482
+    },
+    "*|ダート|1700|重": {
+      "n": 98,
+      "medianSecPer1000": 62.264706,
+      "madSecPer1000": 0.882353,
+      "sigmaSecPer1000": 1.308176
     },
     "札幌|芝|2600|稍重": {
       "n": 9,
@@ -244,25 +244,25 @@
       "madSecPer1000": 0.384615,
       "sigmaSecPer1000": 0.570231
     },
-    "札幌|芝|1500|稍重": {
-      "n": 16,
-      "medianSecPer1000": 60.866667,
-      "madSecPer1000": 0.9,
-      "sigmaSecPer1000": 1.33434
-    },
     "*|芝|1500|稍重": {
       "n": 16,
       "medianSecPer1000": 60.866667,
       "madSecPer1000": 0.9,
       "sigmaSecPer1000": 1.33434
     },
-    "札幌|芝|1500|重": {
+    "札幌|芝|1500|稍重": {
+      "n": 16,
+      "medianSecPer1000": 60.866667,
+      "madSecPer1000": 0.9,
+      "sigmaSecPer1000": 1.33434
+    },
+    "*|芝|1500|重": {
       "n": 5,
       "medianSecPer1000": 61.0,
       "madSecPer1000": 0.933333,
       "sigmaSecPer1000": 1.38376
     },
-    "*|芝|1500|重": {
+    "札幌|芝|1500|重": {
       "n": 5,
       "medianSecPer1000": 61.0,
       "madSecPer1000": 0.933333,
@@ -304,17 +304,17 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "*|ダート|1000|不良": {
-      "n": 19,
-      "medianSecPer1000": 58.6,
-      "madSecPer1000": 0.6,
-      "sigmaSecPer1000": 0.88956
-    },
     "札幌|ダート|1000|不良": {
       "n": 3,
       "medianSecPer1000": 59.2,
       "madSecPer1000": 0.1,
       "sigmaSecPer1000": 0.2
+    },
+    "*|ダート|1000|不良": {
+      "n": 19,
+      "medianSecPer1000": 58.6,
+      "madSecPer1000": 0.6,
+      "sigmaSecPer1000": 0.88956
     },
     "札幌|芝|1200|重": {
       "n": 7,
@@ -328,12 +328,6 @@
       "madSecPer1000": 0.5,
       "sigmaSecPer1000": 0.7413
     },
-    "札幌|ダート|2400|良": {
-      "n": 6,
-      "medianSecPer1000": 65.645833,
-      "madSecPer1000": 0.479167,
-      "sigmaSecPer1000": 0.710412
-    },
     "*|ダート|2400|良": {
       "n": 42,
       "medianSecPer1000": 65.020833,
@@ -345,6 +339,12 @@
       "medianSecPer1000": 64.895833,
       "madSecPer1000": 0.604167,
       "sigmaSecPer1000": 0.895737
+    },
+    "札幌|ダート|2400|良": {
+      "n": 6,
+      "medianSecPer1000": 65.645833,
+      "madSecPer1000": 0.479167,
+      "sigmaSecPer1000": 0.710412
     },
     "札幌|ダート|2400|*": {
       "n": 8,
@@ -376,17 +376,17 @@
       "madSecPer1000": 0.529412,
       "sigmaSecPer1000": 0.784906
     },
-    "札幌|ダート|2400|稍重": {
-      "n": 2,
-      "medianSecPer1000": 65.25,
-      "madSecPer1000": 0.5,
-      "sigmaSecPer1000": 0.7413
-    },
     "*|ダート|2400|稍重": {
       "n": 10,
       "medianSecPer1000": 64.729167,
       "madSecPer1000": 0.6875,
       "sigmaSecPer1000": 1.019287
+    },
+    "札幌|ダート|2400|稍重": {
+      "n": 2,
+      "medianSecPer1000": 65.25,
+      "madSecPer1000": 0.5,
+      "sigmaSecPer1000": 0.7413
     },
     "福島|芝|1200|良": {
       "n": 155,
@@ -442,12 +442,6 @@
       "madSecPer1000": 0.434783,
       "sigmaSecPer1000": 0.644609
     },
-    "*|ダート|1150|良": {
-      "n": 92,
-      "medianSecPer1000": 60.347826,
-      "madSecPer1000": 0.434783,
-      "sigmaSecPer1000": 0.644609
-    },
     "*|ダート|1150|*": {
       "n": 109,
       "medianSecPer1000": 60.173913,
@@ -459,6 +453,12 @@
       "medianSecPer1000": 60.173913,
       "madSecPer1000": 0.521739,
       "sigmaSecPer1000": 0.77353
+    },
+    "*|ダート|1150|良": {
+      "n": 92,
+      "medianSecPer1000": 60.347826,
+      "madSecPer1000": 0.434783,
+      "sigmaSecPer1000": 0.644609
     },
     "福島|芝|2600|良": {
       "n": 35,
@@ -472,31 +472,19 @@
       "madSecPer1000": 0.653846,
       "sigmaSecPer1000": 0.969392
     },
-    "福島|ダート|2400|良": {
-      "n": 4,
-      "medianSecPer1000": 64.604167,
-      "madSecPer1000": 0.25,
-      "sigmaSecPer1000": 0.37065
-    },
     "福島|ダート|2400|*": {
       "n": 5,
       "medianSecPer1000": 64.5,
       "madSecPer1000": 0.291667,
       "sigmaSecPer1000": 0.432425
     },
+    "福島|ダート|2400|良": {
+      "n": 4,
+      "medianSecPer1000": 64.604167,
+      "madSecPer1000": 0.25,
+      "sigmaSecPer1000": 0.37065
+    },
     "福島|芝|2750|良": {
-      "n": 15,
-      "medianSecPer1000": 66.763636,
-      "madSecPer1000": 0.436364,
-      "sigmaSecPer1000": 0.646953
-    },
-    "*|芝|2750|*": {
-      "n": 20,
-      "medianSecPer1000": 66.672727,
-      "madSecPer1000": 0.509091,
-      "sigmaSecPer1000": 0.754778
-    },
-    "*|芝|2750|良": {
       "n": 15,
       "medianSecPer1000": 66.763636,
       "madSecPer1000": 0.436364,
@@ -508,13 +496,25 @@
       "madSecPer1000": 0.509091,
       "sigmaSecPer1000": 0.754778
     },
-    "*|ダート|1150|稍重": {
+    "*|芝|2750|良": {
+      "n": 15,
+      "medianSecPer1000": 66.763636,
+      "madSecPer1000": 0.436364,
+      "sigmaSecPer1000": 0.646953
+    },
+    "*|芝|2750|*": {
+      "n": 20,
+      "medianSecPer1000": 66.672727,
+      "madSecPer1000": 0.509091,
+      "sigmaSecPer1000": 0.754778
+    },
+    "福島|ダート|1150|稍重": {
       "n": 11,
       "medianSecPer1000": 59.826087,
       "madSecPer1000": 0.782609,
       "sigmaSecPer1000": 1.160296
     },
-    "福島|ダート|1150|稍重": {
+    "*|ダート|1150|稍重": {
       "n": 11,
       "medianSecPer1000": 59.826087,
       "madSecPer1000": 0.782609,
@@ -538,6 +538,12 @@
       "madSecPer1000": 0.595668,
       "sigmaSecPer1000": 0.883137
     },
+    "福島|芝|2770|稍重": {
+      "n": 2,
+      "medianSecPer1000": 67.021661,
+      "madSecPer1000": 0.595668,
+      "sigmaSecPer1000": 0.883137
+    },
     "*|芝|2770|*": {
       "n": 12,
       "medianSecPer1000": 66.227437,
@@ -549,12 +555,6 @@
       "medianSecPer1000": 66.227437,
       "madSecPer1000": 0.252708,
       "sigmaSecPer1000": 0.374664
-    },
-    "福島|芝|2770|稍重": {
-      "n": 2,
-      "medianSecPer1000": 67.021661,
-      "madSecPer1000": 0.595668,
-      "sigmaSecPer1000": 0.883137
     },
     "福島|ダート|1700|重": {
       "n": 11,
@@ -592,29 +592,17 @@
       "madSecPer1000": 1.0,
       "sigmaSecPer1000": 1.4826
     },
-    "*|芝|2770|良": {
-      "n": 10,
-      "medianSecPer1000": 66.155235,
-      "madSecPer1000": 0.216606,
-      "sigmaSecPer1000": 0.321141
-    },
     "福島|芝|2770|良": {
       "n": 10,
       "medianSecPer1000": 66.155235,
       "madSecPer1000": 0.216606,
       "sigmaSecPer1000": 0.321141
     },
-    "新潟|芝|1400|良": {
-      "n": 70,
-      "medianSecPer1000": 58.571429,
-      "madSecPer1000": 0.642857,
-      "sigmaSecPer1000": 0.9531
-    },
-    "*|芝|1400|*": {
-      "n": 451,
-      "medianSecPer1000": 58.214286,
-      "madSecPer1000": 0.642857,
-      "sigmaSecPer1000": 0.9531
+    "*|芝|2770|良": {
+      "n": 10,
+      "medianSecPer1000": 66.155235,
+      "madSecPer1000": 0.216606,
+      "sigmaSecPer1000": 0.321141
     },
     "新潟|芝|1400|*": {
       "n": 82,
@@ -622,17 +610,35 @@
       "madSecPer1000": 0.678571,
       "sigmaSecPer1000": 1.00605
     },
+    "新潟|芝|1400|良": {
+      "n": 70,
+      "medianSecPer1000": 58.571429,
+      "madSecPer1000": 0.642857,
+      "sigmaSecPer1000": 0.9531
+    },
     "*|芝|1400|良": {
       "n": 389,
       "medianSecPer1000": 58.142857,
       "madSecPer1000": 0.571429,
       "sigmaSecPer1000": 0.8472
     },
+    "*|芝|1400|*": {
+      "n": 451,
+      "medianSecPer1000": 58.214286,
+      "madSecPer1000": 0.642857,
+      "sigmaSecPer1000": 0.9531
+    },
     "新潟|ダート|1200|*": {
       "n": 185,
       "medianSecPer1000": 60.25,
       "madSecPer1000": 0.5,
       "sigmaSecPer1000": 0.7413
+    },
+    "*|ダート|1200|*": {
+      "n": 1277,
+      "medianSecPer1000": 60.75,
+      "madSecPer1000": 0.833333,
+      "sigmaSecPer1000": 1.2355
     },
     "新潟|ダート|1200|良": {
       "n": 128,
@@ -646,11 +652,11 @@
       "madSecPer1000": 0.75,
       "sigmaSecPer1000": 1.11195
     },
-    "*|ダート|1200|*": {
-      "n": 1277,
-      "medianSecPer1000": 60.75,
-      "madSecPer1000": 0.833333,
-      "sigmaSecPer1000": 1.2355
+    "*|ダート|1800|良": {
+      "n": 1111,
+      "medianSecPer1000": 63.777778,
+      "madSecPer1000": 0.666667,
+      "sigmaSecPer1000": 0.9884
     },
     "新潟|ダート|1800|*": {
       "n": 235,
@@ -658,23 +664,17 @@
       "madSecPer1000": 0.555556,
       "sigmaSecPer1000": 0.823667
     },
-    "*|ダート|1800|*": {
-      "n": 1612,
-      "medianSecPer1000": 63.722222,
-      "madSecPer1000": 0.666667,
-      "sigmaSecPer1000": 0.9884
-    },
-    "*|ダート|1800|良": {
-      "n": 1111,
-      "medianSecPer1000": 63.777778,
-      "madSecPer1000": 0.666667,
-      "sigmaSecPer1000": 0.9884
-    },
     "新潟|ダート|1800|良": {
       "n": 164,
       "medianSecPer1000": 63.583333,
       "madSecPer1000": 0.583333,
       "sigmaSecPer1000": 0.86485
+    },
+    "*|ダート|1800|*": {
+      "n": 1612,
+      "medianSecPer1000": 63.722222,
+      "madSecPer1000": 0.666667,
+      "sigmaSecPer1000": 0.9884
     },
     "新潟|芝|2000|良": {
       "n": 38,
@@ -688,29 +688,17 @@
       "madSecPer1000": 0.65,
       "sigmaSecPer1000": 0.96369
     },
-    "新潟|芝|1200|*": {
-      "n": 44,
-      "medianSecPer1000": 58.291667,
-      "madSecPer1000": 0.375,
-      "sigmaSecPer1000": 0.555975
-    },
     "新潟|芝|1200|良": {
       "n": 32,
       "medianSecPer1000": 58.25,
       "madSecPer1000": 0.333333,
       "sigmaSecPer1000": 0.4942
     },
-    "*|芝|2200|*": {
-      "n": 130,
-      "medianSecPer1000": 60.590909,
-      "madSecPer1000": 0.522727,
-      "sigmaSecPer1000": 0.774995
-    },
-    "新潟|芝|2200|良": {
-      "n": 24,
-      "medianSecPer1000": 60.5,
-      "madSecPer1000": 0.477273,
-      "sigmaSecPer1000": 0.707605
+    "新潟|芝|1200|*": {
+      "n": 44,
+      "medianSecPer1000": 58.291667,
+      "madSecPer1000": 0.375,
+      "sigmaSecPer1000": 0.555975
     },
     "新潟|芝|2200|*": {
       "n": 31,
@@ -718,11 +706,29 @@
       "madSecPer1000": 0.681818,
       "sigmaSecPer1000": 1.010864
     },
+    "*|芝|2200|*": {
+      "n": 130,
+      "medianSecPer1000": 60.590909,
+      "madSecPer1000": 0.522727,
+      "sigmaSecPer1000": 0.774995
+    },
     "*|芝|2200|良": {
       "n": 104,
       "medianSecPer1000": 60.454545,
       "madSecPer1000": 0.5,
       "sigmaSecPer1000": 0.7413
+    },
+    "新潟|芝|2200|良": {
+      "n": 24,
+      "medianSecPer1000": 60.5,
+      "madSecPer1000": 0.477273,
+      "sigmaSecPer1000": 0.707605
+    },
+    "*|芝|2400|*": {
+      "n": 124,
+      "medianSecPer1000": 60.9375,
+      "madSecPer1000": 0.5625,
+      "sigmaSecPer1000": 0.833962
     },
     "新潟|芝|2400|*": {
       "n": 12,
@@ -736,23 +742,11 @@
       "madSecPer1000": 0.5625,
       "sigmaSecPer1000": 0.833962
     },
-    "*|芝|2400|*": {
-      "n": 124,
-      "medianSecPer1000": 60.9375,
-      "madSecPer1000": 0.5625,
-      "sigmaSecPer1000": 0.833962
-    },
     "新潟|芝|2400|良": {
       "n": 11,
       "medianSecPer1000": 61.208333,
       "madSecPer1000": 0.458333,
       "sigmaSecPer1000": 0.679525
-    },
-    "*|ダート|2500|良": {
-      "n": 4,
-      "medianSecPer1000": 65.96,
-      "madSecPer1000": 0.06,
-      "sigmaSecPer1000": 0.2
     },
     "*|ダート|2500|*": {
       "n": 6,
@@ -760,17 +754,23 @@
       "madSecPer1000": 0.18,
       "sigmaSecPer1000": 0.266868
     },
+    "新潟|ダート|2500|*": {
+      "n": 3,
+      "medianSecPer1000": 65.24,
+      "madSecPer1000": 0.44,
+      "sigmaSecPer1000": 0.652344
+    },
     "新潟|ダート|2500|良": {
       "n": 2,
       "medianSecPer1000": 65.36,
       "madSecPer1000": 0.56,
       "sigmaSecPer1000": 0.830256
     },
-    "新潟|ダート|2500|*": {
-      "n": 3,
-      "medianSecPer1000": 65.24,
-      "madSecPer1000": 0.44,
-      "sigmaSecPer1000": 0.652344
+    "*|ダート|2500|良": {
+      "n": 4,
+      "medianSecPer1000": 65.96,
+      "madSecPer1000": 0.06,
+      "sigmaSecPer1000": 0.2
     },
     "新潟|ダート|1200|稍重": {
       "n": 35,
@@ -784,17 +784,17 @@
       "madSecPer1000": 0.875,
       "sigmaSecPer1000": 1.297275
     },
-    "*|ダート|1800|稍重": {
-      "n": 296,
-      "medianSecPer1000": 63.777778,
-      "madSecPer1000": 0.666667,
-      "sigmaSecPer1000": 0.9884
-    },
     "新潟|ダート|1800|稍重": {
       "n": 48,
       "medianSecPer1000": 63.75,
       "madSecPer1000": 0.472222,
       "sigmaSecPer1000": 0.700117
+    },
+    "*|ダート|1800|稍重": {
+      "n": 296,
+      "medianSecPer1000": 63.777778,
+      "madSecPer1000": 0.666667,
+      "sigmaSecPer1000": 0.9884
     },
     "新潟|芝|1400|稍重": {
       "n": 7,
@@ -832,23 +832,17 @@
       "madSecPer1000": 0.25,
       "sigmaSecPer1000": 0.37065
     },
-    "*|芝|1400|重": {
-      "n": 22,
-      "medianSecPer1000": 59.428571,
-      "madSecPer1000": 0.535714,
-      "sigmaSecPer1000": 0.79425
-    },
     "新潟|芝|1400|重": {
       "n": 3,
       "medianSecPer1000": 60.0,
       "madSecPer1000": 0.214286,
       "sigmaSecPer1000": 0.3177
     },
-    "新潟|芝|2200|重": {
-      "n": 1,
-      "medianSecPer1000": 61.954545,
-      "madSecPer1000": 0.0,
-      "sigmaSecPer1000": 0.2
+    "*|芝|1400|重": {
+      "n": 22,
+      "medianSecPer1000": 59.428571,
+      "madSecPer1000": 0.535714,
+      "sigmaSecPer1000": 0.79425
     },
     "*|芝|2200|重": {
       "n": 11,
@@ -856,23 +850,29 @@
       "madSecPer1000": 0.409091,
       "sigmaSecPer1000": 0.606518
     },
+    "新潟|芝|2200|重": {
+      "n": 1,
+      "medianSecPer1000": 61.954545,
+      "madSecPer1000": 0.0,
+      "sigmaSecPer1000": 0.2
+    },
     "新潟|芝|1200|重": {
       "n": 2,
       "medianSecPer1000": 58.333333,
       "madSecPer1000": 0.416667,
       "sigmaSecPer1000": 0.61775
     },
-    "新潟|芝|2200|稍重": {
-      "n": 6,
-      "medianSecPer1000": 62.272727,
-      "madSecPer1000": 0.818182,
-      "sigmaSecPer1000": 1.213036
-    },
     "*|芝|2200|稍重": {
       "n": 13,
       "medianSecPer1000": 61.409091,
       "madSecPer1000": 0.590909,
       "sigmaSecPer1000": 0.876082
+    },
+    "新潟|芝|2200|稍重": {
+      "n": 6,
+      "medianSecPer1000": 62.272727,
+      "madSecPer1000": 0.818182,
+      "sigmaSecPer1000": 1.213036
     },
     "新潟|芝|2000|重": {
       "n": 1,
@@ -892,23 +892,17 @@
       "madSecPer1000": 1.166667,
       "sigmaSecPer1000": 1.7297
     },
-    "新潟|ダート|1800|不良": {
-      "n": 6,
-      "medianSecPer1000": 62.722222,
-      "madSecPer1000": 0.972222,
-      "sigmaSecPer1000": 1.441417
-    },
     "*|ダート|1800|不良": {
       "n": 55,
       "medianSecPer1000": 63.277778,
       "madSecPer1000": 0.777778,
       "sigmaSecPer1000": 1.153133
     },
-    "*|芝|1400|不良": {
-      "n": 2,
-      "medianSecPer1000": 60.5,
-      "madSecPer1000": 0.928571,
-      "sigmaSecPer1000": 1.3767
+    "新潟|ダート|1800|不良": {
+      "n": 6,
+      "medianSecPer1000": 62.722222,
+      "madSecPer1000": 0.972222,
+      "sigmaSecPer1000": 1.441417
     },
     "新潟|芝|1400|不良": {
       "n": 2,
@@ -916,11 +910,11 @@
       "madSecPer1000": 0.928571,
       "sigmaSecPer1000": 1.3767
     },
-    "東京|ダート|1600|良": {
-      "n": 212,
-      "medianSecPer1000": 61.4375,
-      "madSecPer1000": 0.5625,
-      "sigmaSecPer1000": 0.833962
+    "*|芝|1400|不良": {
+      "n": 2,
+      "medianSecPer1000": 60.5,
+      "madSecPer1000": 0.928571,
+      "sigmaSecPer1000": 1.3767
     },
     "東京|ダート|1600|*": {
       "n": 334,
@@ -940,15 +934,21 @@
       "madSecPer1000": 2.0,
       "sigmaSecPer1000": 2.9652
     },
-    "東京|芝|1400|良": {
-      "n": 132,
-      "medianSecPer1000": 58.142857,
-      "madSecPer1000": 0.5,
-      "sigmaSecPer1000": 0.7413
+    "東京|ダート|1600|良": {
+      "n": 212,
+      "medianSecPer1000": 61.4375,
+      "madSecPer1000": 0.5625,
+      "sigmaSecPer1000": 0.833962
     },
     "東京|芝|1400|*": {
       "n": 150,
       "medianSecPer1000": 58.214286,
+      "madSecPer1000": 0.5,
+      "sigmaSecPer1000": 0.7413
+    },
+    "東京|芝|1400|良": {
+      "n": 132,
+      "medianSecPer1000": 58.142857,
       "madSecPer1000": 0.5,
       "sigmaSecPer1000": 0.7413
     },
@@ -970,12 +970,6 @@
       "madSecPer1000": 0.625,
       "sigmaSecPer1000": 0.926625
     },
-    "東京|芝|1600|*": {
-      "n": 207,
-      "medianSecPer1000": 58.875,
-      "madSecPer1000": 0.5625,
-      "sigmaSecPer1000": 0.833962
-    },
     "*|芝|1600|良": {
       "n": 466,
       "medianSecPer1000": 58.9375,
@@ -988,11 +982,23 @@
       "madSecPer1000": 0.5625,
       "sigmaSecPer1000": 0.833962
     },
+    "東京|芝|1600|*": {
+      "n": 207,
+      "medianSecPer1000": 58.875,
+      "madSecPer1000": 0.5625,
+      "sigmaSecPer1000": 0.833962
+    },
     "*|ダート|2100|良": {
       "n": 73,
       "medianSecPer1000": 63.380952,
       "madSecPer1000": 0.809524,
       "sigmaSecPer1000": 1.2002
+    },
+    "東京|ダート|2100|良": {
+      "n": 64,
+      "medianSecPer1000": 63.309524,
+      "madSecPer1000": 0.714286,
+      "sigmaSecPer1000": 1.059
     },
     "*|ダート|2100|*": {
       "n": 123,
@@ -1006,12 +1012,6 @@
       "madSecPer1000": 0.619048,
       "sigmaSecPer1000": 0.9178
     },
-    "東京|ダート|2100|良": {
-      "n": 64,
-      "medianSecPer1000": 63.309524,
-      "madSecPer1000": 0.714286,
-      "sigmaSecPer1000": 1.059
-    },
     "東京|芝|2000|良": {
       "n": 107,
       "medianSecPer1000": 60.15,
@@ -1024,29 +1024,29 @@
       "madSecPer1000": 0.675,
       "sigmaSecPer1000": 1.000755
     },
-    "東京|ダート|1400|*": {
-      "n": 275,
-      "medianSecPer1000": 60.857143,
-      "madSecPer1000": 0.714286,
-      "sigmaSecPer1000": 1.059
-    },
     "*|ダート|1400|良": {
       "n": 1379,
       "medianSecPer1000": 64.142857,
       "madSecPer1000": 2.285714,
       "sigmaSecPer1000": 3.3888
     },
-    "*|ダート|1400|*": {
-      "n": 2180,
-      "medianSecPer1000": 64.357143,
-      "madSecPer1000": 2.357143,
-      "sigmaSecPer1000": 3.4947
-    },
     "東京|ダート|1400|良": {
       "n": 183,
       "medianSecPer1000": 61.142857,
       "madSecPer1000": 0.714286,
       "sigmaSecPer1000": 1.059
+    },
+    "東京|ダート|1400|*": {
+      "n": 275,
+      "medianSecPer1000": 60.857143,
+      "madSecPer1000": 0.714286,
+      "sigmaSecPer1000": 1.059
+    },
+    "*|ダート|1400|*": {
+      "n": 2180,
+      "medianSecPer1000": 64.357143,
+      "madSecPer1000": 2.357143,
+      "sigmaSecPer1000": 3.4947
     },
     "東京|ダート|1600|稍重": {
       "n": 60,
@@ -1078,17 +1078,17 @@
       "madSecPer1000": 0.666667,
       "sigmaSecPer1000": 0.9884
     },
-    "東京|ダート|1400|不良": {
-      "n": 14,
-      "medianSecPer1000": 60.25,
-      "madSecPer1000": 0.678571,
-      "sigmaSecPer1000": 1.00605
-    },
     "*|ダート|1400|不良": {
       "n": 135,
       "medianSecPer1000": 64.428571,
       "madSecPer1000": 1.285714,
       "sigmaSecPer1000": 1.9062
+    },
+    "東京|ダート|1400|不良": {
+      "n": 14,
+      "medianSecPer1000": 60.25,
+      "madSecPer1000": 0.678571,
+      "sigmaSecPer1000": 1.00605
     },
     "*|ダート|1600|不良": {
       "n": 57,
@@ -1138,18 +1138,6 @@
       "madSecPer1000": 0.458333,
       "sigmaSecPer1000": 0.679525
     },
-    "東京|芝|2500|良": {
-      "n": 8,
-      "medianSecPer1000": 60.52,
-      "madSecPer1000": 0.6,
-      "sigmaSecPer1000": 0.88956
-    },
-    "*|芝|2500|*": {
-      "n": 40,
-      "medianSecPer1000": 61.1,
-      "madSecPer1000": 0.46,
-      "sigmaSecPer1000": 0.681996
-    },
     "*|芝|2500|良": {
       "n": 34,
       "medianSecPer1000": 61.0,
@@ -1162,11 +1150,29 @@
       "madSecPer1000": 0.6,
       "sigmaSecPer1000": 0.88956
     },
+    "*|芝|2500|*": {
+      "n": 40,
+      "medianSecPer1000": 61.1,
+      "madSecPer1000": 0.46,
+      "sigmaSecPer1000": 0.681996
+    },
+    "東京|芝|2500|良": {
+      "n": 8,
+      "medianSecPer1000": 60.52,
+      "madSecPer1000": 0.6,
+      "sigmaSecPer1000": 0.88956
+    },
     "東京|ダート|1300|*": {
       "n": 65,
       "medianSecPer1000": 60.846154,
       "madSecPer1000": 0.615385,
       "sigmaSecPer1000": 0.912369
+    },
+    "*|ダート|1300|*": {
+      "n": 116,
+      "medianSecPer1000": 62.115385,
+      "madSecPer1000": 2.115385,
+      "sigmaSecPer1000": 3.136269
     },
     "東京|ダート|1300|良": {
       "n": 42,
@@ -1180,29 +1186,23 @@
       "madSecPer1000": 0.961538,
       "sigmaSecPer1000": 1.425577
     },
-    "*|ダート|1300|*": {
-      "n": 116,
-      "medianSecPer1000": 62.115385,
-      "madSecPer1000": 2.115385,
-      "sigmaSecPer1000": 3.136269
-    },
     "東京|芝|1800|重": {
       "n": 1,
       "medianSecPer1000": 61.444444,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "東京|芝|1600|重": {
-      "n": 3,
-      "medianSecPer1000": 60.0,
-      "madSecPer1000": 1.375,
-      "sigmaSecPer1000": 2.038575
-    },
     "*|芝|1600|重": {
       "n": 15,
       "medianSecPer1000": 60.125,
       "madSecPer1000": 0.5,
       "sigmaSecPer1000": 0.7413
+    },
+    "東京|芝|1600|重": {
+      "n": 3,
+      "medianSecPer1000": 60.0,
+      "madSecPer1000": 1.375,
+      "sigmaSecPer1000": 2.038575
     },
     "*|ダート|1300|不良": {
       "n": 13,
@@ -1216,7 +1216,7 @@
       "madSecPer1000": 0.038462,
       "sigmaSecPer1000": 0.2
     },
-    "*|芝|3110|*": {
+    "東京|芝|3110|*": {
       "n": 8,
       "medianSecPer1000": 66.575563,
       "madSecPer1000": 0.305466,
@@ -1228,7 +1228,7 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "東京|芝|3110|*": {
+    "*|芝|3110|*": {
       "n": 8,
       "medianSecPer1000": 66.575563,
       "madSecPer1000": 0.305466,
@@ -1276,17 +1276,17 @@
       "madSecPer1000": 0.461538,
       "sigmaSecPer1000": 0.684277
     },
-    "*|ダート|2100|重": {
-      "n": 19,
-      "medianSecPer1000": 62.47619,
-      "madSecPer1000": 0.571429,
-      "sigmaSecPer1000": 0.8472
-    },
     "東京|ダート|2100|重": {
       "n": 16,
       "medianSecPer1000": 62.309524,
       "madSecPer1000": 0.5,
       "sigmaSecPer1000": 0.7413
+    },
+    "*|ダート|2100|重": {
+      "n": 19,
+      "medianSecPer1000": 62.47619,
+      "madSecPer1000": 0.571429,
+      "sigmaSecPer1000": 0.8472
     },
     "東京|ダート|1400|重": {
       "n": 33,
@@ -1324,17 +1324,17 @@
       "madSecPer1000": 0.857143,
       "sigmaSecPer1000": 1.2708
     },
-    "中山|ダート|1800|*": {
-      "n": 418,
-      "medianSecPer1000": 64.0,
-      "madSecPer1000": 0.638889,
-      "sigmaSecPer1000": 0.947217
-    },
     "中山|ダート|1800|重": {
       "n": 53,
       "medianSecPer1000": 63.5,
       "madSecPer1000": 0.722222,
       "sigmaSecPer1000": 1.070767
+    },
+    "中山|ダート|1800|*": {
+      "n": 418,
+      "medianSecPer1000": 64.0,
+      "madSecPer1000": 0.638889,
+      "sigmaSecPer1000": 0.947217
     },
     "中山|ダート|1200|重": {
       "n": 40,
@@ -1450,11 +1450,11 @@
       "madSecPer1000": 0.15,
       "sigmaSecPer1000": 0.22239
     },
-    "中山|芝|3210|*": {
-      "n": 3,
-      "medianSecPer1000": 68.722741,
-      "madSecPer1000": 0.280374,
-      "sigmaSecPer1000": 0.415682
+    "中山|芝|3210|稍重": {
+      "n": 2,
+      "medianSecPer1000": 68.862928,
+      "madSecPer1000": 0.140187,
+      "sigmaSecPer1000": 0.207841
     },
     "*|芝|3210|稍重": {
       "n": 2,
@@ -1468,17 +1468,11 @@
       "madSecPer1000": 0.280374,
       "sigmaSecPer1000": 0.415682
     },
-    "中山|芝|3210|稍重": {
-      "n": 2,
-      "medianSecPer1000": 68.862928,
-      "madSecPer1000": 0.140187,
-      "sigmaSecPer1000": 0.207841
-    },
-    "中山|芝|2500|稍重": {
-      "n": 6,
-      "medianSecPer1000": 62.1,
-      "madSecPer1000": 0.22,
-      "sigmaSecPer1000": 0.326172
+    "中山|芝|3210|*": {
+      "n": 3,
+      "medianSecPer1000": 68.722741,
+      "madSecPer1000": 0.280374,
+      "sigmaSecPer1000": 0.415682
     },
     "*|芝|2500|稍重": {
       "n": 6,
@@ -1486,13 +1480,13 @@
       "madSecPer1000": 0.22,
       "sigmaSecPer1000": 0.326172
     },
-    "中山|芝|3570|良": {
-      "n": 3,
-      "medianSecPer1000": 67.955182,
-      "madSecPer1000": 0.252101,
-      "sigmaSecPer1000": 0.373765
+    "中山|芝|2500|稍重": {
+      "n": 6,
+      "medianSecPer1000": 62.1,
+      "madSecPer1000": 0.22,
+      "sigmaSecPer1000": 0.326172
     },
-    "*|芝|3570|*": {
+    "*|芝|3570|良": {
       "n": 3,
       "medianSecPer1000": 67.955182,
       "madSecPer1000": 0.252101,
@@ -1504,7 +1498,13 @@
       "madSecPer1000": 0.252101,
       "sigmaSecPer1000": 0.373765
     },
-    "*|芝|3570|良": {
+    "中山|芝|3570|良": {
+      "n": 3,
+      "medianSecPer1000": 67.955182,
+      "madSecPer1000": 0.252101,
+      "sigmaSecPer1000": 0.373765
+    },
+    "*|芝|3570|*": {
       "n": 3,
       "medianSecPer1000": 67.955182,
       "madSecPer1000": 0.252101,
@@ -1522,6 +1522,12 @@
       "madSecPer1000": 0.02,
       "sigmaSecPer1000": 0.2
     },
+    "*|芝|4100|良": {
+      "n": 3,
+      "medianSecPer1000": 68.634146,
+      "madSecPer1000": 0.195122,
+      "sigmaSecPer1000": 0.289288
+    },
     "中山|芝|4100|良": {
       "n": 3,
       "medianSecPer1000": 68.634146,
@@ -1534,23 +1540,11 @@
       "madSecPer1000": 0.195122,
       "sigmaSecPer1000": 0.289288
     },
-    "*|芝|4100|良": {
-      "n": 3,
-      "medianSecPer1000": 68.634146,
-      "madSecPer1000": 0.195122,
-      "sigmaSecPer1000": 0.289288
-    },
     "中山|芝|4100|*": {
       "n": 3,
       "medianSecPer1000": 68.634146,
       "madSecPer1000": 0.195122,
       "sigmaSecPer1000": 0.289288
-    },
-    "中京|ダート|1800|*": {
-      "n": 214,
-      "medianSecPer1000": 63.611111,
-      "madSecPer1000": 0.611111,
-      "sigmaSecPer1000": 0.906033
     },
     "中京|ダート|1800|良": {
       "n": 174,
@@ -1558,11 +1552,11 @@
       "madSecPer1000": 0.527778,
       "sigmaSecPer1000": 0.782483
     },
-    "中京|ダート|1200|*": {
-      "n": 99,
-      "medianSecPer1000": 60.5,
-      "madSecPer1000": 0.5,
-      "sigmaSecPer1000": 0.7413
+    "中京|ダート|1800|*": {
+      "n": 214,
+      "medianSecPer1000": 63.611111,
+      "madSecPer1000": 0.611111,
+      "sigmaSecPer1000": 0.906033
     },
     "中京|ダート|1200|良": {
       "n": 85,
@@ -1570,11 +1564,11 @@
       "madSecPer1000": 0.416667,
       "sigmaSecPer1000": 0.61775
     },
-    "*|芝|3330|*": {
-      "n": 4,
-      "medianSecPer1000": 66.006006,
-      "madSecPer1000": 0.3003,
-      "sigmaSecPer1000": 0.445225
+    "中京|ダート|1200|*": {
+      "n": 99,
+      "medianSecPer1000": 60.5,
+      "madSecPer1000": 0.5,
+      "sigmaSecPer1000": 0.7413
     },
     "*|芝|3330|良": {
       "n": 4,
@@ -1582,13 +1576,19 @@
       "madSecPer1000": 0.3003,
       "sigmaSecPer1000": 0.445225
     },
-    "中京|芝|3330|良": {
+    "*|芝|3330|*": {
       "n": 4,
       "medianSecPer1000": 66.006006,
       "madSecPer1000": 0.3003,
       "sigmaSecPer1000": 0.445225
     },
     "中京|芝|3330|*": {
+      "n": 4,
+      "medianSecPer1000": 66.006006,
+      "madSecPer1000": 0.3003,
+      "sigmaSecPer1000": 0.445225
+    },
+    "中京|芝|3330|良": {
       "n": 4,
       "medianSecPer1000": 66.006006,
       "madSecPer1000": 0.3003,
@@ -1618,27 +1618,27 @@
       "madSecPer1000": 0.590909,
       "sigmaSecPer1000": 0.876082
     },
-    "中京|芝|2000|*": {
-      "n": 144,
-      "medianSecPer1000": 60.55,
-      "madSecPer1000": 0.7,
-      "sigmaSecPer1000": 1.03782
-    },
     "中京|芝|2000|良": {
       "n": 123,
       "medianSecPer1000": 60.45,
       "madSecPer1000": 0.65,
       "sigmaSecPer1000": 0.96369
     },
-    "中京|芝|1400|良": {
-      "n": 86,
-      "medianSecPer1000": 58.0,
-      "madSecPer1000": 0.642857,
-      "sigmaSecPer1000": 0.9531
+    "中京|芝|2000|*": {
+      "n": 144,
+      "medianSecPer1000": 60.55,
+      "madSecPer1000": 0.7,
+      "sigmaSecPer1000": 1.03782
     },
     "中京|芝|1400|*": {
       "n": 98,
       "medianSecPer1000": 58.071429,
+      "madSecPer1000": 0.642857,
+      "sigmaSecPer1000": 0.9531
+    },
+    "中京|芝|1400|良": {
+      "n": 86,
+      "medianSecPer1000": 58.0,
       "madSecPer1000": 0.642857,
       "sigmaSecPer1000": 0.9531
     },
@@ -1654,23 +1654,17 @@
       "madSecPer1000": 0.5,
       "sigmaSecPer1000": 0.7413
     },
-    "中京|芝|1200|良": {
-      "n": 49,
-      "medianSecPer1000": 57.166667,
-      "madSecPer1000": 0.583333,
-      "sigmaSecPer1000": 0.86485
-    },
     "中京|芝|1200|*": {
       "n": 58,
       "medianSecPer1000": 57.416667,
       "madSecPer1000": 0.666667,
       "sigmaSecPer1000": 0.9884
     },
-    "中京|ダート|1900|良": {
-      "n": 45,
-      "medianSecPer1000": 63.684211,
-      "madSecPer1000": 0.526316,
-      "sigmaSecPer1000": 0.780316
+    "中京|芝|1200|良": {
+      "n": 49,
+      "medianSecPer1000": 57.166667,
+      "madSecPer1000": 0.583333,
+      "sigmaSecPer1000": 0.86485
     },
     "*|ダート|1900|良": {
       "n": 119,
@@ -1678,17 +1672,23 @@
       "madSecPer1000": 0.631579,
       "sigmaSecPer1000": 0.936379
     },
+    "中京|ダート|1900|*": {
+      "n": 54,
+      "medianSecPer1000": 63.552632,
+      "madSecPer1000": 0.5,
+      "sigmaSecPer1000": 0.7413
+    },
     "*|ダート|1900|*": {
       "n": 154,
       "medianSecPer1000": 63.526316,
       "madSecPer1000": 0.578947,
       "sigmaSecPer1000": 0.858347
     },
-    "中京|ダート|1900|*": {
-      "n": 54,
-      "medianSecPer1000": 63.552632,
-      "madSecPer1000": 0.5,
-      "sigmaSecPer1000": 0.7413
+    "中京|ダート|1900|良": {
+      "n": 45,
+      "medianSecPer1000": 63.684211,
+      "madSecPer1000": 0.526316,
+      "sigmaSecPer1000": 0.780316
     },
     "中京|ダート|1200|重": {
       "n": 7,
@@ -1744,17 +1744,17 @@
       "madSecPer1000": 0.472222,
       "sigmaSecPer1000": 0.700117
     },
-    "*|ダート|1900|稍重": {
-      "n": 21,
-      "medianSecPer1000": 63.526316,
-      "madSecPer1000": 0.684211,
-      "sigmaSecPer1000": 1.014411
-    },
     "中京|ダート|1900|稍重": {
       "n": 4,
       "medianSecPer1000": 63.605263,
       "madSecPer1000": 0.263158,
       "sigmaSecPer1000": 0.390158
+    },
+    "*|ダート|1900|稍重": {
+      "n": 21,
+      "medianSecPer1000": 63.526316,
+      "madSecPer1000": 0.684211,
+      "sigmaSecPer1000": 1.014411
     },
     "中京|ダート|1400|稍重": {
       "n": 19,
@@ -1774,23 +1774,17 @@
       "madSecPer1000": 0.642857,
       "sigmaSecPer1000": 0.9531
     },
-    "京都|ダート|1800|良": {
-      "n": 266,
-      "medianSecPer1000": 63.444444,
-      "madSecPer1000": 0.666667,
-      "sigmaSecPer1000": 0.9884
-    },
     "京都|ダート|1800|*": {
       "n": 370,
       "medianSecPer1000": 63.388889,
       "madSecPer1000": 0.666667,
       "sigmaSecPer1000": 0.9884
     },
-    "京都|芝|2000|良": {
-      "n": 116,
-      "medianSecPer1000": 60.6,
-      "madSecPer1000": 0.5,
-      "sigmaSecPer1000": 0.7413
+    "京都|ダート|1800|良": {
+      "n": 266,
+      "medianSecPer1000": 63.444444,
+      "madSecPer1000": 0.666667,
+      "sigmaSecPer1000": 0.9884
     },
     "京都|芝|2000|*": {
       "n": 146,
@@ -1798,11 +1792,11 @@
       "madSecPer1000": 0.55,
       "sigmaSecPer1000": 0.81543
     },
-    "京都|芝|1600|*": {
-      "n": 124,
-      "medianSecPer1000": 59.375,
-      "madSecPer1000": 0.5625,
-      "sigmaSecPer1000": 0.833962
+    "京都|芝|2000|良": {
+      "n": 116,
+      "medianSecPer1000": 60.6,
+      "madSecPer1000": 0.5,
+      "sigmaSecPer1000": 0.7413
     },
     "京都|芝|1600|良": {
       "n": 104,
@@ -1810,11 +1804,11 @@
       "madSecPer1000": 0.5,
       "sigmaSecPer1000": 0.7413
     },
-    "京都|ダート|1200|良": {
-      "n": 134,
-      "medianSecPer1000": 60.708333,
-      "madSecPer1000": 0.625,
-      "sigmaSecPer1000": 0.926625
+    "京都|芝|1600|*": {
+      "n": 124,
+      "medianSecPer1000": 59.375,
+      "madSecPer1000": 0.5625,
+      "sigmaSecPer1000": 0.833962
     },
     "京都|ダート|1200|*": {
       "n": 186,
@@ -1822,11 +1816,11 @@
       "madSecPer1000": 0.666667,
       "sigmaSecPer1000": 0.9884
     },
-    "京都|芝|1200|良": {
-      "n": 54,
-      "medianSecPer1000": 57.041667,
-      "madSecPer1000": 0.416667,
-      "sigmaSecPer1000": 0.61775
+    "京都|ダート|1200|良": {
+      "n": 134,
+      "medianSecPer1000": 60.708333,
+      "madSecPer1000": 0.625,
+      "sigmaSecPer1000": 0.926625
     },
     "京都|芝|1200|*": {
       "n": 74,
@@ -1834,17 +1828,23 @@
       "madSecPer1000": 0.583333,
       "sigmaSecPer1000": 0.86485
     },
-    "京都|芝|1400|*": {
-      "n": 52,
-      "medianSecPer1000": 58.5,
-      "madSecPer1000": 0.678571,
-      "sigmaSecPer1000": 1.00605
+    "京都|芝|1200|良": {
+      "n": 54,
+      "medianSecPer1000": 57.041667,
+      "madSecPer1000": 0.416667,
+      "sigmaSecPer1000": 0.61775
     },
     "京都|芝|1400|重": {
       "n": 3,
       "medianSecPer1000": 59.214286,
       "madSecPer1000": 0.071429,
       "sigmaSecPer1000": 0.2
+    },
+    "京都|芝|1400|*": {
+      "n": 52,
+      "medianSecPer1000": 58.5,
+      "madSecPer1000": 0.678571,
+      "sigmaSecPer1000": 1.00605
     },
     "京都|ダート|1200|重": {
       "n": 10,
@@ -1870,17 +1870,17 @@
       "madSecPer1000": 0.631579,
       "sigmaSecPer1000": 0.936379
     },
-    "*|ダート|1900|重": {
-      "n": 10,
-      "medianSecPer1000": 62.947368,
-      "madSecPer1000": 0.578947,
-      "sigmaSecPer1000": 0.858347
-    },
     "京都|ダート|1900|重": {
       "n": 5,
       "medianSecPer1000": 63.473684,
       "madSecPer1000": 0.631579,
       "sigmaSecPer1000": 0.936379
+    },
+    "*|ダート|1900|重": {
+      "n": 10,
+      "medianSecPer1000": 62.947368,
+      "madSecPer1000": 0.578947,
+      "sigmaSecPer1000": 0.858347
     },
     "京都|ダート|1400|重": {
       "n": 20,
@@ -1954,15 +1954,15 @@
       "madSecPer1000": 0.611111,
       "sigmaSecPer1000": 0.906033
     },
-    "阪神|ダート|1400|良": {
-      "n": 124,
-      "medianSecPer1000": 61.142857,
-      "madSecPer1000": 0.642857,
-      "sigmaSecPer1000": 0.9531
-    },
     "阪神|ダート|1400|*": {
       "n": 172,
       "medianSecPer1000": 61.071429,
+      "madSecPer1000": 0.642857,
+      "sigmaSecPer1000": 0.9531
+    },
+    "阪神|ダート|1400|良": {
+      "n": 124,
+      "medianSecPer1000": 61.142857,
       "madSecPer1000": 0.642857,
       "sigmaSecPer1000": 0.9531
     },
@@ -1990,17 +1990,17 @@
       "madSecPer1000": 0.666667,
       "sigmaSecPer1000": 0.9884
     },
-    "阪神|芝|1400|*": {
-      "n": 69,
-      "medianSecPer1000": 57.928571,
-      "madSecPer1000": 0.5,
-      "sigmaSecPer1000": 0.7413
-    },
     "阪神|芝|1400|良": {
       "n": 55,
       "medianSecPer1000": 57.714286,
       "madSecPer1000": 0.357143,
       "sigmaSecPer1000": 0.5295
+    },
+    "阪神|芝|1400|*": {
+      "n": 69,
+      "medianSecPer1000": 57.928571,
+      "madSecPer1000": 0.5,
+      "sigmaSecPer1000": 0.7413
     },
     "阪神|芝|2200|*": {
       "n": 25,
@@ -2038,11 +2038,11 @@
       "madSecPer1000": 0.25,
       "sigmaSecPer1000": 0.37065
     },
-    "阪神|ダート|2000|*": {
-      "n": 37,
-      "medianSecPer1000": 63.55,
-      "madSecPer1000": 0.75,
-      "sigmaSecPer1000": 1.11195
+    "*|ダート|2000|*": {
+      "n": 121,
+      "medianSecPer1000": 64.65,
+      "madSecPer1000": 1.8,
+      "sigmaSecPer1000": 2.66868
     },
     "阪神|ダート|2000|良": {
       "n": 24,
@@ -2050,25 +2050,25 @@
       "madSecPer1000": 0.7,
       "sigmaSecPer1000": 1.03782
     },
-    "*|ダート|2000|*": {
-      "n": 121,
-      "medianSecPer1000": 64.65,
-      "madSecPer1000": 1.8,
-      "sigmaSecPer1000": 2.66868
-    },
     "*|ダート|2000|良": {
       "n": 72,
       "medianSecPer1000": 64.875,
       "madSecPer1000": 1.75,
       "sigmaSecPer1000": 2.59455
     },
-    "阪神|芝|3140|良": {
+    "阪神|ダート|2000|*": {
+      "n": 37,
+      "medianSecPer1000": 63.55,
+      "madSecPer1000": 0.75,
+      "sigmaSecPer1000": 1.11195
+    },
+    "*|芝|3140|*": {
       "n": 5,
       "medianSecPer1000": 67.579618,
       "madSecPer1000": 0.191083,
       "sigmaSecPer1000": 0.283299
     },
-    "*|芝|3140|*": {
+    "阪神|芝|3140|良": {
       "n": 5,
       "medianSecPer1000": 67.579618,
       "madSecPer1000": 0.191083,
@@ -2152,17 +2152,17 @@
       "madSecPer1000": 0.708333,
       "sigmaSecPer1000": 1.050175
     },
-    "阪神|ダート|2000|稍重": {
-      "n": 9,
-      "medianSecPer1000": 64.0,
-      "madSecPer1000": 0.55,
-      "sigmaSecPer1000": 0.81543
-    },
     "*|ダート|2000|稍重": {
       "n": 26,
       "medianSecPer1000": 64.55,
       "madSecPer1000": 0.725,
       "sigmaSecPer1000": 1.074885
+    },
+    "阪神|ダート|2000|稍重": {
+      "n": 9,
+      "medianSecPer1000": 64.0,
+      "madSecPer1000": 0.55,
+      "sigmaSecPer1000": 0.81543
     },
     "阪神|芝|1400|稍重": {
       "n": 8,
@@ -2170,29 +2170,29 @@
       "madSecPer1000": 0.5,
       "sigmaSecPer1000": 0.7413
     },
-    "*|芝|2860|良": {
-      "n": 33,
-      "medianSecPer1000": 67.377622,
-      "madSecPer1000": 0.594406,
-      "sigmaSecPer1000": 0.881266
-    },
     "*|芝|2860|*": {
       "n": 58,
       "medianSecPer1000": 67.77972,
       "madSecPer1000": 0.751748,
       "sigmaSecPer1000": 1.114542
     },
-    "小倉|芝|2860|*": {
-      "n": 58,
-      "medianSecPer1000": 67.77972,
-      "madSecPer1000": 0.751748,
-      "sigmaSecPer1000": 1.114542
+    "*|芝|2860|良": {
+      "n": 33,
+      "medianSecPer1000": 67.377622,
+      "madSecPer1000": 0.594406,
+      "sigmaSecPer1000": 0.881266
     },
     "小倉|芝|2860|良": {
       "n": 33,
       "medianSecPer1000": 67.377622,
       "madSecPer1000": 0.594406,
       "sigmaSecPer1000": 0.881266
+    },
+    "小倉|芝|2860|*": {
+      "n": 58,
+      "medianSecPer1000": 67.77972,
+      "madSecPer1000": 0.751748,
+      "sigmaSecPer1000": 1.114542
     },
     "小倉|芝|1200|良": {
       "n": 150,
@@ -2218,29 +2218,29 @@
       "madSecPer1000": 0.588235,
       "sigmaSecPer1000": 0.872118
     },
-    "小倉|芝|1800|*": {
-      "n": 124,
-      "medianSecPer1000": 60.638889,
-      "madSecPer1000": 0.75,
-      "sigmaSecPer1000": 1.11195
-    },
     "小倉|芝|1800|良": {
       "n": 86,
       "medianSecPer1000": 60.222222,
       "madSecPer1000": 0.666667,
       "sigmaSecPer1000": 0.9884
     },
-    "小倉|芝|2000|良": {
-      "n": 74,
-      "medianSecPer1000": 60.525,
-      "madSecPer1000": 0.425,
-      "sigmaSecPer1000": 0.630105
+    "小倉|芝|1800|*": {
+      "n": 124,
+      "medianSecPer1000": 60.638889,
+      "madSecPer1000": 0.75,
+      "sigmaSecPer1000": 1.11195
     },
     "小倉|芝|2000|*": {
       "n": 119,
       "medianSecPer1000": 60.8,
       "madSecPer1000": 0.55,
       "sigmaSecPer1000": 0.81543
+    },
+    "小倉|芝|2000|良": {
+      "n": 74,
+      "medianSecPer1000": 60.525,
+      "madSecPer1000": 0.425,
+      "sigmaSecPer1000": 0.630105
     },
     "小倉|ダート|1000|良": {
       "n": 49,
@@ -2260,17 +2260,17 @@
       "madSecPer1000": 0.416667,
       "sigmaSecPer1000": 0.61775
     },
-    "小倉|芝|2600|*": {
-      "n": 31,
-      "medianSecPer1000": 62.153846,
-      "madSecPer1000": 0.653846,
-      "sigmaSecPer1000": 0.969392
-    },
     "小倉|芝|2600|稍重": {
       "n": 7,
       "medianSecPer1000": 62.5,
       "madSecPer1000": 0.192308,
       "sigmaSecPer1000": 0.285115
+    },
+    "小倉|芝|2600|*": {
+      "n": 31,
+      "medianSecPer1000": 62.153846,
+      "madSecPer1000": 0.653846,
+      "sigmaSecPer1000": 0.969392
     },
     "小倉|ダート|1700|稍重": {
       "n": 40,
@@ -2314,23 +2314,17 @@
       "madSecPer1000": 0.458333,
       "sigmaSecPer1000": 0.679525
     },
-    "30|ダート|1600|稍重": {
-      "n": 10,
-      "medianSecPer1000": 66.5,
-      "madSecPer1000": 0.6875,
-      "sigmaSecPer1000": 1.019287
-    },
     "30|ダート|1600|*": {
       "n": 26,
       "medianSecPer1000": 66.1875,
       "madSecPer1000": 0.5625,
       "sigmaSecPer1000": 0.833962
     },
-    "30|ダート|1000|*": {
-      "n": 94,
-      "medianSecPer1000": 62.5,
-      "madSecPer1000": 0.5,
-      "sigmaSecPer1000": 0.7413
+    "30|ダート|1600|稍重": {
+      "n": 10,
+      "medianSecPer1000": 66.5,
+      "madSecPer1000": 0.6875,
+      "sigmaSecPer1000": 1.019287
     },
     "30|ダート|1000|稍重": {
       "n": 37,
@@ -2338,11 +2332,11 @@
       "madSecPer1000": 0.5,
       "sigmaSecPer1000": 0.7413
     },
-    "30|ダート|1700|稍重": {
-      "n": 33,
-      "medianSecPer1000": 66.235294,
-      "madSecPer1000": 0.411765,
-      "sigmaSecPer1000": 0.610482
+    "30|ダート|1000|*": {
+      "n": 94,
+      "medianSecPer1000": 62.5,
+      "madSecPer1000": 0.5,
+      "sigmaSecPer1000": 0.7413
     },
     "30|ダート|1700|*": {
       "n": 60,
@@ -2350,23 +2344,29 @@
       "madSecPer1000": 0.352941,
       "sigmaSecPer1000": 0.523271
     },
+    "30|ダート|1700|稍重": {
+      "n": 33,
+      "medianSecPer1000": 66.235294,
+      "madSecPer1000": 0.411765,
+      "sigmaSecPer1000": 0.610482
+    },
     "30|ダート|1200|稍重": {
       "n": 45,
       "medianSecPer1000": 62.916667,
       "madSecPer1000": 0.416667,
       "sigmaSecPer1000": 0.61775
     },
-    "*|ダート|1000|重": {
-      "n": 28,
-      "medianSecPer1000": 58.85,
-      "madSecPer1000": 0.85,
-      "sigmaSecPer1000": 1.26021
-    },
     "30|ダート|1000|重": {
       "n": 9,
       "medianSecPer1000": 62.1,
       "madSecPer1000": 0.2,
       "sigmaSecPer1000": 0.29652
+    },
+    "*|ダート|1000|重": {
+      "n": 28,
+      "medianSecPer1000": 58.85,
+      "madSecPer1000": 0.85,
+      "sigmaSecPer1000": 1.26021
     },
     "30|ダート|1600|重": {
       "n": 4,
@@ -2392,15 +2392,15 @@
       "madSecPer1000": 0.294118,
       "sigmaSecPer1000": 0.436059
     },
-    "30|ダート|1800|稍重": {
-      "n": 10,
-      "medianSecPer1000": 65.916667,
-      "madSecPer1000": 0.666667,
-      "sigmaSecPer1000": 0.9884
-    },
     "30|ダート|1800|*": {
       "n": 26,
       "medianSecPer1000": 65.944444,
+      "madSecPer1000": 0.666667,
+      "sigmaSecPer1000": 0.9884
+    },
+    "30|ダート|1800|稍重": {
+      "n": 10,
+      "medianSecPer1000": 65.916667,
       "madSecPer1000": 0.666667,
       "sigmaSecPer1000": 0.9884
     },
@@ -2446,6 +2446,12 @@
       "madSecPer1000": 0.294118,
       "sigmaSecPer1000": 0.436059
     },
+    "*|芝|1700|重": {
+      "n": 3,
+      "medianSecPer1000": 62.529412,
+      "madSecPer1000": 0.058824,
+      "sigmaSecPer1000": 0.2
+    },
     "35|芝|1700|*": {
       "n": 12,
       "medianSecPer1000": 62.176471,
@@ -2453,12 +2459,6 @@
       "sigmaSecPer1000": 0.436059
     },
     "35|芝|1700|重": {
-      "n": 3,
-      "medianSecPer1000": 62.529412,
-      "madSecPer1000": 0.058824,
-      "sigmaSecPer1000": 0.2
-    },
-    "*|芝|1700|重": {
       "n": 3,
       "medianSecPer1000": 62.529412,
       "madSecPer1000": 0.058824,
@@ -2506,17 +2506,17 @@
       "madSecPer1000": 0.1875,
       "sigmaSecPer1000": 0.277987
     },
-    "42|ダート|1400|*": {
-      "n": 75,
-      "medianSecPer1000": 64.357143,
-      "madSecPer1000": 0.857143,
-      "sigmaSecPer1000": 1.2708
-    },
     "42|ダート|1400|良": {
       "n": 48,
       "medianSecPer1000": 64.392857,
       "madSecPer1000": 0.75,
       "sigmaSecPer1000": 1.11195
+    },
+    "42|ダート|1400|*": {
+      "n": 75,
+      "medianSecPer1000": 64.357143,
+      "madSecPer1000": 0.857143,
+      "sigmaSecPer1000": 1.2708
     },
     "42|ダート|2000|*": {
       "n": 13,
@@ -2536,23 +2536,11 @@
       "madSecPer1000": 1.0,
       "sigmaSecPer1000": 1.4826
     },
-    "*|ダート|1500|*": {
-      "n": 616,
-      "medianSecPer1000": 65.066667,
-      "madSecPer1000": 0.6,
-      "sigmaSecPer1000": 0.88956
-    },
     "42|ダート|1500|*": {
       "n": 34,
       "medianSecPer1000": 64.433333,
       "madSecPer1000": 0.7,
       "sigmaSecPer1000": 1.03782
-    },
-    "*|ダート|1500|稍重": {
-      "n": 115,
-      "medianSecPer1000": 65.333333,
-      "madSecPer1000": 0.6,
-      "sigmaSecPer1000": 0.88956
     },
     "42|ダート|1500|稍重": {
       "n": 5,
@@ -2560,17 +2548,29 @@
       "madSecPer1000": 0.666667,
       "sigmaSecPer1000": 0.9884
     },
-    "42|ダート|1500|良": {
-      "n": 17,
-      "medianSecPer1000": 64.866667,
-      "madSecPer1000": 0.866667,
-      "sigmaSecPer1000": 1.28492
+    "*|ダート|1500|*": {
+      "n": 616,
+      "medianSecPer1000": 65.066667,
+      "madSecPer1000": 0.6,
+      "sigmaSecPer1000": 0.88956
+    },
+    "*|ダート|1500|稍重": {
+      "n": 115,
+      "medianSecPer1000": 65.333333,
+      "madSecPer1000": 0.6,
+      "sigmaSecPer1000": 0.88956
     },
     "*|ダート|1500|良": {
       "n": 338,
       "medianSecPer1000": 65.066667,
       "madSecPer1000": 0.6,
       "sigmaSecPer1000": 0.88956
+    },
+    "42|ダート|1500|良": {
+      "n": 17,
+      "medianSecPer1000": 64.866667,
+      "madSecPer1000": 0.866667,
+      "sigmaSecPer1000": 1.28492
     },
     "43|ダート|1500|*": {
       "n": 38,
@@ -2596,29 +2596,29 @@
       "madSecPer1000": 0.888889,
       "sigmaSecPer1000": 1.317867
     },
-    "43|ダート|1200|*": {
-      "n": 68,
-      "medianSecPer1000": 63.625,
-      "madSecPer1000": 0.708333,
-      "sigmaSecPer1000": 1.050175
-    },
     "43|ダート|1200|良": {
       "n": 38,
       "medianSecPer1000": 63.5,
       "madSecPer1000": 0.583333,
       "sigmaSecPer1000": 0.86485
     },
-    "43|ダート|1600|*": {
-      "n": 66,
-      "medianSecPer1000": 65.125,
-      "madSecPer1000": 0.375,
-      "sigmaSecPer1000": 0.555975
+    "43|ダート|1200|*": {
+      "n": 68,
+      "medianSecPer1000": 63.625,
+      "madSecPer1000": 0.708333,
+      "sigmaSecPer1000": 1.050175
     },
     "43|ダート|1600|良": {
       "n": 41,
       "medianSecPer1000": 65.0,
       "madSecPer1000": 0.4375,
       "sigmaSecPer1000": 0.648637
+    },
+    "43|ダート|1600|*": {
+      "n": 66,
+      "medianSecPer1000": 65.125,
+      "madSecPer1000": 0.375,
+      "sigmaSecPer1000": 0.555975
     },
     "43|ダート|1700|*": {
       "n": 7,
@@ -2632,17 +2632,17 @@
       "madSecPer1000": 0.205882,
       "sigmaSecPer1000": 0.305241
     },
-    "44|ダート|1600|不良": {
-      "n": 15,
-      "medianSecPer1000": 64.75,
-      "madSecPer1000": 1.0625,
-      "sigmaSecPer1000": 1.575263
-    },
     "44|ダート|1600|*": {
       "n": 101,
       "medianSecPer1000": 65.25,
       "madSecPer1000": 0.5625,
       "sigmaSecPer1000": 0.833962
+    },
+    "44|ダート|1600|不良": {
+      "n": 15,
+      "medianSecPer1000": 64.75,
+      "madSecPer1000": 1.0625,
+      "sigmaSecPer1000": 1.575263
     },
     "44|ダート|1200|*": {
       "n": 69,
@@ -2704,25 +2704,25 @@
       "madSecPer1000": 0.892857,
       "sigmaSecPer1000": 1.32375
     },
-    "44|ダート|1650|*": {
-      "n": 5,
-      "medianSecPer1000": 64.787879,
-      "madSecPer1000": 0.363636,
-      "sigmaSecPer1000": 0.539127
-    },
     "*|ダート|1650|*": {
       "n": 5,
       "medianSecPer1000": 64.787879,
       "madSecPer1000": 0.363636,
       "sigmaSecPer1000": 0.539127
     },
-    "44|ダート|1650|重": {
+    "44|ダート|1650|*": {
+      "n": 5,
+      "medianSecPer1000": 64.787879,
+      "madSecPer1000": 0.363636,
+      "sigmaSecPer1000": 0.539127
+    },
+    "*|ダート|1650|重": {
       "n": 1,
       "medianSecPer1000": 63.878788,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "*|ダート|1650|重": {
+    "44|ダート|1650|重": {
       "n": 1,
       "medianSecPer1000": 63.878788,
       "madSecPer1000": 0.0,
@@ -2740,15 +2740,15 @@
       "madSecPer1000": 0.53125,
       "sigmaSecPer1000": 0.787631
     },
-    "44|ダート|1800|*": {
-      "n": 35,
-      "medianSecPer1000": 64.888889,
-      "madSecPer1000": 0.666667,
-      "sigmaSecPer1000": 0.9884
-    },
     "44|ダート|1800|良": {
       "n": 19,
       "medianSecPer1000": 65.0,
+      "madSecPer1000": 0.666667,
+      "sigmaSecPer1000": 0.9884
+    },
+    "44|ダート|1800|*": {
+      "n": 35,
+      "medianSecPer1000": 64.888889,
       "madSecPer1000": 0.666667,
       "sigmaSecPer1000": 0.9884
     },
@@ -2776,29 +2776,29 @@
       "madSecPer1000": 0.428571,
       "sigmaSecPer1000": 0.6354
     },
-    "45|ダート|1500|良": {
-      "n": 44,
-      "medianSecPer1000": 65.5,
-      "madSecPer1000": 0.533333,
-      "sigmaSecPer1000": 0.79072
-    },
     "45|ダート|1500|*": {
       "n": 77,
       "medianSecPer1000": 65.466667,
       "madSecPer1000": 0.6,
       "sigmaSecPer1000": 0.88956
     },
-    "45|ダート|1600|*": {
-      "n": 52,
-      "medianSecPer1000": 65.75,
-      "madSecPer1000": 0.5,
-      "sigmaSecPer1000": 0.7413
+    "45|ダート|1500|良": {
+      "n": 44,
+      "medianSecPer1000": 65.5,
+      "madSecPer1000": 0.533333,
+      "sigmaSecPer1000": 0.79072
     },
     "45|ダート|1600|良": {
       "n": 24,
       "medianSecPer1000": 65.75,
       "madSecPer1000": 0.4375,
       "sigmaSecPer1000": 0.648637
+    },
+    "45|ダート|1600|*": {
+      "n": 52,
+      "medianSecPer1000": 65.75,
+      "madSecPer1000": 0.5,
+      "sigmaSecPer1000": 0.7413
     },
     "45|ダート|2000|良": {
       "n": 10,
@@ -2914,29 +2914,29 @@
       "madSecPer1000": 0.785714,
       "sigmaSecPer1000": 1.1649
     },
-    "*|ダート|1500|不良": {
-      "n": 68,
-      "medianSecPer1000": 64.3,
-      "madSecPer1000": 0.733333,
-      "sigmaSecPer1000": 1.08724
-    },
     "46|ダート|1500|不良": {
       "n": 21,
       "medianSecPer1000": 65.666667,
       "madSecPer1000": 1.6,
       "sigmaSecPer1000": 2.37216
     },
-    "47|ダート|1400|*": {
-      "n": 311,
-      "medianSecPer1000": 65.142857,
-      "madSecPer1000": 0.642857,
-      "sigmaSecPer1000": 0.9531
+    "*|ダート|1500|不良": {
+      "n": 68,
+      "medianSecPer1000": 64.3,
+      "madSecPer1000": 0.733333,
+      "sigmaSecPer1000": 1.08724
     },
     "47|ダート|1400|良": {
       "n": 241,
       "medianSecPer1000": 65.142857,
       "madSecPer1000": 0.571429,
       "sigmaSecPer1000": 0.8472
+    },
+    "47|ダート|1400|*": {
+      "n": 311,
+      "medianSecPer1000": 65.142857,
+      "madSecPer1000": 0.642857,
+      "sigmaSecPer1000": 0.9531
     },
     "47|ダート|1400|稍重": {
       "n": 40,
@@ -2962,17 +2962,17 @@
       "madSecPer1000": 0.75,
       "sigmaSecPer1000": 1.11195
     },
+    "47|ダート|800|重": {
+      "n": 1,
+      "medianSecPer1000": 63.375,
+      "madSecPer1000": 0.0,
+      "sigmaSecPer1000": 0.2
+    },
     "47|ダート|800|*": {
       "n": 7,
       "medianSecPer1000": 63.625,
       "madSecPer1000": 0.5,
       "sigmaSecPer1000": 0.7413
-    },
-    "*|ダート|800|重": {
-      "n": 6,
-      "medianSecPer1000": 63.5625,
-      "madSecPer1000": 0.3125,
-      "sigmaSecPer1000": 0.463312
     },
     "*|ダート|800|*": {
       "n": 38,
@@ -2980,11 +2980,11 @@
       "madSecPer1000": 1.3125,
       "sigmaSecPer1000": 1.945912
     },
-    "47|ダート|800|重": {
-      "n": 1,
-      "medianSecPer1000": 63.375,
-      "madSecPer1000": 0.0,
-      "sigmaSecPer1000": 0.2
+    "*|ダート|800|重": {
+      "n": 6,
+      "medianSecPer1000": 63.5625,
+      "madSecPer1000": 0.3125,
+      "sigmaSecPer1000": 0.463312
     },
     "47|ダート|1600|稍重": {
       "n": 7,
@@ -3016,27 +3016,27 @@
       "madSecPer1000": 0.543478,
       "sigmaSecPer1000": 0.805761
     },
-    "*|ダート|920|良": {
-      "n": 16,
-      "medianSecPer1000": 61.576087,
-      "madSecPer1000": 0.706522,
-      "sigmaSecPer1000": 1.047489
-    },
     "48|ダート|920|*": {
       "n": 23,
       "medianSecPer1000": 61.73913,
       "madSecPer1000": 0.543478,
       "sigmaSecPer1000": 0.805761
     },
-    "48|ダート|1700|良": {
-      "n": 45,
-      "medianSecPer1000": 65.705882,
-      "madSecPer1000": 0.470588,
-      "sigmaSecPer1000": 0.697694
+    "*|ダート|920|良": {
+      "n": 16,
+      "medianSecPer1000": 61.576087,
+      "madSecPer1000": 0.706522,
+      "sigmaSecPer1000": 1.047489
     },
     "48|ダート|1700|*": {
       "n": 81,
       "medianSecPer1000": 65.588235,
+      "madSecPer1000": 0.470588,
+      "sigmaSecPer1000": 0.697694
+    },
+    "48|ダート|1700|良": {
+      "n": 45,
+      "medianSecPer1000": 65.705882,
       "madSecPer1000": 0.470588,
       "sigmaSecPer1000": 0.697694
     },
@@ -3076,11 +3076,11 @@
       "madSecPer1000": 0.555556,
       "sigmaSecPer1000": 0.823667
     },
-    "48|ダート|900|*": {
-      "n": 3,
-      "medianSecPer1000": 63.666667,
-      "madSecPer1000": 0.222222,
-      "sigmaSecPer1000": 0.329467
+    "*|ダート|900|*": {
+      "n": 36,
+      "medianSecPer1000": 62.111111,
+      "madSecPer1000": 0.555556,
+      "sigmaSecPer1000": 0.823667
     },
     "48|ダート|900|稍重": {
       "n": 1,
@@ -3088,11 +3088,11 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "*|ダート|900|*": {
-      "n": 36,
-      "medianSecPer1000": 62.111111,
-      "madSecPer1000": 0.555556,
-      "sigmaSecPer1000": 0.823667
+    "48|ダート|900|*": {
+      "n": 3,
+      "medianSecPer1000": 63.666667,
+      "madSecPer1000": 0.222222,
+      "sigmaSecPer1000": 0.329467
     },
     "48|ダート|1700|稍重": {
       "n": 15,
@@ -3100,17 +3100,17 @@
       "madSecPer1000": 0.235294,
       "sigmaSecPer1000": 0.348847
     },
-    "48|ダート|2100|*": {
-      "n": 5,
-      "medianSecPer1000": 63.904762,
-      "madSecPer1000": 0.571429,
-      "sigmaSecPer1000": 0.8472
-    },
     "48|ダート|2100|良": {
       "n": 4,
       "medianSecPer1000": 64.5,
       "madSecPer1000": 0.928571,
       "sigmaSecPer1000": 1.3767
+    },
+    "48|ダート|2100|*": {
+      "n": 5,
+      "medianSecPer1000": 63.904762,
+      "madSecPer1000": 0.571429,
+      "sigmaSecPer1000": 0.8472
     },
     "48|ダート|2000|*": {
       "n": 19,
@@ -3124,17 +3124,17 @@
       "madSecPer1000": 1.7,
       "sigmaSecPer1000": 2.52042
     },
-    "50|ダート|1400|良": {
-      "n": 273,
-      "medianSecPer1000": 66.285714,
-      "madSecPer1000": 0.5,
-      "sigmaSecPer1000": 0.7413
-    },
     "50|ダート|1400|*": {
       "n": 454,
       "medianSecPer1000": 66.428571,
       "madSecPer1000": 0.571429,
       "sigmaSecPer1000": 0.8472
+    },
+    "50|ダート|1400|良": {
+      "n": 273,
+      "medianSecPer1000": 66.285714,
+      "madSecPer1000": 0.5,
+      "sigmaSecPer1000": 0.7413
     },
     "50|ダート|1400|稍重": {
       "n": 122,
@@ -3142,21 +3142,9 @@
       "madSecPer1000": 0.464286,
       "sigmaSecPer1000": 0.68835
     },
-    "50|ダート|1870|*": {
-      "n": 52,
-      "medianSecPer1000": 68.074866,
-      "madSecPer1000": 0.454545,
-      "sigmaSecPer1000": 0.673909
-    },
     "*|ダート|1870|良": {
       "n": 30,
       "medianSecPer1000": 67.860963,
-      "madSecPer1000": 0.454545,
-      "sigmaSecPer1000": 0.673909
-    },
-    "*|ダート|1870|*": {
-      "n": 52,
-      "medianSecPer1000": 68.074866,
       "madSecPer1000": 0.454545,
       "sigmaSecPer1000": 0.673909
     },
@@ -3166,17 +3154,23 @@
       "madSecPer1000": 0.454545,
       "sigmaSecPer1000": 0.673909
     },
+    "50|ダート|1870|*": {
+      "n": 52,
+      "medianSecPer1000": 68.074866,
+      "madSecPer1000": 0.454545,
+      "sigmaSecPer1000": 0.673909
+    },
+    "*|ダート|1870|*": {
+      "n": 52,
+      "medianSecPer1000": 68.074866,
+      "madSecPer1000": 0.454545,
+      "sigmaSecPer1000": 0.673909
+    },
     "50|ダート|1400|重": {
       "n": 43,
       "medianSecPer1000": 66.928571,
       "madSecPer1000": 0.714286,
       "sigmaSecPer1000": 1.059
-    },
-    "50|ダート|1230|良": {
-      "n": 74,
-      "medianSecPer1000": 66.01626,
-      "madSecPer1000": 0.406504,
-      "sigmaSecPer1000": 0.602683
     },
     "*|ダート|1230|良": {
       "n": 74,
@@ -3184,13 +3178,19 @@
       "madSecPer1000": 0.406504,
       "sigmaSecPer1000": 0.602683
     },
-    "50|ダート|1230|*": {
+    "*|ダート|1230|*": {
       "n": 104,
       "medianSecPer1000": 66.178862,
       "madSecPer1000": 0.487805,
       "sigmaSecPer1000": 0.72322
     },
-    "*|ダート|1230|*": {
+    "50|ダート|1230|良": {
+      "n": 74,
+      "medianSecPer1000": 66.01626,
+      "madSecPer1000": 0.406504,
+      "sigmaSecPer1000": 0.602683
+    },
+    "50|ダート|1230|*": {
       "n": 104,
       "medianSecPer1000": 66.178862,
       "madSecPer1000": 0.487805,
@@ -3208,15 +3208,15 @@
       "madSecPer1000": 0.617647,
       "sigmaSecPer1000": 0.915724
     },
-    "*|ダート|820|稍重": {
-      "n": 18,
-      "medianSecPer1000": 62.804878,
-      "madSecPer1000": 0.365854,
-      "sigmaSecPer1000": 0.542415
-    },
     "50|ダート|820|*": {
       "n": 58,
       "medianSecPer1000": 62.682927,
+      "madSecPer1000": 0.365854,
+      "sigmaSecPer1000": 0.542415
+    },
+    "*|ダート|820|稍重": {
+      "n": 18,
+      "medianSecPer1000": 62.804878,
       "madSecPer1000": 0.365854,
       "sigmaSecPer1000": 0.542415
     },
@@ -3238,13 +3238,13 @@
       "madSecPer1000": 0.411765,
       "sigmaSecPer1000": 0.610482
     },
-    "*|ダート|1870|稍重": {
+    "50|ダート|1870|稍重": {
       "n": 18,
       "medianSecPer1000": 68.315508,
       "madSecPer1000": 0.294118,
       "sigmaSecPer1000": 0.436059
     },
-    "50|ダート|1870|稍重": {
+    "*|ダート|1870|稍重": {
       "n": 18,
       "medianSecPer1000": 68.315508,
       "madSecPer1000": 0.294118,
@@ -3256,13 +3256,13 @@
       "madSecPer1000": 0.264706,
       "sigmaSecPer1000": 0.392453
     },
-    "50|ダート|1230|稍重": {
+    "*|ダート|1230|稍重": {
       "n": 18,
       "medianSecPer1000": 66.585366,
       "madSecPer1000": 0.447154,
       "sigmaSecPer1000": 0.662951
     },
-    "*|ダート|1230|稍重": {
+    "50|ダート|1230|稍重": {
       "n": 18,
       "medianSecPer1000": 66.585366,
       "madSecPer1000": 0.447154,
@@ -3280,29 +3280,29 @@
       "madSecPer1000": 0.426829,
       "sigmaSecPer1000": 0.632817
     },
-    "55|ダート|1400|良": {
-      "n": 11,
-      "medianSecPer1000": 64.357143,
-      "madSecPer1000": 1.357143,
-      "sigmaSecPer1000": 2.0121
-    },
     "55|ダート|1400|*": {
       "n": 27,
       "medianSecPer1000": 65.142857,
       "madSecPer1000": 0.642857,
       "sigmaSecPer1000": 0.9531
     },
-    "55|ダート|1750|*": {
-      "n": 2,
-      "medianSecPer1000": 66.514286,
-      "madSecPer1000": 0.457143,
-      "sigmaSecPer1000": 0.67776
+    "55|ダート|1400|良": {
+      "n": 11,
+      "medianSecPer1000": 64.357143,
+      "madSecPer1000": 1.357143,
+      "sigmaSecPer1000": 2.0121
     },
     "*|ダート|1750|良": {
       "n": 1,
       "medianSecPer1000": 66.057143,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
+    },
+    "55|ダート|1750|*": {
+      "n": 2,
+      "medianSecPer1000": 66.514286,
+      "madSecPer1000": 0.457143,
+      "sigmaSecPer1000": 0.67776
     },
     "55|ダート|1750|良": {
       "n": 1,
@@ -3328,23 +3328,17 @@
       "madSecPer1000": 0.15,
       "sigmaSecPer1000": 0.22239
     },
-    "函館|芝|1200|*": {
-      "n": 129,
-      "medianSecPer1000": 57.666667,
-      "madSecPer1000": 0.5,
-      "sigmaSecPer1000": 0.7413
-    },
     "函館|芝|1200|良": {
       "n": 97,
       "medianSecPer1000": 57.583333,
       "madSecPer1000": 0.333333,
       "sigmaSecPer1000": 0.4942
     },
-    "函館|ダート|1700|良": {
-      "n": 71,
-      "medianSecPer1000": 62.588235,
-      "madSecPer1000": 0.352941,
-      "sigmaSecPer1000": 0.523271
+    "函館|芝|1200|*": {
+      "n": 129,
+      "medianSecPer1000": 57.666667,
+      "madSecPer1000": 0.5,
+      "sigmaSecPer1000": 0.7413
     },
     "函館|ダート|1700|*": {
       "n": 106,
@@ -3352,11 +3346,11 @@
       "madSecPer1000": 0.5,
       "sigmaSecPer1000": 0.7413
     },
-    "函館|ダート|1000|*": {
-      "n": 58,
-      "medianSecPer1000": 59.4,
-      "madSecPer1000": 0.5,
-      "sigmaSecPer1000": 0.7413
+    "函館|ダート|1700|良": {
+      "n": 71,
+      "medianSecPer1000": 62.588235,
+      "madSecPer1000": 0.352941,
+      "sigmaSecPer1000": 0.523271
     },
     "函館|ダート|1000|良": {
       "n": 36,
@@ -3364,9 +3358,9 @@
       "madSecPer1000": 0.45,
       "sigmaSecPer1000": 0.66717
     },
-    "函館|芝|1800|*": {
-      "n": 63,
-      "medianSecPer1000": 60.277778,
+    "函館|ダート|1000|*": {
+      "n": 58,
+      "medianSecPer1000": 59.4,
       "madSecPer1000": 0.5,
       "sigmaSecPer1000": 0.7413
     },
@@ -3376,11 +3370,11 @@
       "madSecPer1000": 0.5,
       "sigmaSecPer1000": 0.7413
     },
-    "*|芝|1000|*": {
-      "n": 20,
-      "medianSecPer1000": 55.95,
-      "madSecPer1000": 0.95,
-      "sigmaSecPer1000": 1.40847
+    "函館|芝|1800|*": {
+      "n": 63,
+      "medianSecPer1000": 60.277778,
+      "madSecPer1000": 0.5,
+      "sigmaSecPer1000": 0.7413
     },
     "函館|芝|1000|*": {
       "n": 3,
@@ -3393,6 +3387,12 @@
       "medianSecPer1000": 58.0,
       "madSecPer1000": 0.4,
       "sigmaSecPer1000": 0.59304
+    },
+    "*|芝|1000|*": {
+      "n": 20,
+      "medianSecPer1000": 55.95,
+      "madSecPer1000": 0.95,
+      "sigmaSecPer1000": 1.40847
     },
     "*|芝|1000|良": {
       "n": 16,
@@ -3412,29 +3412,29 @@
       "madSecPer1000": 0.3,
       "sigmaSecPer1000": 0.44478
     },
-    "函館|芝|2600|*": {
-      "n": 19,
-      "medianSecPer1000": 61.769231,
-      "madSecPer1000": 0.384615,
-      "sigmaSecPer1000": 0.570231
-    },
     "函館|芝|2600|良": {
       "n": 14,
       "medianSecPer1000": 61.730769,
       "madSecPer1000": 0.346154,
       "sigmaSecPer1000": 0.513208
     },
-    "函館|ダート|2400|*": {
-      "n": 9,
-      "medianSecPer1000": 64.75,
-      "madSecPer1000": 0.208333,
-      "sigmaSecPer1000": 0.308875
+    "函館|芝|2600|*": {
+      "n": 19,
+      "medianSecPer1000": 61.769231,
+      "madSecPer1000": 0.384615,
+      "sigmaSecPer1000": 0.570231
     },
     "函館|ダート|2400|良": {
       "n": 7,
       "medianSecPer1000": 64.875,
       "madSecPer1000": 0.333333,
       "sigmaSecPer1000": 0.4942
+    },
+    "函館|ダート|2400|*": {
+      "n": 9,
+      "medianSecPer1000": 64.75,
+      "madSecPer1000": 0.208333,
+      "sigmaSecPer1000": 0.308875
     },
     "函館|ダート|1000|稍重": {
       "n": 9,
@@ -3484,25 +3484,25 @@
       "madSecPer1000": 0.307692,
       "sigmaSecPer1000": 0.456185
     },
-    "福島|芝|3380|*": {
-      "n": 6,
-      "medianSecPer1000": 66.745562,
-      "madSecPer1000": 0.325444,
-      "sigmaSecPer1000": 0.482503
-    },
     "福島|芝|3380|良": {
       "n": 6,
       "medianSecPer1000": 66.745562,
       "madSecPer1000": 0.325444,
       "sigmaSecPer1000": 0.482503
     },
-    "*|芝|3380|*": {
+    "*|芝|3380|良": {
       "n": 6,
       "medianSecPer1000": 66.745562,
       "madSecPer1000": 0.325444,
       "sigmaSecPer1000": 0.482503
     },
-    "*|芝|3380|良": {
+    "福島|芝|3380|*": {
+      "n": 6,
+      "medianSecPer1000": 66.745562,
+      "madSecPer1000": 0.325444,
+      "sigmaSecPer1000": 0.482503
+    },
+    "*|芝|3380|*": {
       "n": 6,
       "medianSecPer1000": 66.745562,
       "madSecPer1000": 0.325444,
@@ -3526,13 +3526,13 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "福島|ダート|1150|不良": {
+    "*|ダート|1150|不良": {
       "n": 2,
       "medianSecPer1000": 59.26087,
       "madSecPer1000": 0.217391,
       "sigmaSecPer1000": 0.322304
     },
-    "*|ダート|1150|不良": {
+    "福島|ダート|1150|不良": {
       "n": 2,
       "medianSecPer1000": 59.26087,
       "madSecPer1000": 0.217391,
@@ -3544,13 +3544,13 @@
       "madSecPer1000": 0.625,
       "sigmaSecPer1000": 0.926625
     },
-    "福島|芝|2750|重": {
+    "*|芝|2750|重": {
       "n": 2,
       "medianSecPer1000": 67.290909,
       "madSecPer1000": 0.090909,
       "sigmaSecPer1000": 0.2
     },
-    "*|芝|2750|重": {
+    "福島|芝|2750|重": {
       "n": 2,
       "medianSecPer1000": 67.290909,
       "madSecPer1000": 0.090909,
@@ -3574,23 +3574,17 @@
       "madSecPer1000": 0.375,
       "sigmaSecPer1000": 0.555975
     },
-    "*|ダート|1300|稍重": {
-      "n": 34,
-      "medianSecPer1000": 65.0,
-      "madSecPer1000": 2.0,
-      "sigmaSecPer1000": 2.9652
-    },
     "東京|ダート|1300|稍重": {
       "n": 13,
       "medianSecPer1000": 60.769231,
       "madSecPer1000": 0.384615,
       "sigmaSecPer1000": 0.570231
     },
-    "*|芝|3400|良": {
-      "n": 3,
-      "medianSecPer1000": 62.5,
-      "madSecPer1000": 0.205882,
-      "sigmaSecPer1000": 0.305241
+    "*|ダート|1300|稍重": {
+      "n": 34,
+      "medianSecPer1000": 65.0,
+      "madSecPer1000": 2.0,
+      "sigmaSecPer1000": 2.9652
     },
     "*|芝|3400|*": {
       "n": 3,
@@ -3598,7 +3592,7 @@
       "madSecPer1000": 0.205882,
       "sigmaSecPer1000": 0.305241
     },
-    "東京|芝|3400|*": {
+    "*|芝|3400|良": {
       "n": 3,
       "medianSecPer1000": 62.5,
       "madSecPer1000": 0.205882,
@@ -3610,11 +3604,11 @@
       "madSecPer1000": 0.205882,
       "sigmaSecPer1000": 0.305241
     },
-    "東京|芝|2300|*": {
-      "n": 2,
-      "medianSecPer1000": 61.26087,
-      "madSecPer1000": 0.826087,
-      "sigmaSecPer1000": 1.224757
+    "東京|芝|3400|*": {
+      "n": 3,
+      "medianSecPer1000": 62.5,
+      "madSecPer1000": 0.205882,
+      "sigmaSecPer1000": 0.305241
     },
     "*|芝|2300|*": {
       "n": 2,
@@ -3622,13 +3616,19 @@
       "madSecPer1000": 0.826087,
       "sigmaSecPer1000": 1.224757
     },
-    "*|芝|2300|良": {
+    "東京|芝|2300|良": {
       "n": 2,
       "medianSecPer1000": 61.26087,
       "madSecPer1000": 0.826087,
       "sigmaSecPer1000": 1.224757
     },
-    "東京|芝|2300|良": {
+    "東京|芝|2300|*": {
+      "n": 2,
+      "medianSecPer1000": 61.26087,
+      "madSecPer1000": 0.826087,
+      "sigmaSecPer1000": 1.224757
+    },
+    "*|芝|2300|良": {
       "n": 2,
       "medianSecPer1000": 61.26087,
       "madSecPer1000": 0.826087,
@@ -3646,29 +3646,29 @@
       "madSecPer1000": 0.4,
       "sigmaSecPer1000": 0.59304
     },
-    "*|芝|3110|稍重": {
-      "n": 3,
-      "medianSecPer1000": 66.720257,
-      "madSecPer1000": 1.446945,
-      "sigmaSecPer1000": 2.145241
-    },
     "東京|芝|3110|稍重": {
       "n": 3,
       "medianSecPer1000": 66.720257,
       "madSecPer1000": 1.446945,
       "sigmaSecPer1000": 2.145241
     },
-    "東京|芝|2400|稍重": {
-      "n": 10,
-      "medianSecPer1000": 61.5625,
-      "madSecPer1000": 0.458333,
-      "sigmaSecPer1000": 0.679525
+    "*|芝|3110|稍重": {
+      "n": 3,
+      "medianSecPer1000": 66.720257,
+      "madSecPer1000": 1.446945,
+      "sigmaSecPer1000": 2.145241
     },
     "*|芝|2400|稍重": {
       "n": 11,
       "medianSecPer1000": 61.708333,
       "madSecPer1000": 0.333333,
       "sigmaSecPer1000": 0.4942
+    },
+    "東京|芝|2400|稍重": {
+      "n": 10,
+      "medianSecPer1000": 61.5625,
+      "madSecPer1000": 0.458333,
+      "sigmaSecPer1000": 0.679525
     },
     "東京|芝|3110|良": {
       "n": 4,
@@ -3682,17 +3682,17 @@
       "madSecPer1000": 0.080386,
       "sigmaSecPer1000": 0.2
     },
-    "*|芝|2000|不良": {
-      "n": 5,
-      "medianSecPer1000": 63.35,
-      "madSecPer1000": 0.25,
-      "sigmaSecPer1000": 0.37065
-    },
     "中山|芝|2000|不良": {
       "n": 1,
       "medianSecPer1000": 64.1,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
+    },
+    "*|芝|2000|不良": {
+      "n": 5,
+      "medianSecPer1000": 63.35,
+      "madSecPer1000": 0.25,
+      "sigmaSecPer1000": 0.37065
     },
     "中山|芝|1800|不良": {
       "n": 1,
@@ -3772,18 +3772,6 @@
       "madSecPer1000": 0.166667,
       "sigmaSecPer1000": 0.2471
     },
-    "中京|芝|3000|良": {
-      "n": 14,
-      "medianSecPer1000": 66.483333,
-      "madSecPer1000": 0.45,
-      "sigmaSecPer1000": 0.66717
-    },
-    "中京|芝|3000|*": {
-      "n": 17,
-      "medianSecPer1000": 66.533333,
-      "madSecPer1000": 0.466667,
-      "sigmaSecPer1000": 0.69188
-    },
     "*|芝|3000|*": {
       "n": 24,
       "medianSecPer1000": 66.15,
@@ -3795,6 +3783,18 @@
       "medianSecPer1000": 66.233333,
       "madSecPer1000": 0.733333,
       "sigmaSecPer1000": 1.08724
+    },
+    "中京|芝|3000|*": {
+      "n": 17,
+      "medianSecPer1000": 66.533333,
+      "madSecPer1000": 0.466667,
+      "sigmaSecPer1000": 0.69188
+    },
+    "中京|芝|3000|良": {
+      "n": 14,
+      "medianSecPer1000": 66.483333,
+      "madSecPer1000": 0.45,
+      "sigmaSecPer1000": 0.66717
     },
     "中京|ダート|1800|不良": {
       "n": 3,
@@ -3916,12 +3916,6 @@
       "madSecPer1000": 0.267176,
       "sigmaSecPer1000": 0.396115
     },
-    "京都|芝|3930|*": {
-      "n": 3,
-      "medianSecPer1000": 69.923664,
-      "madSecPer1000": 0.534351,
-      "sigmaSecPer1000": 0.792229
-    },
     "京都|芝|3930|良": {
       "n": 2,
       "medianSecPer1000": 69.656489,
@@ -3929,6 +3923,12 @@
       "sigmaSecPer1000": 0.396115
     },
     "*|芝|3930|*": {
+      "n": 3,
+      "medianSecPer1000": 69.923664,
+      "madSecPer1000": 0.534351,
+      "sigmaSecPer1000": 0.792229
+    },
+    "京都|芝|3930|*": {
       "n": 3,
       "medianSecPer1000": 69.923664,
       "madSecPer1000": 0.534351,
@@ -3982,7 +3982,7 @@
       "madSecPer1000": 1.090909,
       "sigmaSecPer1000": 1.617382
     },
-    "*|芝|3900|良": {
+    "*|芝|3900|*": {
       "n": 3,
       "medianSecPer1000": 69.487179,
       "madSecPer1000": 0.384615,
@@ -3994,13 +3994,13 @@
       "madSecPer1000": 0.384615,
       "sigmaSecPer1000": 0.570231
     },
-    "*|芝|3900|*": {
+    "阪神|芝|3900|良": {
       "n": 3,
       "medianSecPer1000": 69.487179,
       "madSecPer1000": 0.384615,
       "sigmaSecPer1000": 0.570231
     },
-    "阪神|芝|3900|良": {
+    "*|芝|3900|良": {
       "n": 3,
       "medianSecPer1000": 69.487179,
       "madSecPer1000": 0.384615,
@@ -4018,17 +4018,17 @@
       "madSecPer1000": 0.25,
       "sigmaSecPer1000": 0.37065
     },
-    "*|ダート|2000|重": {
-      "n": 11,
-      "medianSecPer1000": 66.7,
-      "madSecPer1000": 0.95,
-      "sigmaSecPer1000": 1.40847
-    },
     "阪神|ダート|2000|重": {
       "n": 2,
       "medianSecPer1000": 63.2,
       "madSecPer1000": 0.3,
       "sigmaSecPer1000": 0.44478
+    },
+    "*|ダート|2000|重": {
+      "n": 11,
+      "medianSecPer1000": 66.7,
+      "madSecPer1000": 0.95,
+      "sigmaSecPer1000": 1.40847
     },
     "阪神|芝|2000|重": {
       "n": 1,
@@ -4036,13 +4036,13 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "*|芝|2860|稍重": {
+    "小倉|芝|2860|稍重": {
       "n": 19,
       "medianSecPer1000": 68.251748,
       "madSecPer1000": 0.804196,
       "sigmaSecPer1000": 1.192301
     },
-    "小倉|芝|2860|稍重": {
+    "*|芝|2860|稍重": {
       "n": 19,
       "medianSecPer1000": 68.251748,
       "madSecPer1000": 0.804196,
@@ -4102,19 +4102,13 @@
       "madSecPer1000": 0.65,
       "sigmaSecPer1000": 0.96369
     },
-    "小倉|芝|3390|良": {
-      "n": 11,
-      "medianSecPer1000": 66.873156,
-      "madSecPer1000": 0.501475,
-      "sigmaSecPer1000": 0.743487
-    },
     "小倉|芝|3390|*": {
       "n": 13,
       "medianSecPer1000": 66.873156,
       "madSecPer1000": 0.501475,
       "sigmaSecPer1000": 0.743487
     },
-    "*|芝|3390|良": {
+    "小倉|芝|3390|良": {
       "n": 11,
       "medianSecPer1000": 66.873156,
       "madSecPer1000": 0.501475,
@@ -4126,19 +4120,25 @@
       "madSecPer1000": 0.501475,
       "sigmaSecPer1000": 0.743487
     },
+    "*|芝|3390|良": {
+      "n": 11,
+      "medianSecPer1000": 66.873156,
+      "madSecPer1000": 0.501475,
+      "sigmaSecPer1000": 0.743487
+    },
     "小倉|ダート|2400|良": {
       "n": 4,
       "medianSecPer1000": 64.645833,
       "madSecPer1000": 0.270833,
       "sigmaSecPer1000": 0.401537
     },
-    "*|芝|3390|稍重": {
+    "小倉|芝|3390|稍重": {
       "n": 2,
       "medianSecPer1000": 67.0059,
       "madSecPer1000": 0.575221,
       "sigmaSecPer1000": 0.852823
     },
-    "小倉|芝|3390|稍重": {
+    "*|芝|3390|稍重": {
       "n": 2,
       "medianSecPer1000": 67.0059,
       "madSecPer1000": 0.575221,
@@ -4174,12 +4174,6 @@
       "madSecPer1000": 0.705882,
       "sigmaSecPer1000": 1.046541
     },
-    "*|ダート|1100|良": {
-      "n": 8,
-      "medianSecPer1000": 63.954545,
-      "madSecPer1000": 0.545455,
-      "sigmaSecPer1000": 0.808691
-    },
     "30|ダート|1100|*": {
       "n": 15,
       "medianSecPer1000": 63.363636,
@@ -4198,13 +4192,19 @@
       "madSecPer1000": 0.727273,
       "sigmaSecPer1000": 1.078255
     },
-    "30|ダート|1100|稍重": {
+    "*|ダート|1100|良": {
+      "n": 8,
+      "medianSecPer1000": 63.954545,
+      "madSecPer1000": 0.545455,
+      "sigmaSecPer1000": 0.808691
+    },
+    "*|ダート|1100|稍重": {
       "n": 5,
       "medianSecPer1000": 63.272727,
       "madSecPer1000": 0.363636,
       "sigmaSecPer1000": 0.539127
     },
-    "*|ダート|1100|稍重": {
+    "30|ダート|1100|稍重": {
       "n": 5,
       "medianSecPer1000": 63.272727,
       "madSecPer1000": 0.363636,
@@ -4216,17 +4216,17 @@
       "madSecPer1000": 0.647059,
       "sigmaSecPer1000": 0.959329
     },
-    "30|ダート|2000|*": {
-      "n": 4,
-      "medianSecPer1000": 65.5,
-      "madSecPer1000": 2.175,
-      "sigmaSecPer1000": 3.224655
-    },
     "30|ダート|2000|不良": {
       "n": 1,
       "medianSecPer1000": 62.6,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
+    },
+    "30|ダート|2000|*": {
+      "n": 4,
+      "medianSecPer1000": 65.5,
+      "madSecPer1000": 2.175,
+      "sigmaSecPer1000": 3.224655
     },
     "30|ダート|1800|良": {
       "n": 13,
@@ -4330,17 +4330,17 @@
       "madSecPer1000": 0.75,
       "sigmaSecPer1000": 1.11195
     },
-    "36|ダート|1300|不良": {
-      "n": 3,
-      "medianSecPer1000": 64.384615,
-      "madSecPer1000": 0.384615,
-      "sigmaSecPer1000": 0.570231
-    },
     "36|ダート|1300|*": {
       "n": 18,
       "medianSecPer1000": 65.269231,
       "madSecPer1000": 0.730769,
       "sigmaSecPer1000": 1.083438
+    },
+    "36|ダート|1300|不良": {
+      "n": 3,
+      "medianSecPer1000": 64.384615,
+      "madSecPer1000": 0.384615,
+      "sigmaSecPer1000": 0.570231
     },
     "36|ダート|1400|良": {
       "n": 8,
@@ -4372,29 +4372,29 @@
       "madSecPer1000": 0.769231,
       "sigmaSecPer1000": 1.140462
     },
-    "*|ダート|850|*": {
-      "n": 6,
-      "medianSecPer1000": 60.764706,
-      "madSecPer1000": 0.411765,
-      "sigmaSecPer1000": 0.610482
-    },
     "36|ダート|850|稍重": {
       "n": 2,
       "medianSecPer1000": 61.352941,
       "madSecPer1000": 0.529412,
       "sigmaSecPer1000": 0.784906
     },
-    "*|ダート|850|稍重": {
-      "n": 2,
-      "medianSecPer1000": 61.352941,
-      "madSecPer1000": 0.529412,
-      "sigmaSecPer1000": 0.784906
+    "*|ダート|850|*": {
+      "n": 6,
+      "medianSecPer1000": 60.764706,
+      "madSecPer1000": 0.411765,
+      "sigmaSecPer1000": 0.610482
     },
     "36|ダート|850|*": {
       "n": 6,
       "medianSecPer1000": 60.764706,
       "madSecPer1000": 0.411765,
       "sigmaSecPer1000": 0.610482
+    },
+    "*|ダート|850|稍重": {
+      "n": 2,
+      "medianSecPer1000": 61.352941,
+      "madSecPer1000": 0.529412,
+      "sigmaSecPer1000": 0.784906
     },
     "36|ダート|1400|重": {
       "n": 6,
@@ -4426,17 +4426,17 @@
       "madSecPer1000": 0.352941,
       "sigmaSecPer1000": 0.523271
     },
-    "42|ダート|800|稍重": {
-      "n": 3,
-      "medianSecPer1000": 60.5,
-      "madSecPer1000": 0.375,
-      "sigmaSecPer1000": 0.555975
-    },
     "*|ダート|800|稍重": {
       "n": 6,
       "medianSecPer1000": 61.9375,
       "madSecPer1000": 1.6875,
       "sigmaSecPer1000": 2.501888
+    },
+    "42|ダート|800|稍重": {
+      "n": 3,
+      "medianSecPer1000": 60.5,
+      "madSecPer1000": 0.375,
+      "sigmaSecPer1000": 0.555975
     },
     "42|ダート|800|*": {
       "n": 16,
@@ -4444,29 +4444,29 @@
       "madSecPer1000": 0.625,
       "sigmaSecPer1000": 0.926625
     },
-    "42|ダート|800|不良": {
-      "n": 3,
-      "medianSecPer1000": 59.625,
-      "madSecPer1000": 0.5,
-      "sigmaSecPer1000": 0.7413
-    },
     "*|ダート|800|不良": {
       "n": 5,
       "medianSecPer1000": 60.875,
       "madSecPer1000": 1.75,
       "sigmaSecPer1000": 2.59455
     },
-    "42|ダート|800|良": {
-      "n": 10,
-      "medianSecPer1000": 60.25,
-      "madSecPer1000": 0.5625,
-      "sigmaSecPer1000": 0.833962
+    "42|ダート|800|不良": {
+      "n": 3,
+      "medianSecPer1000": 59.625,
+      "madSecPer1000": 0.5,
+      "sigmaSecPer1000": 0.7413
     },
     "*|ダート|800|良": {
       "n": 21,
       "medianSecPer1000": 62.875,
       "madSecPer1000": 1.625,
       "sigmaSecPer1000": 2.409225
+    },
+    "42|ダート|800|良": {
+      "n": 10,
+      "medianSecPer1000": 60.25,
+      "madSecPer1000": 0.5625,
+      "sigmaSecPer1000": 0.833962
     },
     "42|ダート|1400|不良": {
       "n": 6,
@@ -4552,11 +4552,11 @@
       "madSecPer1000": 0.791667,
       "sigmaSecPer1000": 1.173725
     },
-    "43|ダート|2200|不良": {
-      "n": 1,
-      "medianSecPer1000": 68.409091,
-      "madSecPer1000": 0.0,
-      "sigmaSecPer1000": 0.2
+    "*|ダート|2200|*": {
+      "n": 2,
+      "medianSecPer1000": 68.022727,
+      "madSecPer1000": 0.386364,
+      "sigmaSecPer1000": 0.572823
     },
     "*|ダート|2200|不良": {
       "n": 1,
@@ -4564,13 +4564,13 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "43|ダート|2200|*": {
-      "n": 2,
-      "medianSecPer1000": 68.022727,
-      "madSecPer1000": 0.386364,
-      "sigmaSecPer1000": 0.572823
+    "43|ダート|2200|不良": {
+      "n": 1,
+      "medianSecPer1000": 68.409091,
+      "madSecPer1000": 0.0,
+      "sigmaSecPer1000": 0.2
     },
-    "*|ダート|2200|*": {
+    "43|ダート|2200|*": {
       "n": 2,
       "medianSecPer1000": 68.022727,
       "madSecPer1000": 0.386364,
@@ -4642,17 +4642,17 @@
       "madSecPer1000": 1.708333,
       "sigmaSecPer1000": 2.532775
     },
-    "44|ダート|1700|*": {
-      "n": 6,
-      "medianSecPer1000": 65.205882,
-      "madSecPer1000": 0.676471,
-      "sigmaSecPer1000": 1.002935
-    },
     "44|ダート|1700|良": {
       "n": 3,
       "medianSecPer1000": 64.941176,
       "madSecPer1000": 0.588235,
       "sigmaSecPer1000": 0.872118
+    },
+    "44|ダート|1700|*": {
+      "n": 6,
+      "medianSecPer1000": 65.205882,
+      "madSecPer1000": 0.676471,
+      "sigmaSecPer1000": 1.002935
     },
     "44|ダート|1400|稍重": {
       "n": 9,
@@ -4696,17 +4696,17 @@
       "madSecPer1000": 0.416667,
       "sigmaSecPer1000": 0.61775
     },
-    "*|ダート|900|良": {
-      "n": 22,
-      "medianSecPer1000": 62.055556,
-      "madSecPer1000": 0.444444,
-      "sigmaSecPer1000": 0.658933
-    },
     "45|ダート|900|良": {
       "n": 19,
       "medianSecPer1000": 62.0,
       "madSecPer1000": 0.333333,
       "sigmaSecPer1000": 0.4942
+    },
+    "*|ダート|900|良": {
+      "n": 22,
+      "medianSecPer1000": 62.055556,
+      "madSecPer1000": 0.444444,
+      "sigmaSecPer1000": 0.658933
     },
     "45|ダート|900|*": {
       "n": 31,
@@ -4774,17 +4774,17 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "47|ダート|1800|良": {
-      "n": 2,
-      "medianSecPer1000": 65.555556,
-      "madSecPer1000": 0.277778,
-      "sigmaSecPer1000": 0.411833
-    },
     "47|ダート|1800|*": {
       "n": 3,
       "medianSecPer1000": 65.833333,
       "madSecPer1000": 0.555556,
       "sigmaSecPer1000": 0.823667
+    },
+    "47|ダート|1800|良": {
+      "n": 2,
+      "medianSecPer1000": 65.555556,
+      "madSecPer1000": 0.277778,
+      "sigmaSecPer1000": 0.411833
     },
     "47|ダート|1400|不良": {
       "n": 11,
@@ -4816,13 +4816,13 @@
       "madSecPer1000": 0.375,
       "sigmaSecPer1000": 0.555975
     },
-    "47|ダート|1900|良": {
+    "47|ダート|1900|*": {
       "n": 1,
       "medianSecPer1000": 67.052632,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "47|ダート|1900|*": {
+    "47|ダート|1900|良": {
       "n": 1,
       "medianSecPer1000": 67.052632,
       "madSecPer1000": 0.0,
@@ -4858,29 +4858,29 @@
       "madSecPer1000": 0.764706,
       "sigmaSecPer1000": 1.133753
     },
-    "48|ダート|900|不良": {
-      "n": 1,
-      "medianSecPer1000": 64.0,
-      "madSecPer1000": 0.0,
-      "sigmaSecPer1000": 0.2
-    },
     "*|ダート|900|不良": {
       "n": 2,
       "medianSecPer1000": 63.055556,
       "madSecPer1000": 0.944444,
       "sigmaSecPer1000": 1.400233
     },
-    "48|ダート|1400|*": {
-      "n": 69,
-      "medianSecPer1000": 65.071429,
-      "madSecPer1000": 0.642857,
-      "sigmaSecPer1000": 0.9531
+    "48|ダート|900|不良": {
+      "n": 1,
+      "medianSecPer1000": 64.0,
+      "madSecPer1000": 0.0,
+      "sigmaSecPer1000": 0.2
     },
     "48|ダート|1400|不良": {
       "n": 6,
       "medianSecPer1000": 64.285714,
       "madSecPer1000": 0.25,
       "sigmaSecPer1000": 0.37065
+    },
+    "48|ダート|1400|*": {
+      "n": 69,
+      "medianSecPer1000": 65.071429,
+      "madSecPer1000": 0.642857,
+      "sigmaSecPer1000": 0.9531
     },
     "48|ダート|1400|重": {
       "n": 9,
@@ -4900,25 +4900,25 @@
       "madSecPer1000": 0.928571,
       "sigmaSecPer1000": 1.3767
     },
-    "50|ダート|1230|重": {
-      "n": 9,
-      "medianSecPer1000": 66.910569,
-      "madSecPer1000": 0.487805,
-      "sigmaSecPer1000": 0.72322
-    },
     "*|ダート|1230|重": {
       "n": 9,
       "medianSecPer1000": 66.910569,
       "madSecPer1000": 0.487805,
       "sigmaSecPer1000": 0.72322
     },
-    "50|ダート|820|重": {
+    "50|ダート|1230|重": {
+      "n": 9,
+      "medianSecPer1000": 66.910569,
+      "madSecPer1000": 0.487805,
+      "sigmaSecPer1000": 0.72322
+    },
+    "*|ダート|820|重": {
       "n": 5,
       "medianSecPer1000": 62.560976,
       "madSecPer1000": 0.609756,
       "sigmaSecPer1000": 0.904024
     },
-    "*|ダート|820|重": {
+    "50|ダート|820|重": {
       "n": 5,
       "medianSecPer1000": 62.560976,
       "madSecPer1000": 0.609756,
@@ -4942,17 +4942,17 @@
       "madSecPer1000": 0.162602,
       "sigmaSecPer1000": 0.241073
     },
-    "51|ダート|1400|良": {
-      "n": 48,
-      "medianSecPer1000": 67.642857,
-      "madSecPer1000": 0.464286,
-      "sigmaSecPer1000": 0.68835
-    },
     "51|ダート|1400|*": {
       "n": 73,
       "medianSecPer1000": 68.0,
       "madSecPer1000": 0.642857,
       "sigmaSecPer1000": 0.9531
+    },
+    "51|ダート|1400|良": {
+      "n": 48,
+      "medianSecPer1000": 67.642857,
+      "madSecPer1000": 0.464286,
+      "sigmaSecPer1000": 0.68835
     },
     "51|ダート|800|良": {
       "n": 6,
@@ -4966,23 +4966,17 @@
       "madSecPer1000": 0.5,
       "sigmaSecPer1000": 0.7413
     },
-    "51|ダート|1500|稍重": {
-      "n": 3,
-      "medianSecPer1000": 66.533333,
-      "madSecPer1000": 0.4,
-      "sigmaSecPer1000": 0.59304
-    },
     "51|ダート|1500|*": {
       "n": 13,
       "medianSecPer1000": 67.2,
       "madSecPer1000": 0.4,
       "sigmaSecPer1000": 0.59304
     },
-    "51|ダート|1800|稍重": {
-      "n": 2,
-      "medianSecPer1000": 69.722222,
-      "madSecPer1000": 0.777778,
-      "sigmaSecPer1000": 1.153133
+    "51|ダート|1500|稍重": {
+      "n": 3,
+      "medianSecPer1000": 66.533333,
+      "madSecPer1000": 0.4,
+      "sigmaSecPer1000": 0.59304
     },
     "51|ダート|1800|*": {
       "n": 9,
@@ -4990,19 +4984,25 @@
       "madSecPer1000": 0.666667,
       "sigmaSecPer1000": 0.9884
     },
+    "51|ダート|1800|稍重": {
+      "n": 2,
+      "medianSecPer1000": 69.722222,
+      "madSecPer1000": 0.777778,
+      "sigmaSecPer1000": 1.153133
+    },
     "51|ダート|1500|良": {
       "n": 6,
       "medianSecPer1000": 67.6,
       "madSecPer1000": 0.066667,
       "sigmaSecPer1000": 0.2
     },
-    "51|ダート|2000|稍重": {
+    "51|ダート|2000|*": {
       "n": 1,
       "medianSecPer1000": 70.1,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "51|ダート|2000|*": {
+    "51|ダート|2000|稍重": {
       "n": 1,
       "medianSecPer1000": 70.1,
       "madSecPer1000": 0.0,
@@ -5038,17 +5038,17 @@
       "madSecPer1000": 0.266667,
       "sigmaSecPer1000": 0.39536
     },
-    "54|ダート|1400|重": {
-      "n": 14,
-      "medianSecPer1000": 66.928571,
-      "madSecPer1000": 0.892857,
-      "sigmaSecPer1000": 1.32375
-    },
     "54|ダート|1400|*": {
       "n": 44,
       "medianSecPer1000": 66.464286,
       "madSecPer1000": 1.142857,
       "sigmaSecPer1000": 1.6944
+    },
+    "54|ダート|1400|重": {
+      "n": 14,
+      "medianSecPer1000": 66.928571,
+      "madSecPer1000": 0.892857,
+      "sigmaSecPer1000": 1.32375
     },
     "54|ダート|1300|良": {
       "n": 7,
@@ -5170,13 +5170,13 @@
       "madSecPer1000": 0.4,
       "sigmaSecPer1000": 0.59304
     },
-    "*|ダート|2500|重": {
+    "新潟|ダート|2500|重": {
       "n": 1,
       "medianSecPer1000": 65.24,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "新潟|ダート|2500|重": {
+    "*|ダート|2500|重": {
       "n": 1,
       "medianSecPer1000": 65.24,
       "madSecPer1000": 0.0,
@@ -5200,6 +5200,12 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
+    "*|芝|3300|良": {
+      "n": 3,
+      "medianSecPer1000": 66.515152,
+      "madSecPer1000": 0.242424,
+      "sigmaSecPer1000": 0.359418
+    },
     "中京|芝|3300|*": {
       "n": 3,
       "medianSecPer1000": 66.515152,
@@ -5207,12 +5213,6 @@
       "sigmaSecPer1000": 0.359418
     },
     "中京|芝|3300|良": {
-      "n": 3,
-      "medianSecPer1000": 66.515152,
-      "madSecPer1000": 0.242424,
-      "sigmaSecPer1000": 0.359418
-    },
-    "*|芝|3300|良": {
       "n": 3,
       "medianSecPer1000": 66.515152,
       "madSecPer1000": 0.242424,
@@ -5236,13 +5236,13 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "京都|芝|3930|不良": {
+    "*|芝|3930|不良": {
       "n": 1,
       "medianSecPer1000": 70.737913,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "*|芝|3930|不良": {
+    "京都|芝|3930|不良": {
       "n": 1,
       "medianSecPer1000": 70.737913,
       "madSecPer1000": 0.0,
@@ -5278,15 +5278,15 @@
       "madSecPer1000": 0.181818,
       "sigmaSecPer1000": 0.269564
     },
-    "30|ダート|1500|*": {
-      "n": 3,
-      "medianSecPer1000": 65.266667,
-      "madSecPer1000": 0.2,
-      "sigmaSecPer1000": 0.29652
-    },
     "30|ダート|1500|良": {
       "n": 2,
       "medianSecPer1000": 65.466667,
+      "madSecPer1000": 0.2,
+      "sigmaSecPer1000": 0.29652
+    },
+    "30|ダート|1500|*": {
+      "n": 3,
+      "medianSecPer1000": 65.266667,
       "madSecPer1000": 0.2,
       "sigmaSecPer1000": 0.29652
     },
@@ -5308,25 +5308,25 @@
       "madSecPer1000": 0.5,
       "sigmaSecPer1000": 0.7413
     },
-    "35|芝|1600|*": {
-      "n": 5,
-      "medianSecPer1000": 62.375,
-      "madSecPer1000": 0.625,
-      "sigmaSecPer1000": 0.926625
-    },
     "35|芝|1600|良": {
       "n": 4,
       "medianSecPer1000": 62.53125,
       "madSecPer1000": 0.6875,
       "sigmaSecPer1000": 1.019287
     },
-    "35|芝|1700|稍重": {
+    "35|芝|1600|*": {
+      "n": 5,
+      "medianSecPer1000": 62.375,
+      "madSecPer1000": 0.625,
+      "sigmaSecPer1000": 0.926625
+    },
+    "*|芝|1700|稍重": {
       "n": 3,
       "medianSecPer1000": 62.176471,
       "madSecPer1000": 0.294118,
       "sigmaSecPer1000": 0.436059
     },
-    "*|芝|1700|稍重": {
+    "35|芝|1700|稍重": {
       "n": 3,
       "medianSecPer1000": 62.176471,
       "madSecPer1000": 0.294118,
@@ -5416,13 +5416,13 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "*|ダート|1650|良": {
+    "44|ダート|1650|良": {
       "n": 2,
       "medianSecPer1000": 64.969697,
       "madSecPer1000": 0.181818,
       "sigmaSecPer1000": 0.269564
     },
-    "44|ダート|1650|良": {
+    "*|ダート|1650|良": {
       "n": 2,
       "medianSecPer1000": 64.969697,
       "madSecPer1000": 0.181818,
@@ -5476,13 +5476,13 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "48|ダート|920|稍重": {
+    "*|ダート|920|稍重": {
       "n": 2,
       "medianSecPer1000": 61.413043,
       "madSecPer1000": 0.326087,
       "sigmaSecPer1000": 0.483457
     },
-    "*|ダート|920|稍重": {
+    "48|ダート|920|稍重": {
       "n": 2,
       "medianSecPer1000": 61.413043,
       "madSecPer1000": 0.326087,
@@ -5512,13 +5512,13 @@
       "madSecPer1000": 0.3,
       "sigmaSecPer1000": 0.44478
     },
-    "*|ダート|820|不良": {
+    "50|ダート|820|不良": {
       "n": 1,
       "medianSecPer1000": 62.560976,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "50|ダート|820|不良": {
+    "*|ダート|820|不良": {
       "n": 1,
       "medianSecPer1000": 62.560976,
       "madSecPer1000": 0.0,
@@ -5554,17 +5554,17 @@
       "madSecPer1000": 0.4375,
       "sigmaSecPer1000": 0.648637
     },
-    "54|ダート|1900|*": {
-      "n": 2,
-      "medianSecPer1000": 68.815789,
-      "madSecPer1000": 2.078947,
-      "sigmaSecPer1000": 3.082247
-    },
     "54|ダート|1900|稍重": {
       "n": 1,
       "medianSecPer1000": 70.894737,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
+    },
+    "54|ダート|1900|*": {
+      "n": 2,
+      "medianSecPer1000": 68.815789,
+      "madSecPer1000": 2.078947,
+      "sigmaSecPer1000": 3.082247
     },
     "54|ダート|1400|稍重": {
       "n": 7,
@@ -5578,17 +5578,17 @@
       "madSecPer1000": 0.769231,
       "sigmaSecPer1000": 1.140462
     },
-    "54|ダート|1600|*": {
-      "n": 11,
-      "medianSecPer1000": 67.875,
-      "madSecPer1000": 0.3125,
-      "sigmaSecPer1000": 0.463312
-    },
     "54|ダート|1600|稍重": {
       "n": 6,
       "medianSecPer1000": 67.71875,
       "madSecPer1000": 0.21875,
       "sigmaSecPer1000": 0.324319
+    },
+    "54|ダート|1600|*": {
+      "n": 11,
+      "medianSecPer1000": 67.875,
+      "madSecPer1000": 0.3125,
+      "sigmaSecPer1000": 0.463312
     },
     "54|ダート|1600|良": {
       "n": 4,
@@ -5602,19 +5602,7 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "55|ダート|1860|良": {
-      "n": 1,
-      "medianSecPer1000": 66.182796,
-      "madSecPer1000": 0.0,
-      "sigmaSecPer1000": 0.2
-    },
     "*|ダート|1860|*": {
-      "n": 1,
-      "medianSecPer1000": 66.182796,
-      "madSecPer1000": 0.0,
-      "sigmaSecPer1000": 0.2
-    },
-    "*|ダート|1860|良": {
       "n": 1,
       "medianSecPer1000": 66.182796,
       "madSecPer1000": 0.0,
@@ -5626,11 +5614,17 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "55|ダート|1300|良": {
-      "n": 2,
-      "medianSecPer1000": 65.730769,
-      "madSecPer1000": 1.346154,
-      "sigmaSecPer1000": 1.995808
+    "*|ダート|1860|良": {
+      "n": 1,
+      "medianSecPer1000": 66.182796,
+      "madSecPer1000": 0.0,
+      "sigmaSecPer1000": 0.2
+    },
+    "55|ダート|1860|良": {
+      "n": 1,
+      "medianSecPer1000": 66.182796,
+      "madSecPer1000": 0.0,
+      "sigmaSecPer1000": 0.2
     },
     "55|ダート|1300|*": {
       "n": 7,
@@ -5638,17 +5632,17 @@
       "madSecPer1000": 0.384615,
       "sigmaSecPer1000": 0.570231
     },
+    "55|ダート|1300|良": {
+      "n": 2,
+      "medianSecPer1000": 65.730769,
+      "madSecPer1000": 1.346154,
+      "sigmaSecPer1000": 1.995808
+    },
     "55|ダート|1300|稍重": {
       "n": 4,
       "medianSecPer1000": 66.115385,
       "madSecPer1000": 0.230769,
       "sigmaSecPer1000": 0.342138
-    },
-    "*|ダート|1000|稍": {
-      "n": 3,
-      "medianSecPer1000": 59.6,
-      "madSecPer1000": 0.3,
-      "sigmaSecPer1000": 0.44478
     },
     "札幌|ダート|1000|稍": {
       "n": 3,
@@ -5656,17 +5650,23 @@
       "madSecPer1000": 0.3,
       "sigmaSecPer1000": 0.44478
     },
-    "*|芝|1800|稍": {
-      "n": 10,
-      "medianSecPer1000": 60.277778,
-      "madSecPer1000": 0.416667,
-      "sigmaSecPer1000": 0.61775
+    "*|ダート|1000|稍": {
+      "n": 3,
+      "medianSecPer1000": 59.6,
+      "madSecPer1000": 0.3,
+      "sigmaSecPer1000": 0.44478
     },
     "札幌|芝|1800|稍": {
       "n": 5,
       "medianSecPer1000": 60.555556,
       "madSecPer1000": 0.055556,
       "sigmaSecPer1000": 0.2
+    },
+    "*|芝|1800|稍": {
+      "n": 10,
+      "medianSecPer1000": 60.277778,
+      "madSecPer1000": 0.416667,
+      "sigmaSecPer1000": 0.61775
     },
     "札幌|ダート|1700|稍": {
       "n": 6,
@@ -5680,29 +5680,29 @@
       "madSecPer1000": 0.382353,
       "sigmaSecPer1000": 0.566876
     },
-    "札幌|芝|1500|稍": {
-      "n": 5,
-      "medianSecPer1000": 59.466667,
-      "madSecPer1000": 0.666667,
-      "sigmaSecPer1000": 0.9884
-    },
     "*|芝|1500|稍": {
       "n": 5,
       "medianSecPer1000": 59.466667,
       "madSecPer1000": 0.666667,
       "sigmaSecPer1000": 0.9884
     },
-    "*|芝|2000|稍": {
-      "n": 4,
-      "medianSecPer1000": 60.525,
-      "madSecPer1000": 0.175,
-      "sigmaSecPer1000": 0.259455
+    "札幌|芝|1500|稍": {
+      "n": 5,
+      "medianSecPer1000": 59.466667,
+      "madSecPer1000": 0.666667,
+      "sigmaSecPer1000": 0.9884
     },
     "札幌|芝|2000|稍": {
       "n": 3,
       "medianSecPer1000": 60.65,
       "madSecPer1000": 0.1,
       "sigmaSecPer1000": 0.2
+    },
+    "*|芝|2000|稍": {
+      "n": 4,
+      "medianSecPer1000": 60.525,
+      "madSecPer1000": 0.175,
+      "sigmaSecPer1000": 0.259455
     },
     "札幌|芝|1200|稍": {
       "n": 1,
@@ -5746,16 +5746,22 @@
       "madSecPer1000": 0.051903,
       "sigmaSecPer1000": 0.2
     },
+    "*|障害|2890|重": {
+      "n": 2,
+      "medianSecPer1000": 66.730104,
+      "madSecPer1000": 0.051903,
+      "sigmaSecPer1000": 0.2
+    },
     "*|障害|2890|*": {
       "n": 10,
       "medianSecPer1000": 66.453287,
       "madSecPer1000": 0.086505,
       "sigmaSecPer1000": 0.2
     },
-    "*|障害|2890|重": {
+    "新潟|芝|1600|稍": {
       "n": 2,
-      "medianSecPer1000": 66.730104,
-      "madSecPer1000": 0.051903,
+      "medianSecPer1000": 59.6875,
+      "madSecPer1000": 0.0625,
       "sigmaSecPer1000": 0.2
     },
     "*|芝|1600|稍": {
@@ -5770,11 +5776,11 @@
       "madSecPer1000": 0.71875,
       "sigmaSecPer1000": 1.065619
     },
-    "新潟|芝|1600|稍": {
-      "n": 2,
-      "medianSecPer1000": 59.6875,
-      "madSecPer1000": 0.0625,
-      "sigmaSecPer1000": 0.2
+    "新潟|芝|1800|*": {
+      "n": 22,
+      "medianSecPer1000": 59.75,
+      "madSecPer1000": 0.805556,
+      "sigmaSecPer1000": 1.194317
     },
     "新潟|芝|1800|稍": {
       "n": 2,
@@ -5782,23 +5788,17 @@
       "madSecPer1000": 0.111111,
       "sigmaSecPer1000": 0.2
     },
-    "新潟|芝|1800|*": {
-      "n": 22,
-      "medianSecPer1000": 59.75,
-      "madSecPer1000": 0.805556,
-      "sigmaSecPer1000": 1.194317
+    "*|芝|1000|稍": {
+      "n": 3,
+      "medianSecPer1000": 56.3,
+      "madSecPer1000": 0.7,
+      "sigmaSecPer1000": 1.03782
     },
     "新潟|芝|1000|*": {
       "n": 17,
       "medianSecPer1000": 55.8,
       "madSecPer1000": 0.8,
       "sigmaSecPer1000": 1.18608
-    },
-    "*|芝|1000|稍": {
-      "n": 3,
-      "medianSecPer1000": 56.3,
-      "madSecPer1000": 0.7,
-      "sigmaSecPer1000": 1.03782
     },
     "新潟|芝|1000|稍": {
       "n": 3,
@@ -5848,12 +5848,6 @@
       "madSecPer1000": 1.0625,
       "sigmaSecPer1000": 1.575263
     },
-    "*|障害|3290|稍": {
-      "n": 1,
-      "medianSecPer1000": 65.927052,
-      "madSecPer1000": 0.0,
-      "sigmaSecPer1000": 0.2
-    },
     "*|障害|3290|*": {
       "n": 1,
       "medianSecPer1000": 65.927052,
@@ -5861,6 +5855,12 @@
       "sigmaSecPer1000": 0.2
     },
     "新潟|障害|3290|稍": {
+      "n": 1,
+      "medianSecPer1000": 65.927052,
+      "madSecPer1000": 0.0,
+      "sigmaSecPer1000": 0.2
+    },
+    "*|障害|3290|稍": {
       "n": 1,
       "medianSecPer1000": 65.927052,
       "madSecPer1000": 0.0,
@@ -5908,13 +5908,7 @@
       "madSecPer1000": 0.833333,
       "sigmaSecPer1000": 1.2355
     },
-    "新潟|障害|2850|良": {
-      "n": 2,
-      "medianSecPer1000": 64.684211,
-      "madSecPer1000": 0.368421,
-      "sigmaSecPer1000": 0.546221
-    },
-    "*|障害|2850|*": {
+    "新潟|障害|2850|*": {
       "n": 3,
       "medianSecPer1000": 65.052632,
       "madSecPer1000": 0.736842,
@@ -5926,17 +5920,17 @@
       "madSecPer1000": 0.368421,
       "sigmaSecPer1000": 0.546221
     },
-    "新潟|障害|2850|*": {
+    "*|障害|2850|*": {
       "n": 3,
       "medianSecPer1000": 65.052632,
       "madSecPer1000": 0.736842,
       "sigmaSecPer1000": 1.092442
     },
-    "新潟|ダート|1200|不": {
-      "n": 1,
-      "medianSecPer1000": 58.916667,
-      "madSecPer1000": 0.0,
-      "sigmaSecPer1000": 0.2
+    "新潟|障害|2850|良": {
+      "n": 2,
+      "medianSecPer1000": 64.684211,
+      "madSecPer1000": 0.368421,
+      "sigmaSecPer1000": 0.546221
     },
     "*|ダート|1200|不": {
       "n": 1,
@@ -5944,13 +5938,19 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "新潟|芝|1600|不": {
+    "新潟|ダート|1200|不": {
+      "n": 1,
+      "medianSecPer1000": 58.916667,
+      "madSecPer1000": 0.0,
+      "sigmaSecPer1000": 0.2
+    },
+    "*|芝|1600|不": {
       "n": 1,
       "medianSecPer1000": 58.3125,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "*|芝|1600|不": {
+    "新潟|芝|1600|不": {
       "n": 1,
       "medianSecPer1000": 58.3125,
       "madSecPer1000": 0.0,
@@ -5968,13 +5968,13 @@
       "madSecPer1000": 0.472222,
       "sigmaSecPer1000": 0.700117
     },
-    "新潟|障害|2850|不": {
+    "*|障害|2850|不": {
       "n": 1,
       "medianSecPer1000": 66.0,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "*|障害|2850|不": {
+    "新潟|障害|2850|不": {
       "n": 1,
       "medianSecPer1000": 66.0,
       "madSecPer1000": 0.0,
@@ -6004,19 +6004,13 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "新潟|障害|3250|*": {
-      "n": 1,
-      "medianSecPer1000": 64.615385,
-      "madSecPer1000": 0.0,
-      "sigmaSecPer1000": 0.2
-    },
-    "*|障害|3250|良": {
-      "n": 1,
-      "medianSecPer1000": 64.615385,
-      "madSecPer1000": 0.0,
-      "sigmaSecPer1000": 0.2
-    },
     "新潟|障害|3250|良": {
+      "n": 1,
+      "medianSecPer1000": 64.615385,
+      "madSecPer1000": 0.0,
+      "sigmaSecPer1000": 0.2
+    },
+    "新潟|障害|3250|*": {
       "n": 1,
       "medianSecPer1000": 64.615385,
       "madSecPer1000": 0.0,
@@ -6028,11 +6022,23 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
+    "*|障害|3250|良": {
+      "n": 1,
+      "medianSecPer1000": 64.615385,
+      "madSecPer1000": 0.0,
+      "sigmaSecPer1000": 0.2
+    },
     "東京|ダート|3000|良": {
       "n": 2,
       "medianSecPer1000": 68.016667,
       "madSecPer1000": 0.483333,
       "sigmaSecPer1000": 0.71659
+    },
+    "*|ダート|3000|*": {
+      "n": 3,
+      "medianSecPer1000": 68.5,
+      "madSecPer1000": 0.6,
+      "sigmaSecPer1000": 0.88956
     },
     "東京|ダート|3000|*": {
       "n": 3,
@@ -6046,11 +6052,11 @@
       "madSecPer1000": 0.483333,
       "sigmaSecPer1000": 0.71659
     },
-    "*|ダート|3000|*": {
-      "n": 3,
-      "medianSecPer1000": 68.5,
-      "madSecPer1000": 0.6,
-      "sigmaSecPer1000": 0.88956
+    "東京|ダート|3000|稍重": {
+      "n": 1,
+      "medianSecPer1000": 69.1,
+      "madSecPer1000": 0.0,
+      "sigmaSecPer1000": 0.2
     },
     "*|ダート|3000|稍重": {
       "n": 1,
@@ -6058,11 +6064,11 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "東京|ダート|3000|稍重": {
-      "n": 1,
-      "medianSecPer1000": 69.1,
-      "madSecPer1000": 0.0,
-      "sigmaSecPer1000": 0.2
+    "中山|芝|1600|良": {
+      "n": 33,
+      "medianSecPer1000": 58.625,
+      "madSecPer1000": 0.5,
+      "sigmaSecPer1000": 0.7413
     },
     "中山|芝|1600|*": {
       "n": 37,
@@ -6070,17 +6076,11 @@
       "madSecPer1000": 0.5,
       "sigmaSecPer1000": 0.7413
     },
-    "中山|芝|1600|良": {
-      "n": 33,
-      "medianSecPer1000": 58.625,
-      "madSecPer1000": 0.5,
-      "sigmaSecPer1000": 0.7413
-    },
-    "中山|ダート|3200|良": {
-      "n": 1,
-      "medianSecPer1000": 67.53125,
-      "madSecPer1000": 0.0,
-      "sigmaSecPer1000": 0.2
+    "中山|ダート|3200|*": {
+      "n": 3,
+      "medianSecPer1000": 68.59375,
+      "madSecPer1000": 0.71875,
+      "sigmaSecPer1000": 1.065619
     },
     "*|ダート|3200|*": {
       "n": 3,
@@ -6088,13 +6088,13 @@
       "madSecPer1000": 0.71875,
       "sigmaSecPer1000": 1.065619
     },
-    "中山|ダート|3200|*": {
-      "n": 3,
-      "medianSecPer1000": 68.59375,
-      "madSecPer1000": 0.71875,
-      "sigmaSecPer1000": 1.065619
-    },
     "*|ダート|3200|良": {
+      "n": 1,
+      "medianSecPer1000": 67.53125,
+      "madSecPer1000": 0.0,
+      "sigmaSecPer1000": 0.2
+    },
+    "中山|ダート|3200|良": {
       "n": 1,
       "medianSecPer1000": 67.53125,
       "madSecPer1000": 0.0,
@@ -6112,17 +6112,23 @@
       "madSecPer1000": 0.375,
       "sigmaSecPer1000": 0.555975
     },
+    "中山|芝|2200|良": {
+      "n": 11,
+      "medianSecPer1000": 60.454545,
+      "madSecPer1000": 0.5,
+      "sigmaSecPer1000": 0.7413
+    },
     "中山|芝|2200|*": {
       "n": 13,
       "medianSecPer1000": 60.5,
       "madSecPer1000": 0.454545,
       "sigmaSecPer1000": 0.673909
     },
-    "中山|芝|2200|良": {
-      "n": 11,
-      "medianSecPer1000": 60.454545,
-      "madSecPer1000": 0.5,
-      "sigmaSecPer1000": 0.7413
+    "中山|ダート|2880|良": {
+      "n": 7,
+      "medianSecPer1000": 68.229167,
+      "madSecPer1000": 0.729167,
+      "sigmaSecPer1000": 1.081062
     },
     "中山|ダート|2880|*": {
       "n": 8,
@@ -6136,23 +6142,11 @@
       "madSecPer1000": 0.729167,
       "sigmaSecPer1000": 1.081062
     },
-    "中山|ダート|2880|良": {
-      "n": 7,
-      "medianSecPer1000": 68.229167,
-      "madSecPer1000": 0.729167,
-      "sigmaSecPer1000": 1.081062
-    },
     "*|ダート|2880|良": {
       "n": 7,
       "medianSecPer1000": 68.229167,
       "madSecPer1000": 0.729167,
       "sigmaSecPer1000": 1.081062
-    },
-    "中山|ダート|3200|重": {
-      "n": 1,
-      "medianSecPer1000": 69.3125,
-      "madSecPer1000": 0.0,
-      "sigmaSecPer1000": 0.2
     },
     "*|ダート|3200|重": {
       "n": 1,
@@ -6160,13 +6154,19 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "*|芝|2200|稍": {
+    "中山|ダート|3200|重": {
+      "n": 1,
+      "medianSecPer1000": 69.3125,
+      "madSecPer1000": 0.0,
+      "sigmaSecPer1000": 0.2
+    },
+    "中山|芝|2200|稍": {
       "n": 2,
       "medianSecPer1000": 61.295455,
       "madSecPer1000": 0.386364,
       "sigmaSecPer1000": 0.572823
     },
-    "中山|芝|2200|稍": {
+    "*|芝|2200|稍": {
       "n": 2,
       "medianSecPer1000": 61.295455,
       "madSecPer1000": 0.386364,
@@ -6178,13 +6178,13 @@
       "madSecPer1000": 0.40625,
       "sigmaSecPer1000": 0.602306
     },
-    "*|芝|3350|良": {
+    "中山|芝|3350|良": {
       "n": 1,
       "medianSecPer1000": 66.328358,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "中山|芝|3350|良": {
+    "*|芝|3350|良": {
       "n": 1,
       "medianSecPer1000": 66.328358,
       "madSecPer1000": 0.0,
@@ -6220,19 +6220,19 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "*|ダート|3200|稍重": {
-      "n": 1,
-      "medianSecPer1000": 68.59375,
-      "madSecPer1000": 0.0,
-      "sigmaSecPer1000": 0.2
-    },
     "中山|ダート|3200|稍重": {
       "n": 1,
       "medianSecPer1000": 68.59375,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "中山|芝|4260|良": {
+    "*|ダート|3200|稍重": {
+      "n": 1,
+      "medianSecPer1000": 68.59375,
+      "madSecPer1000": 0.0,
+      "sigmaSecPer1000": 0.2
+    },
+    "中山|芝|4260|*": {
       "n": 1,
       "medianSecPer1000": 68.544601,
       "madSecPer1000": 0.0,
@@ -6244,7 +6244,7 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "中山|芝|4260|*": {
+    "中山|芝|4260|良": {
       "n": 1,
       "medianSecPer1000": 68.544601,
       "madSecPer1000": 0.0,
@@ -6298,13 +6298,13 @@
       "madSecPer1000": 0.410095,
       "sigmaSecPer1000": 0.608006
     },
-    "*|ダート|3170|*": {
+    "京都|ダート|3170|良": {
       "n": 3,
       "medianSecPer1000": 68.138801,
       "madSecPer1000": 0.410095,
       "sigmaSecPer1000": 0.608006
     },
-    "京都|ダート|3170|良": {
+    "*|ダート|3170|*": {
       "n": 3,
       "medianSecPer1000": 68.138801,
       "madSecPer1000": 0.410095,
@@ -6316,13 +6316,13 @@
       "madSecPer1000": 0.410095,
       "sigmaSecPer1000": 0.608006
     },
-    "京都|ダート|2910|*": {
+    "*|ダート|2910|良": {
       "n": 2,
       "medianSecPer1000": 69.329897,
       "madSecPer1000": 0.223368,
       "sigmaSecPer1000": 0.331165
     },
-    "京都|ダート|2910|良": {
+    "京都|ダート|2910|*": {
       "n": 2,
       "medianSecPer1000": 69.329897,
       "madSecPer1000": 0.223368,
@@ -6334,7 +6334,7 @@
       "madSecPer1000": 0.223368,
       "sigmaSecPer1000": 0.331165
     },
-    "*|ダート|2910|良": {
+    "京都|ダート|2910|良": {
       "n": 2,
       "medianSecPer1000": 69.329897,
       "madSecPer1000": 0.223368,
@@ -6352,13 +6352,13 @@
       "madSecPer1000": 0.636364,
       "sigmaSecPer1000": 0.943473
     },
-    "*|芝|3200|*": {
+    "京都|芝|3200|良": {
       "n": 1,
       "medianSecPer1000": 60.5625,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "京都|芝|3200|良": {
+    "*|芝|3200|*": {
       "n": 1,
       "medianSecPer1000": 60.5625,
       "madSecPer1000": 0.0,
@@ -6376,17 +6376,17 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "阪神|芝|1600|良": {
-      "n": 24,
-      "medianSecPer1000": 58.6875,
-      "madSecPer1000": 0.53125,
-      "sigmaSecPer1000": 0.787631
-    },
     "阪神|芝|1600|*": {
       "n": 30,
       "medianSecPer1000": 58.875,
       "madSecPer1000": 0.46875,
       "sigmaSecPer1000": 0.694969
+    },
+    "阪神|芝|1600|良": {
+      "n": 24,
+      "medianSecPer1000": 58.6875,
+      "madSecPer1000": 0.53125,
+      "sigmaSecPer1000": 0.787631
     },
     "阪神|芝|2400|*": {
       "n": 13,
@@ -6400,17 +6400,17 @@
       "madSecPer1000": 0.1875,
       "sigmaSecPer1000": 0.277988
     },
-    "阪神|芝|1800|良": {
-      "n": 14,
-      "medianSecPer1000": 58.888889,
-      "madSecPer1000": 0.166667,
-      "sigmaSecPer1000": 0.2471
-    },
     "阪神|芝|1800|*": {
       "n": 17,
       "medianSecPer1000": 59.0,
       "madSecPer1000": 0.333333,
       "sigmaSecPer1000": 0.4942
+    },
+    "阪神|芝|1800|良": {
+      "n": 14,
+      "medianSecPer1000": 58.888889,
+      "madSecPer1000": 0.166667,
+      "sigmaSecPer1000": 0.2471
     },
     "*|芝|2400|稍": {
       "n": 5,
@@ -6424,13 +6424,7 @@
       "madSecPer1000": 0.166667,
       "sigmaSecPer1000": 0.2471
     },
-    "阪神|ダート|2970|*": {
-      "n": 4,
-      "medianSecPer1000": 69.057239,
-      "madSecPer1000": 0.16835,
-      "sigmaSecPer1000": 0.249596
-    },
-    "*|ダート|2970|*": {
+    "阪神|ダート|2970|良": {
       "n": 4,
       "medianSecPer1000": 69.057239,
       "madSecPer1000": 0.16835,
@@ -6442,7 +6436,13 @@
       "madSecPer1000": 0.16835,
       "sigmaSecPer1000": 0.249596
     },
-    "阪神|ダート|2970|良": {
+    "阪神|ダート|2970|*": {
+      "n": 4,
+      "medianSecPer1000": 69.057239,
+      "madSecPer1000": 0.16835,
+      "sigmaSecPer1000": 0.249596
+    },
+    "*|ダート|2970|*": {
       "n": 4,
       "medianSecPer1000": 69.057239,
       "madSecPer1000": 0.16835,
@@ -6472,25 +6472,25 @@
       "madSecPer1000": 0.055556,
       "sigmaSecPer1000": 0.2
     },
-    "阪神|ダート|3110|*": {
-      "n": 1,
-      "medianSecPer1000": 68.167203,
-      "madSecPer1000": 0.0,
-      "sigmaSecPer1000": 0.2
-    },
     "*|ダート|3110|稍重": {
       "n": 1,
       "medianSecPer1000": 68.167203,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "*|ダート|3110|*": {
+    "阪神|ダート|3110|稍重": {
       "n": 1,
       "medianSecPer1000": 68.167203,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "阪神|ダート|3110|稍重": {
+    "阪神|ダート|3110|*": {
+      "n": 1,
+      "medianSecPer1000": 68.167203,
+      "madSecPer1000": 0.0,
+      "sigmaSecPer1000": 0.2
+    },
+    "*|ダート|3110|*": {
       "n": 1,
       "medianSecPer1000": 68.167203,
       "madSecPer1000": 0.0,
@@ -6514,7 +6514,7 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "30|ダート|2600|良": {
+    "*|ダート|2600|良": {
       "n": 1,
       "medianSecPer1000": 67.692308,
       "madSecPer1000": 0.0,
@@ -6526,7 +6526,7 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "*|ダート|2600|良": {
+    "30|ダート|2600|良": {
       "n": 1,
       "medianSecPer1000": 67.692308,
       "madSecPer1000": 0.0,
@@ -6604,11 +6604,11 @@
       "madSecPer1000": 0.56962,
       "sigmaSecPer1000": 0.844519
     },
-    "47|ダート|1580|不良": {
-      "n": 1,
-      "medianSecPer1000": 68.291139,
-      "madSecPer1000": 0.0,
-      "sigmaSecPer1000": 0.2
+    "*|ダート|1580|*": {
+      "n": 13,
+      "medianSecPer1000": 67.911392,
+      "madSecPer1000": 0.56962,
+      "sigmaSecPer1000": 0.844519
     },
     "*|ダート|1580|不良": {
       "n": 1,
@@ -6616,11 +6616,11 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "*|ダート|1580|*": {
-      "n": 13,
-      "medianSecPer1000": 67.911392,
-      "madSecPer1000": 0.56962,
-      "sigmaSecPer1000": 0.844519
+    "47|ダート|1580|不良": {
+      "n": 1,
+      "medianSecPer1000": 68.291139,
+      "madSecPer1000": 0.0,
+      "sigmaSecPer1000": 0.2
     },
     "*|ダート|1580|稍重": {
       "n": 2,
@@ -6682,19 +6682,19 @@
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "*|ダート|1750|重": {
+    "55|ダート|1750|重": {
       "n": 1,
       "medianSecPer1000": 66.971429,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     },
-    "55|ダート|1750|重": {
+    "*|ダート|1750|重": {
       "n": 1,
       "medianSecPer1000": 66.971429,
       "madSecPer1000": 0.0,
       "sigmaSecPer1000": 0.2
     }
   },
-  "generatedAt": "2026-08-24T17:26:00+09:00",
+  "generatedAt": "2026-08-25T15:50:02+09:00",
   "throughDate": "2026-08-23"
 }

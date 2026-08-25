@@ -1,9 +1,9 @@
 {
   "cacheVersion": "predictjra-historical-facts-v8-jra-official-executed",
-  "generatedAt": "2026-08-24T10:55:27+09:00",
+  "generatedAt": "2026-08-25T15:14:17+09:00",
   "sourceRepository": "sugaimo15/keibayosoku",
   "sourceRef": "claude/horse-racing-predictor-ak6crm",
-  "sourceCommit": "e231b0b3003be3b2f89a07b8c9ffcac78d0358d1",
+  "sourceCommit": "4ef9eb6aab6175bdabfd02d862b3cf7e21a7dcce",
   "availableDates": [
     "2026-01-04",
     "2026-01-05",
@@ -11680,13 +11680,13 @@
     }
   ],
   "targetHorseCount": 9397,
-  "historicalResultFiles": 14222,
-  "cachedFileCount": 21116,
+  "historicalResultFiles": 14244,
+  "cachedFileCount": 21138,
   "archive": {
     "path": "history-source.tar.gz",
     "parts": [],
-    "sizeBytes": 13099564,
-    "sha256": "5b6eb5c1564df8db812f5ddc8eda0fd1056d57c638f92a04edf0dd493214665c"
+    "sizeBytes": 13111322,
+    "sha256": "38e6c227b952bc8e028e54858876835d77110df88f37d370d6bba0e0af510cb2"
   },
   "policy": {
     "raceEnumeration": "use exact race IDs from SportsNavi SSR meeting lists, cross-check with netkeiba static date lists, and never synthesize nonexistent 1R..12R slots",

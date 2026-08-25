@@ -1,6 +1,6 @@
 {
   "version": "predictjra-history-v55-win-return-debut-result-only",
-  "generatedAt": "2026-08-24T17:26:00+09:00",
+  "generatedAt": "2026-08-25T15:50:02+09:00",
   "targetDates": [
     "2026-01-04",
     "2026-01-05",
@@ -923,12 +923,12 @@
   ],
   "sourceRepository": "sugaimo15/keibayosoku",
   "sourceRef": "claude/horse-racing-predictor-ak6crm",
-  "sourceCommit": "e231b0b3003be3b2f89a07b8c9ffcac78d0358d1",
+  "sourceCommit": "4ef9eb6aab6175bdabfd02d862b3cf7e21a7dcce",
   "historicalFactsCache": {
     "enabled": true,
     "cacheVersion": "predictjra-historical-facts-v8-jra-official-executed",
-    "generatedAt": "2026-08-24T10:55:27+09:00",
-    "archiveSha256": "5b6eb5c1564df8db812f5ddc8eda0fd1056d57c638f92a04edf0dd493214665c",
+    "generatedAt": "2026-08-25T15:14:17+09:00",
+    "archiveSha256": "38e6c227b952bc8e028e54858876835d77110df88f37d370d6bba0e0af510cb2",
     "cachedSafeDates": [
       "2026-01-04",
       "2026-01-05",
@@ -1001,8 +1001,8 @@
       "2026-08-22",
       "2026-08-23"
     ],
-    "cachedFileCount": 21116,
-    "historicalResultFiles": 14222
+    "cachedFileCount": 21138,
+    "historicalResultFiles": 14244
   },
   "sharedPredictionLogic": {
     "modelVersion": "predictjra-live-index-v3-run-flow-power-v54-prior-odds-top3",
