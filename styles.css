@@ -272,11 +272,20 @@ body {
 }
 .overall-card .day-top { border-bottom: 0; }
 
-/* v62 result-role symbols: ◎ = main, ○ = second, circled × = danger. */
+/* v63 result-role symbols: exact-square horse boxes and smooth vector-like badges. */
 .horse-box.result-role-main,
 .horse-box.result-role-second,
 .horse-box.result-role-danger {
   position: relative;
+  flex: 0 0 27px;
+  width: 27px;
+  min-width: 27px;
+  max-width: 27px;
+  height: 27px;
+  min-height: 27px;
+  max-height: 27px;
+  padding: 0;
+  aspect-ratio: 1 / 1;
 }
 .horse-box.result-role-main::after,
 .horse-box.result-role-second::after,
@@ -301,27 +310,39 @@ body {
 .horse-box.result-role-danger::after {
   color: #6f42c1;
 }
-/* ◎: same 14px outer circle plus a centered inner circle. */
-.horse-box.result-role-main::after {
-  background-image: radial-gradient(
-    circle at center,
-    transparent 0 2.5px,
-    currentColor 2.5px 3.7px,
-    transparent 3.7px
-  );
+/* ◎: draw the inner ring as a true circle instead of a radial-gradient. */
+.horse-box.result-role-main::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  right: 1px;
+  z-index: 3;
+  width: 6px;
+  height: 6px;
+  border: 1.2px solid var(--hit);
+  border-radius: 50%;
+  background: transparent;
+  pointer-events: none;
 }
-/* ○: the shared outer circle itself is the symbol. */
-.horse-box.result-role-second::after {
-  background-image: none;
+/* ○: the shared 14px outer circle itself is the symbol. */
+.horse-box.result-role-second::before {
+  content: none;
 }
-/* Circled ×: same 14px outer circle plus a centered cross. */
-.horse-box.result-role-danger::after {
+/* Circled ×: draw only the centered cross inside the shared outer circle. */
+.horse-box.result-role-danger::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  right: 1px;
+  z-index: 3;
+  width: 6px;
+  height: 6px;
   background-image:
-    linear-gradient(45deg, transparent 44%, currentColor 45% 55%, transparent 56%),
-    linear-gradient(-45deg, transparent 44%, currentColor 45% 55%, transparent 56%);
-  background-size: 8px 8px;
+    linear-gradient(45deg, transparent 42%, #6f42c1 43% 57%, transparent 58%),
+    linear-gradient(-45deg, transparent 42%, #6f42c1 43% 57%, transparent 58%);
   background-position: center;
   background-repeat: no-repeat;
+  pointer-events: none;
 }
 .empty { padding: 50px 20px; text-align: center; color: var(--muted); background: #fff; border: 1px solid var(--line); border-radius: 14px; font-size: 15px; }
 .loading { padding: 40px; text-align: center; color: var(--muted); font-size: 15px; }

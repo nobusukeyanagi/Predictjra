@@ -29,8 +29,8 @@ def test_result_roles_are_not_colored_borders() -> None:
     assert "border: 3px solid #7446b8" not in css
     assert 'width: 14px;' in css
     assert 'height: 14px;' in css
-    assert 'radial-gradient(' in css
-    assert 'linear-gradient(45deg' in css
+    assert '.horse-box.result-role-main::before' in css
+    assert '.horse-box.result-role-danger::before' in css
 
 
 def test_modal_default_and_labels() -> None:

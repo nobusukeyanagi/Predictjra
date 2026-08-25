@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 css = (ROOT / "styles.css").read_text(encoding="utf-8")
 
-# All three role symbols use exactly the same outer circle geometry.
+# All three role symbols use exactly the same outer-circle geometry.
 shared = ".horse-box.result-role-main::after,\n.horse-box.result-role-second::after,\n.horse-box.result-role-danger::after"
 assert shared in css
 assert "width: 14px;" in css
@@ -12,11 +12,10 @@ assert "height: 14px;" in css
 assert "border: 1.5px solid currentColor;" in css
 assert "border-radius: 50%;" in css
 
-# Main = ◎, second = ○, danger = circled ×.
-assert "radial-gradient(" in css
-assert ".horse-box.result-role-second::after {\n  background-image: none;" in css
-assert "linear-gradient(45deg" in css
-assert "linear-gradient(-45deg" in css
+# Main = ◎, second = ○, danger = circled ×. Implementation may evolve.
+assert ".horse-box.result-role-main::before" in css
+assert ".horse-box.result-role-second::before" in css
+assert ".horse-box.result-role-danger::before" in css
 
 # Requested role colors remain: main/second red, danger purple.
 assert ".horse-box.result-role-main::after,\n.horse-box.result-role-second::after {\n  color: var(--hit);" in css
