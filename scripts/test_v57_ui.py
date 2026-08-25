@@ -27,8 +27,10 @@ def test_result_roles_are_not_colored_borders() -> None:
     assert "border: 3px solid #b3261e" not in css
     assert "border: 3px solid #16824b" not in css
     assert "border: 3px solid #7446b8" not in css
-    for marker in ('content: "本";', 'content: "対";', 'content: "危";'):
-        assert marker in css
+    assert 'width: 14px;' in css
+    assert 'height: 14px;' in css
+    assert 'radial-gradient(' in css
+    assert 'linear-gradient(45deg' in css
 
 
 def test_modal_default_and_labels() -> None:
