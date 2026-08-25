@@ -525,6 +525,14 @@ function payoutAmountMarkup(items, rateText = '') {
   return `<span class="payout-amount payout-line">${amounts[0]}</span><span class="payout-amount payout-line">${second}${rateText ? `<span class="payout-rate payout-rate-inline">${rateText}</span>` : ''}</span>`;
 }
 
+function winPayoutMarkup(items) {
+  const rows = Array.isArray(items) ? items : [];
+  if (rows.length <= 1) return payoutAmountMarkup(rows);
+  return `<div class="win-payout-stack">${rows.map(item =>
+    `<div class="win-payout-row"><span class="payout-amount">${yen(Number(item?.payout || 0))}</span></div>`
+  ).join('')}</div>`;
+}
+
 function trifectaPayoutMarkup(items, rateText = '') {
   const rows = Array.isArray(items) ? items : [];
   if (rows.length <= 1) return payoutAmountMarkup(rows, rateText);
@@ -577,14 +585,16 @@ function renderDay(day, initiallyExpanded = true) {
       ? (Number(r.payout || 0) / Number(r.stake || STAKE_PER_RACE) * 100)
       : null;
     const rowClassBase = anyHit ? 'hit-row' : (debut ? 'debut-row' : (settled ? 'miss-row' : ''));
-    const singleMarkup = payoutAmountMarkup(r?.result?.winPayouts || []);
+    const winItems = r?.result?.winPayouts || [];
+    const singleMarkup = winPayoutMarkup(winItems);
     const trifectaItems = r?.result?.trifectas || [];
     const triMarkup = trifectaPayoutMarkup(
       trifectaItems,
       triHit && triRate != null ? percent(triRate) : ''
     );
+    const multiWin = Array.isArray(winItems) && winItems.length > 1;
     const multiTrifecta = Array.isArray(trifectaItems) && trifectaItems.length > 1;
-    const rowClass = `${rowClassBase}${multiTrifecta ? ' multi-trifecta-row' : ''}`.trim();
+    const rowClass = `${rowClassBase}${multiWin || multiTrifecta ? ' multi-payout-row' : ''}${multiTrifecta ? ' multi-trifecta-row' : ''}`.trim();
     const mainCell = debut ? '<span class="no-prediction-dash">—</span>' : predictionBoxes(prediction.axes?.slice(0,1) || [], r);
     const secondCell = debut ? '<span class="no-prediction-dash">—</span>' : predictionBoxes(prediction.axes?.slice(1,2) || [], r);
     const opponentCell = debut ? '<span class="no-prediction-label">予想対象外</span>' : predictionBoxes(prediction.opponents || [], r);

@@ -1154,3 +1154,87 @@ body.logic-modal-open { overflow: hidden; }
 }
 .race-table th:nth-child(5), .race-table td:nth-child(5) { width: 156px !important; min-width: 156px !important; max-width: 156px !important; }
 .race-table th:nth-child(8), .race-table td:nth-child(8) { width: 126px !important; min-width: 126px !important; max-width: 126px !important; }
+
+/* v66: every horse-number box uses one immutable square size; all day tables share one padding/column contract. */
+.horse-box,
+.index-horse-box,
+.horse-box.result-role-main,
+.horse-box.result-role-second,
+.horse-box.result-role-danger {
+  box-sizing: border-box;
+  flex: 0 0 27px !important;
+  width: 27px !important;
+  min-width: 27px !important;
+  max-width: 27px !important;
+  height: 27px !important;
+  min-height: 27px !important;
+  max-height: 27px !important;
+  padding: 0 !important;
+  aspect-ratio: 1 / 1;
+}
+.index-horse-box {
+  border-radius: 6px;
+  font-size: 15px;
+}
+
+/* Same horizontal padding in every race-table column, header and body. */
+.race-table th,
+.race-table td,
+.race-table .money,
+.race-table .rate {
+  box-sizing: border-box;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+
+/* Five opponent boxes need 5*27 + 4*2 = 143px before the common 20px cell padding. */
+.race-table {
+  width: 790px !important;
+  min-width: 790px !important;
+  max-width: 790px !important;
+  table-layout: fixed !important;
+}
+.race-table th:nth-child(1), .race-table td:nth-child(1) { width: 76px !important; min-width: 76px !important; max-width: 76px !important; }
+.race-table th:nth-child(2), .race-table td:nth-child(2) { width: 54px !important; min-width: 54px !important; max-width: 54px !important; }
+.race-table th:nth-child(3), .race-table td:nth-child(3) { width: 54px !important; min-width: 54px !important; max-width: 54px !important; }
+.race-table th:nth-child(4), .race-table td:nth-child(4) { width: 168px !important; min-width: 168px !important; max-width: 168px !important; }
+.race-table th:nth-child(5), .race-table td:nth-child(5) { width: 156px !important; min-width: 156px !important; max-width: 156px !important; }
+.race-table th:nth-child(6), .race-table td:nth-child(6) { width: 66px !important; min-width: 66px !important; max-width: 66px !important; }
+.race-table th:nth-child(7), .race-table td:nth-child(7) { width: 90px !important; min-width: 90px !important; max-width: 90px !important; }
+.race-table th:nth-child(8), .race-table td:nth-child(8) { width: 126px !important; min-width: 126px !important; max-width: 126px !important; }
+
+/* Dead-heat win payouts use the same 27px row rhythm as result horse boxes and trifecta payouts. */
+.win-payout-stack,
+.trifecta-result-stack,
+.trifecta-payout-stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+}
+.win-payout-row,
+.trifecta-result-line,
+.trifecta-payout-row {
+  min-height: 27px;
+  height: 27px;
+  box-sizing: border-box;
+  align-items: center;
+}
+.win-payout-row {
+  display: flex;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+.win-payout-row .payout-amount {
+  display: inline-block;
+  line-height: 27px;
+}
+.race-table tbody tr.multi-payout-row td {
+  height: auto;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  vertical-align: middle;
+}
+.race-table tbody tr.multi-payout-row .payout-cell {
+  height: auto !important;
+}
