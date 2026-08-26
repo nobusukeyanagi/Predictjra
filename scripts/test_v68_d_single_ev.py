@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from prediction_logic_candidate import MODEL_VERSION, SELECTION_RULE_TEXT, select_prediction
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> int:
@@ -28,6 +31,18 @@ def main() -> int:
     assert horses[3]["singleEV"] > horses[0]["singleEV"]
     # All-race purchase requirement: a main is always emitted whenever prediction is valid.
     assert len(prediction["axes"]) == 2 and prediction["axes"][0] in totals
+
+    # UI contract: the new index must remain visible as the rightmost modal column.
+    app = (ROOT / "app.js").read_text(encoding="utf-8")
+    assert "singleEV" in app
+    assert ">単EV</th>" in app
+    single_ev_pos = app.find(">単EV</th>")
+    modal_head_start = app.rfind("<thead>", 0, single_ev_pos)
+    modal_head_end = app.find("</thead>", single_ev_pos)
+    assert modal_head_start >= 0 and modal_head_end > single_ev_pos
+    header = app[modal_head_start:modal_head_end]
+    assert header.rfind(">単EV</th>") > header.rfind(">今回</th>")
+
     print("v68 D-plan singleEV selection contract: OK")
     return 0
 

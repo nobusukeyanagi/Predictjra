@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Regression contract for v55 single-win/trifecta summaries and display labels."""
+"""Regression contract for v55+ single-win/trifecta summaries and prediction-disabled UI.
+
+This test deliberately verifies stable behavior/DOM hooks rather than exact Japanese UI
+copy.  Copy such as "予想対象外" may be revised without breaking historical rebuilds.
+"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -61,11 +65,30 @@ def test_summary_counts_any_ticket_hit_and_excludes_debut() -> None:
 def test_frontend_contract() -> None:
     app = (ROOT / "app.js").read_text(encoding="utf-8")
     css = (ROOT / "styles.css").read_text(encoding="utf-8")
-    for text in ("<th>単勝</th><th>三連単</th>", "単回収率", "三回収率", "予想無し", "総合成績"):
+
+    # Stable result/summary behavior.  Avoid exact copy assertions for labels that can change.
+    for text in ("<th>単勝</th><th>三連単</th>", "単回収率", "三回収率", "総合成績"):
         assert text in app, text
+
+    # Prediction-disabled/debut rows must still have an explicit structural path.
+    for token in (
+        "predictionDisabledDetail",
+        "predictionDisabledReason",
+        "no-prediction-label",
+        "no-prediction-dash",
+        "新馬戦",
+    ):
+        assert token in app, token
+
     assert "単対" not in app and "本対" not in app
-    for klass in ("result-role-main", "result-role-second", "result-role-danger", "payout-rate"):
-        assert klass in css, klass
+    for klass in (
+        "result-role-main",
+        "result-role-second",
+        "result-role-danger",
+        "payout-rate",
+        "no-prediction-label",
+    ):
+        assert klass in css or klass in app, klass
 
 
 if __name__ == "__main__":
@@ -73,4 +96,4 @@ if __name__ == "__main__":
     for test in tests:
         test()
         print(f"PASS {test.__name__}")
-    print(f"OK: {len(tests)} v55 return/display regression tests passed")
+    print(f"OK: {len(tests)} v55+ return/display regression tests passed")

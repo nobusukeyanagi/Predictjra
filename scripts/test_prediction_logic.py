@@ -192,7 +192,19 @@ def main() -> None:
     assert SELECTION_RULE_TEXT in live_text or "SELECTION_RULE_TEXT" in live_text
     assert SELECTION_RULE_TEXT in rebuild_text or "SELECTION_RULE_TEXT" in rebuild_text
 
-    print("Predictjra v3 candidate 走・展・力 + isolation tests: OK")
+    # v68 UI contract lives in the always-run candidate test so workflow edits cannot
+    # accidentally stop checking the D-plan modal column.  Verify structure, not copy.
+    app_text = (scripts.parent / "app.js").read_text(encoding="utf-8")
+    assert "singleEV" in app_text
+    assert ">単EV</th>" in app_text
+    single_ev_pos = app_text.find(">単EV</th>")
+    modal_head_start = app_text.rfind("<thead>", 0, single_ev_pos)
+    modal_head_end = app_text.find("</thead>", single_ev_pos)
+    assert modal_head_start >= 0 and modal_head_end > single_ev_pos
+    modal_header = app_text[modal_head_start:modal_head_end]
+    assert modal_header.rfind(">単EV</th>") > modal_header.rfind(">今回</th>")
+
+    print("Predictjra v3 candidate 走・展・力 + isolation + v68 D-plan UI tests: OK")
 
 
 if __name__ == "__main__":
