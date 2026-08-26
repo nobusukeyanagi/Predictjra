@@ -9,6 +9,8 @@ from prediction_logic_candidate import (
     MODEL_VERSION,
     PER_RUN_WEIGHTS,
     RECENCY_WEIGHTS,
+    RECENT_TOTAL_WEIGHT,
+    CURRENT_TOTAL_WEIGHT,
     SELECTION_RULE_TEXT,
     build_index_core,
     build_market_profile,
@@ -53,8 +55,12 @@ def sample_run(
 
 def main() -> None:
     assert "v3-run-flow-power" in MODEL_VERSION
-    assert PER_RUN_WEIGHTS == {"run": 0.40, "flow": 0.25, "power": 0.35}
-    assert RECENCY_WEIGHTS == [0.35, 0.25, 0.18, 0.13, 0.09]
+    assert PER_RUN_WEIGHTS == {"run": 0.35, "flow": 0.33, "power": 0.32}
+    assert RECENCY_WEIGHTS == [0.36, 0.25, 0.18, 0.12, 0.09]
+    assert RECENT_TOTAL_WEIGHT == 0.40
+    assert CURRENT_TOTAL_WEIGHT == 0.60
+    assert abs(sum(PER_RUN_WEIGHTS.values()) - 1.0) < 1e-12
+    assert abs(sum(RECENCY_WEIGHTS) - 1.0) < 1e-12
     assert prediction_target_count(5) == 3
     assert prediction_target_count(6) == 3
     assert prediction_target_count(13) == 7
@@ -158,7 +164,10 @@ def main() -> None:
     prediction, danger, target = select_prediction(horses, totals, expected)
     assert danger == 3
     assert target == 4
-    assert prediction == {"axes": [1, 6], "opponents": [4, 5], "excluded": [3]}
+    assert prediction == {"axes": [4, 6], "opponents": [1, 5], "excluded": [3]}
+    assert all(isinstance(h.get("singleEV"), int) and 0 <= h["singleEV"] <= 99 for h in horses)
+    assert next(h for h in horses if h["no"] == 4)["singleEV"] > next(h for h in horses if h["no"] == 1)["singleEV"]
+    assert "singleEV" in SELECTION_RULE_TEXT
 
     scripts = Path(__file__).resolve().parent
     live_text = (scripts / "predict_engine.py").read_text(encoding="utf-8")

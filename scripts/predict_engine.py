@@ -12,8 +12,8 @@ Rules fixed for future races:
 - 総合: 近走 60% + 今回 40%.
 - 危険: lowest 総合 among estimated-popularity ranks 1-3.
 - Selection: exclude danger, then top min(ceil(field/2), 7) by 総合.
-- 本命: selected top 総合.
-- 対抗: selected horse with the lowest estimated popularity (largest rank number).
+- 本命: highest 単EV among ability-safe selected horses (all predicted races get one main).
+- 対抗: selected horse with the lowest estimated popularity (largest rank number), excluding 本命.
 - 相手: remaining selected horses.
 
 The rich card source is netkeiba's 5-run racecard. Direct HTTP is tried first,
@@ -659,8 +659,8 @@ def build_prediction(card: dict) -> dict:
             "indexDetail": index_detail,
             "performanceSource": (
                 "netkeiba pre-race 5-run card; per-run 走/展/力 0-100; "
-                "走=median/MAD standard-clock normalization; near=35/25/18/13/9; "
-                "total=近走55%+今回45%"
+                "走=median/MAD standard-clock normalization; near=36/25/18/12/9; "
+                "current=時35%+展33%+実32%; total=近走40%+今回60%"
                 if "v3-run-flow-power" in MODEL_VERSION
                 else "netkeiba pre-race 5-run card; legacy per-run 展開/タイム/成績; "
                      "近走60% + 今回40%; 今回=展開50%+コース50%"

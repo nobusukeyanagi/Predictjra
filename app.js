@@ -107,6 +107,67 @@ function predictionTargetCountForIndex(horseCount) {
   return Math.min(Math.ceil(Number(horseCount || 0) / 2), 7);
 }
 
+function recentCompositeValuesForSingleEv(horse) {
+  return (horse.recent || []).map(raw => {
+    const parts = String(raw || '').split('/').map(Number);
+    if (parts.length !== 3 || parts.some(v => !Number.isFinite(v))) return null;
+    return parts[0] * 0.35 + parts[1] * 0.33 + parts[2] * 0.32;
+  }).filter(Number.isFinite);
+}
+
+function singleWinStabilityForIndex(horse) {
+  const values = recentCompositeValuesForSingleEv(horse);
+  if (values.length < 2) return 0.50;
+  const avg = values.reduce((sum, value) => sum + value, 0) / values.length;
+  const variance = values.reduce((sum, value) => sum + (value - avg) ** 2, 0) / values.length;
+  return Math.max(0, Math.min(1, 1 - Math.sqrt(variance) / 28));
+}
+
+function attachSingleEvScoresForIndex(detail) {
+  const horses = detail.horses || [];
+  if (!horses.length) return;
+
+  const ability = new Map();
+  const condition = new Map();
+  const stability = new Map();
+  horses.forEach(horse => {
+    const total = Number(horse.total ?? 50);
+    const recent = Number(horse.recentIndex ?? total);
+    const today = Number(horse.today ?? total);
+    const currentRun = Number(horse.currentRun ?? today);
+    const currentFlow = Number(horse.currentFlow ?? horse.pace ?? today);
+    const currentPower = Number(horse.currentPower ?? horse.course ?? today);
+    ability.set(horse.no,
+      0.44 * total + 0.18 * recent + 0.16 * today
+      + 0.09 * currentRun + 0.06 * currentFlow + 0.07 * currentPower
+    );
+    condition.set(horse.no, Math.max(0, Math.min(1,
+      (0.40 * currentRun + 0.30 * currentFlow + 0.30 * currentPower) / 100
+    )));
+    stability.set(horse.no, singleWinStabilityForIndex(horse));
+  });
+
+  const bestAbility = Math.max(...ability.values());
+  const abilityWeights = horses.map(horse => Math.exp((ability.get(horse.no) - bestAbility) / 8));
+  const abilitySum = abilityWeights.reduce((sum, value) => sum + value, 0) || 1;
+  const marketWeights = horses.map(horse => {
+    const rank = Math.max(1, Number(horse.expectedPopularity || horses.length));
+    return 1 / ((rank + 0.35) ** 1.05);
+  });
+  const marketSum = marketWeights.reduce((sum, value) => sum + value, 0) || 1;
+
+  horses.forEach((horse, index) => {
+    const winProb = abilityWeights[index] / abilitySum;
+    const marketProb = Math.max(marketWeights[index] / marketSum, 1e-9);
+    const raw = (winProb / marketProb)
+      * (0.82 + 0.36 * stability.get(horse.no))
+      * (0.90 + 0.20 * condition.get(horse.no));
+    horse.singleEVRaw = raw;
+    horse.singleWinProb = winProb;
+    horse.singleEV = Math.max(0, Math.min(99, Math.round(50 + 28 * Math.log(Math.max(raw, 1e-9)))));
+  });
+}
+
 function buildPredictionFromIndex(detail) {
   const targetCount = predictionTargetCountForIndex(detail.horseCount);
 
@@ -130,7 +191,22 @@ function buildPredictionFromIndex(detail) {
     )
     .slice(0, targetCount);
 
-  const main = selected[0];
+  attachSingleEvScoresForIndex(detail);
+
+  const bestTotal = Math.max(...selected.map(h => Number(h.total || 0)));
+  const gapLimit = detail.horseCount <= 8 ? 9 : detail.horseCount <= 12 ? 8 : 7;
+  const bestWinProb = Math.max(...selected.map(h => Number(h.singleWinProb || 0)));
+  const safeMainCandidates = selected.filter(h =>
+    Number(h.total || 0) >= bestTotal - gapLimit
+    && Number(h.singleWinProb || 0) >= bestWinProb * 0.50
+  );
+  const main = [...(safeMainCandidates.length ? safeMainCandidates : [selected[0]])]
+    .sort((a, b) =>
+      Number(b.singleEVRaw || 0) - Number(a.singleEVRaw || 0) ||
+      Number(b.total || 0) - Number(a.total || 0) ||
+      Number(b.recentIndex || 0) - Number(a.recentIndex || 0) ||
+      Number(a.no || 0) - Number(b.no || 0)
+    )[0];
 
   const second = [...selected]
     .filter(h => h.no !== main?.no)
@@ -233,7 +309,7 @@ const INDEX_LOGIC_V2_HTML = `
 const INDEX_LOGIC_V3_HTML = `
   <section class="index-logic-item">
     <h3>基本</h3>
-    <p>能力評価はすべて0〜100点です。近5走は各レースを「時・展・実」で評価し、1走評価＝時40％＋展25％＋実35％。近走総合＝前走35％＋2走前25％＋3走前18％＋4走前13％＋5走前9％（不足時は取得できた走だけで再正規化）。今走の時・展・実から今回＝時40％＋展25％＋実35％。最終の総合指数＝近走55％＋今回45％です。表示は2桁に統一し、100点は便宜上99、1桁は0を付けて表示します。順位判定には丸め前の内部値を使います。</p>
+    <p>能力評価はすべて0〜100点です。近5走は各レースを「時・展・実」で評価し、1走評価＝時35％＋展33％＋実32％。近走総合＝前走36％＋2走前25％＋3走前18％＋4走前12％＋5走前9％（不足時は取得できた走だけで再正規化）。今走の時・展・実から今回＝時35％＋展33％＋実32％。最終の総合指数＝近走40％＋今回60％です。表示は2桁に統一し、100点は便宜上99、1桁は0を付けて表示します。順位判定には丸め前の内部値を使います。</p>
   </section>
   <section class="index-logic-item">
     <h3>近走「時」</h3>
@@ -260,8 +336,12 @@ const INDEX_LOGIC_V3_HTML = `
     <p>基礎評価は過去5走の「実」を35・25・18・13・9％で集約します。コース実績は、①同競馬場＋同芝/ダート/障害＋今回距離±100m、②同競馬場＋同芝/ダート/障害、③同芝/ダート/障害＋今回距離±200mの順に探し、その条件での1走総合評価を直近重視で集約します。該当実績がなければ基礎評価をそのまま使います。今回実＝基礎評価75％＋コース実績25％です。</p>
   </section>
   <section class="index-logic-item">
+    <h3>単EV</h3>
+    <p>全予想対象レースで本命の単勝を100円購入する前提の本命選定用指数です。当日オッズは使わず、総合・近走・今回の時/展/実からレース内の勝率を推定し、想人から作った市場支持率の代理値と比較します。さらに近5走の評価ブレが小さい馬を安定性として加点し、今回の時・展・実による条件適合度を補正します。50前後を市場評価相当の目安とする相対指数で、実際の回収率や配当予測そのものではありません。</p>
+  </section>
+  <section class="index-logic-item">
     <h3>想人・予想選定</h3>
-    <p>想人は当日オッズ・当日実人気・馬体重/増減を使わず、過去人気・近走評価・騎手/調教師など事前情報から市場人気を推定します。想定1〜3番人気のうち総合指数が最も低い1頭を危険馬として除外し、残りから出走頭数の半数切り上げ・最大7頭を総合指数順に選定。本命は総合指数1位、対抗は選定馬のうち想定人気が最も低い馬、残りを相手とします。</p>
+    <p>想人は当日オッズ・当日実人気・馬体重/増減を使わず、過去人気・近走評価・騎手/調教師など事前情報から市場人気を推定します。想定1〜3番人気のうち総合指数が最も低い1頭を危険馬として除外し、残りから出走頭数の半数切り上げ・最大7頭を総合指数順に選定します。本命はその選定馬のうち、総合上位から大きく離れない安全条件を満たした馬について単EV最大を採用します。対抗は本命以外の選定馬のうち想定人気が最も低い馬、残りを相手とします。単勝は見送りを設けず、全予想対象レースで本命を1頭選びます。</p>
   </section>`;
 
 function raceDetail(race) {
@@ -289,7 +369,7 @@ function predictionDisabledDetail(race) {
     horses: numbers.map(no => ({
       no,
       name: String(names[String(no)] ?? names[no] ?? `馬番${no}`),
-      expectedPopularity: 0, total: 0, rank: 0, recentIndex: 0, today: 0,
+      expectedPopularity: 0, total: 0, rank: 0, recentIndex: 0, today: 0, singleEV: 0,
       recent: ['00/00/00','00/00/00','00/00/00','00/00/00','00/00/00'],
       todayParts: '00/00/00', pace: 0, course: 0, excluded: false
     }))
@@ -323,6 +403,9 @@ function syncRaceDetailFromData(race, dayDate) {
     if (Number.isFinite(rank) && rank > 0) horse.expectedPopularity = rank;
     horse.excluded = danger.has(Number(horse.no));
   });
+  if (detail.horses.some(horse => !Number.isFinite(Number(horse.singleEV)))) {
+    attachSingleEvScoresForIndex(detail);
+  }
 
   if (race?.prediction) {
     detail.prediction = {
@@ -709,6 +792,7 @@ function indexHorseRow(horse, detail) {
       <td class="index-strong index-recent-total" data-sort-value="${horse.recentIndex}">${score2(horse.recentIndex)}</td>
       <td data-sort-value="${horse.today}">${todayIndexMarkup(horse)}</td>
       <td class="index-strong index-today" data-sort-value="${horse.today}">${score2(horse.today)}</td>
+      <td class="index-strong index-single-ev" data-sort-value="${Number(horse.singleEV || 0)}">${score2(horse.singleEV)}</td>
     </tr>`;
 }
 
@@ -794,7 +878,7 @@ function renderIndexDetail(detail, raceId) {
           <table class="index-table">
             <thead>
               <tr>
-                <th class="index-sortable" tabindex="0" role="button" aria-sort="none">評価</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">馬番</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">馬名</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">想人</th><th class="index-sortable" tabindex="0" role="button" aria-sort="descending" data-sort-direction="desc" data-initial-sort="desc">総合</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">順位</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">前走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">2走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">3走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">4走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">5走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">近走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">今走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">今回</th>
+                <th class="index-sortable" tabindex="0" role="button" aria-sort="none">評価</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">馬番</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">馬名</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">想人</th><th class="index-sortable" tabindex="0" role="button" aria-sort="descending" data-sort-direction="desc" data-initial-sort="desc">総合</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none">順位</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">前走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">2走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">3走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">4走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">5走前</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">近走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">今走</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">今回</th><th class="index-sortable" tabindex="0" role="button" aria-sort="none" data-initial-sort="desc">単EV</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>

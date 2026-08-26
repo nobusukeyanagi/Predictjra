@@ -68,7 +68,7 @@ TRACK_ORDER = {name: i for i, name in enumerate(TRACKS.values(), start=1)}
 # prediction score override is allowed; all races use prediction_logic_candidate.py.
 SAPPORO11_ID = "202601010811"
 
-REBUILD_VERSION = "predictjra-history-v55-win-return-debut-result-only"
+REBUILD_VERSION = "predictjra-history-v68-d-single-ev"
 SOURCE_REPO = "sugaimo15/keibayosoku"
 SOURCE_REF = "claude/horse-racing-predictor-ak6crm"
 
@@ -1598,8 +1598,8 @@ def main() -> int:
                     "indexDetail": index_detail,
                     "performanceSource": (
                         "pre-race historical reconstruction; per-run 走/展/力 0-100; "
-                        "走=target-date-prior median/MAD standard clock; 近走=35/25/18/13/9; "
-                        "今回=走40/展25/力35; 総合=近走55/今回45"
+                        "時=target-date-prior median/MAD standard clock; 近走=36/25/18/12/9; "
+                        "今回=時35/展33/実32; 総合=近走40/今回60"
                     ),
                     "popularityMethod": "market-memory v5 temporal-context expanding-window model",
                     "selectionRule": SELECTION_RULE_TEXT,

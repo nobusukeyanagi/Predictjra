@@ -14,7 +14,7 @@ import math
 from statistics import mean
 from typing import Iterable
 
-MODEL_VERSION = "predictjra-live-index-v3-run-flow-power-v54-prior-odds-top3"
+MODEL_VERSION = "predictjra-live-index-v3-run-flow-power-v68-d-single-ev"
 POPULARITY_MODEL_VERSION = "predictjra-popularity-v54-hgb-prior-odds"
 
 # Stable, machine-readable policy shared by live/rebuild/tests.
@@ -70,14 +70,16 @@ FEATURE_COLS = [
 SELECTION_RULE_TEXT = (
     "danger=lowest total among estimated-popularity top3; "
     "exclude danger; select top min(ceil(field/2),7) total; "
-    "main=top total; second=lowest estimated popularity among selected"
+    "main=highest singleEV among ability-safe selected horses; "
+    "singleEV=model win-probability / estimated-market-probability with current-condition and stability adjustment; "
+    "second=lowest estimated popularity among selected excluding main"
 )
 
 # Public scoring contract. These exact weights are also documented in the ! logic modal.
-PER_RUN_WEIGHTS = {"run": 0.40, "flow": 0.25, "power": 0.35}
-RECENCY_WEIGHTS = [0.35, 0.25, 0.18, 0.13, 0.09]
-RECENT_TOTAL_WEIGHT = 0.55
-CURRENT_TOTAL_WEIGHT = 0.45
+PER_RUN_WEIGHTS = {"run": 0.35, "flow": 0.33, "power": 0.32}
+RECENCY_WEIGHTS = [0.36, 0.25, 0.18, 0.12, 0.09]
+RECENT_TOTAL_WEIGHT = 0.40
+CURRENT_TOTAL_WEIGHT = 0.60
 CLASS_SCORES = {0: 45.0, 1: 55.0, 2: 64.0, 3: 73.0, 4: 82.0, 5: 88.0, 6: 94.0, 7: 100.0}
 
 
@@ -930,6 +932,120 @@ def prediction_target_count(field_size: int) -> int:
     return min((int(field_size) + 1) // 2, 7)
 
 
+def _recent_composite_values(horse: dict) -> list[float]:
+    """Return comparable 0-100 recent-run composites for stability scoring."""
+    values: list[float] = []
+    for raw in horse.get("recent", []) or []:
+        parts = str(raw or "").split("/")
+        if len(parts) != 3:
+            continue
+        try:
+            run, flow, power = (float(x) for x in parts)
+        except (TypeError, ValueError):
+            continue
+        if not all(math.isfinite(x) for x in (run, flow, power)):
+            continue
+        values.append(
+            PER_RUN_WEIGHTS["run"] * run
+            + PER_RUN_WEIGHTS["flow"] * flow
+            + PER_RUN_WEIGHTS["power"] * power
+        )
+    return values
+
+
+def _single_win_stability(horse: dict) -> float:
+    """0-1 recent repeatability proxy used to protect place-rate stability."""
+    values = _recent_composite_values(horse)
+    if len(values) < 2:
+        return 0.50
+    avg = mean(values)
+    dispersion = math.sqrt(mean((x - avg) ** 2 for x in values))
+    return clamp01(1.0 - dispersion / 28.0)
+
+
+def attach_single_ev_scores(
+    detail_horses: list[dict],
+    totals: dict[int, float],
+    expected_popularity: dict[int, int],
+) -> dict[int, float]:
+    """Attach the D-plan all-race single-win value index to every horse.
+
+    The score intentionally does not use current-race odds.  A model win probability is
+    made from ability/current-condition indices, while the estimated-popularity rank is
+    converted to a market-probability proxy.  Their ratio is adjusted by recent
+    repeatability and current-condition fit.  ``singleEV`` is a display index where
+    roughly 50 means market-neutral and larger is more attractive for the main win bet;
+    ``_singleEVRaw`` keeps the unrounded ratio for selection.
+    """
+    if not detail_horses:
+        return {}
+
+    field_size = len(detail_horses)
+    missing = [h["no"] for h in detail_horses if h["no"] not in expected_popularity]
+    if missing:
+        raise ValueError(f"expected popularity missing for singleEV horses: {missing}")
+
+    ability: dict[int, float] = {}
+    condition: dict[int, float] = {}
+    stability: dict[int, float] = {}
+    for h in detail_horses:
+        no = int(h["no"])
+        total = float(totals.get(no, h.get("total", 50)))
+        recent = float(h.get("recentIndex", total))
+        today = float(h.get("today", total))
+        current_run = float(h.get("currentRun", today))
+        current_flow = float(h.get("currentFlow", today))
+        current_power = float(h.get("currentPower", today))
+        ability[no] = (
+            0.44 * total
+            + 0.18 * recent
+            + 0.16 * today
+            + 0.09 * current_run
+            + 0.06 * current_flow
+            + 0.07 * current_power
+        )
+        condition[no] = clamp01(
+            (0.40 * current_run + 0.30 * current_flow + 0.30 * current_power) / 100.0
+        )
+        stability[no] = _single_win_stability(h)
+
+    # Softmax converts the relative ability into a race-level win-probability proxy.
+    # Temperature 8 keeps modest index gaps meaningful without making the top score
+    # unrealistically deterministic.
+    best_ability = max(ability.values())
+    ability_weights = {
+        no: math.exp((score - best_ability) / 8.0)
+        for no, score in ability.items()
+    }
+    ability_sum = sum(ability_weights.values()) or 1.0
+    win_prob = {no: value / ability_sum for no, value in ability_weights.items()}
+
+    # No same-day odds are available by design.  Estimated popularity is therefore
+    # translated to a smooth market-share prior.  Only relative ratios matter.
+    market_weights = {
+        int(h["no"]): 1.0 / ((float(expected_popularity[int(h["no"])]) + 0.35) ** 1.05)
+        for h in detail_horses
+    }
+    market_sum = sum(market_weights.values()) or 1.0
+    market_prob = {no: value / market_sum for no, value in market_weights.items()}
+
+    raw_scores: dict[int, float] = {}
+    for h in detail_horses:
+        no = int(h["no"])
+        market_p = max(market_prob[no], 1e-9)
+        edge_ratio = win_prob[no] / market_p
+        stability_factor = 0.82 + 0.36 * stability[no]
+        condition_factor = 0.90 + 0.20 * condition[no]
+        raw = edge_ratio * stability_factor * condition_factor
+        raw_scores[no] = float(raw)
+        h["singleEV"] = int(round(clamp(50.0 + 28.0 * math.log(max(raw, 1e-9)), 0.0, 99.0)))
+        h["_singleEVRaw"] = float(raw)
+        h["_singleWinProb"] = float(win_prob[no])
+        h["_singleStability"] = float(stability[no])
+
+    return raw_scores
+
+
 def select_prediction(
     detail_horses: list[dict],
     totals: dict[int, float],
@@ -967,7 +1083,30 @@ def select_prediction(
     if len(selected) != target_count:
         raise ValueError(f"selected {len(selected)} != {target_count}")
 
-    main = selected[0]
+    attach_single_ev_scores(detail_horses, totals, expected_popularity)
+
+    # D-plan safety constraint: every race is still bought, but a pure value pick may
+    # not stray too far from the best ability horse.  The gap tightens as fields grow.
+    best_total = max(float(totals[h["no"]]) for h in selected)
+    gap_limit = 9.0 if len(detail_horses) <= 8 else 8.0 if len(detail_horses) <= 12 else 7.0
+    best_win_prob = max(float(h.get("_singleWinProb", 0.0)) for h in selected)
+    safe_main_candidates = [
+        h for h in selected
+        if float(totals[h["no"]]) >= best_total - gap_limit
+        and float(h.get("_singleWinProb", 0.0)) >= best_win_prob * 0.50
+    ]
+    if not safe_main_candidates:
+        safe_main_candidates = [selected[0]]
+
+    main = sorted(
+        safe_main_candidates,
+        key=lambda h: (
+            -float(h.get("_singleEVRaw", 0.0)),
+            -float(totals[h["no"]]),
+            -float(h.get("recentIndex", 0.0)),
+            h["no"],
+        ),
+    )[0]
     second = sorted(
         [h for h in selected if h["no"] != main["no"]],
         key=lambda h: (-expected_popularity[h["no"]], -totals[h["no"]], h["no"]),
@@ -985,4 +1124,9 @@ def select_prediction(
         "opponents": opponents,
         "excluded": [danger["no"]],
     }
+    # Persist only the public 0-99 singleEV index; keep internal probabilities out of JSON.
+    for h in detail_horses:
+        h.pop("_singleEVRaw", None)
+        h.pop("_singleWinProb", None)
+        h.pop("_singleStability", None)
     return prediction, int(danger["no"]), target_count

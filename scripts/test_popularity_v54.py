@@ -60,7 +60,7 @@ def validate_debut_policy(meta: dict, *, require_policy: bool) -> str:
 def main() -> None:
     args = parse_args()
 
-    assert MODEL_VERSION == "predictjra-live-index-v3-run-flow-power-v54-prior-odds-top3"
+    assert MODEL_VERSION.startswith("predictjra-live-index-v3-run-flow-power-")
     assert POPULARITY_MODEL_VERSION == "predictjra-popularity-v54-hgb-prior-odds"
     forbidden = {"current_odds", "actual_popularity", "horse_weight", "bodyweight"}
     assert not forbidden.intersection(FEATURE_COLS)
