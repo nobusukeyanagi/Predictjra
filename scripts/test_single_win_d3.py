@@ -92,6 +92,21 @@ def main() -> None:
     main_pick = choose_main(scored, selected, D3Policy(top_k=4, max_total_gap=20))
     assert main_pick in selected
 
+    # D3.1 value-gate contract: an absurdly high switch threshold must keep the stable
+    # reliability anchor rather than forcing a speculative value challenger.
+    locked_policy = D3Policy(
+        top_k=4,
+        max_total_gap=20,
+        min_edge_to_switch=99.0,
+        min_ev_to_switch=99.0,
+        switch_margin=99.0,
+    )
+    locked_pick = choose_main(scored, selected, locked_policy)
+    safe_scored = [r for r in scored if r["horse_number"] in selected]
+    best_win = max(r["d3_win_prob"] for r in safe_scored)
+    locked_row = next(r for r in safe_scored if r["horse_number"] == locked_pick)
+    assert locked_row["d3_win_prob"] >= best_win * 0.80
+
     # Market decoupling contract: rank-2 horse is assigned weaker market rank, so if its
     # ability probability is comparable, its edge must exceed a similarly capable favorite.
     by_no = {r["horse_number"]: r for r in scored}

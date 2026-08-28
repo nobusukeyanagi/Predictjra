@@ -43,7 +43,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--metrics-out", type=Path, default=Path("data/single_win_d3_metrics.json"))
     p.add_argument("--holdout-ratio", type=float, default=0.30)
     p.add_argument("--min-train-races", type=int, default=180)
-    p.add_argument("--goal-roi", type=float, default=100.0)
+    p.add_argument("--goal-roi", type=float, default=80.0)
     p.add_argument("--no-model-write", action="store_true")
     return p.parse_args()
 
@@ -149,6 +149,48 @@ def robustness(rows: list[dict]) -> dict:
     }
 
 
+def block_robustness(rows: list[dict], blocks: int = 5) -> dict:
+    """Contiguous chronological robustness independent of calendar-month boundaries."""
+    if not rows:
+        return {"blockQ25ROI": 0.0, "blockMinROI": 0.0, "blocks": []}
+    ordered = sorted(rows, key=lambda r: (str(r.get("date", "")), str(r.get("race_id", ""))))
+    n = len(ordered)
+    if n < 150:
+        m = aggregate(ordered)
+        return {
+            "blockQ25ROI": m["winsorizedWinRecoveryRate50x"],
+            "blockMinROI": m["winsorizedWinRecoveryRate50x"],
+            "blocks": [m],
+        }
+    count = max(3, min(int(blocks), 6))
+    chunks = []
+    for i in range(count):
+        a = round(n * i / count)
+        b = round(n * (i + 1) / count)
+        if b > a:
+            chunks.append(aggregate(ordered[a:b]))
+    rois = [c["winsorizedWinRecoveryRate50x"] for c in chunks]
+    return {
+        "blockQ25ROI": round(float(np.quantile(rois, 0.25)), 2) if rois else 0.0,
+        "blockMinROI": round(float(min(rois)), 2) if rois else 0.0,
+        "blocks": chunks,
+    }
+
+
+def floor80_score(metrics: dict, block: dict, target: float = 80.0) -> float:
+    """Higher is better; explicitly penalizes falling short of the 80% floor."""
+    overall = float(metrics.get("winsorizedWinRecoveryRate50x", 0.0))
+    rb = metrics.get("robustness") or {}
+    monthly_q25 = float(rb.get("monthlyQ25ROI", 0.0))
+    block_q25 = float(block.get("blockQ25ROI", 0.0))
+    deficit = (
+        max(0.0, target - overall)
+        + 0.45 * max(0.0, target - monthly_q25)
+        + 0.35 * max(0.0, target - block_q25)
+    )
+    return round(-deficit, 4)
+
+
 def _baseline_metrics(records: list[dict], rmap: dict[str, dict]) -> dict:
     rows = []
     for rec in records:
@@ -168,6 +210,8 @@ def _baseline_metrics(records: list[dict], rmap: dict[str, dict]) -> dict:
         })
     m = aggregate(rows)
     m["robustness"] = robustness(rows)
+    m["blockRobustness"] = block_robustness(rows)
+    m["floor80Score"] = floor80_score(m, m["blockRobustness"], 80.0)
     return m
 
 
@@ -194,6 +238,8 @@ def evaluate_policy(policy: D3Policy, records: list[dict], rmap: dict[str, dict]
         })
     m = aggregate(rows)
     m["robustness"] = robustness(rows)
+    m["blockRobustness"] = block_robustness(rows)
+    m["floor80Score"] = floor80_score(m, m["blockRobustness"], 80.0)
     return m, rows
 
 
@@ -247,18 +293,35 @@ def oof_predictions(rows: list[dict], min_train_races: int) -> tuple[list[dict],
 
 
 def policy_grid():
+    # D3.1 keeps the search roughly the same size as D2/D3 while adding the two
+    # value-gate controls. This avoids a huge hyperparameter explosion.
     for values in itertools.product(
-        (2, 3, 4, 5),             # top_k
-        (6.0, 9.0, 12.0),         # max_total_gap
-        (0.40, 0.55, 0.70),       # min_win_ratio
-        (0.40, 0.55),             # min_top3_ratio
-        (0.75, 1.00, 1.25),       # edge_power
-        (0.25, 0.50, 0.75),       # ev_power
-        (0.0, 0.20),              # top3_power
-        (0.0, 0.15),              # ability_power
-        (0.0, 0.10),              # favorite_penalty
+        (2, 3, 4),                 # top_k
+        (6.0, 9.0),                # max_total_gap
+        (0.50, 0.65),              # min_win_ratio
+        (0.45, 0.55),              # min_top3_ratio
+        (1.00, 1.25),              # edge_power
+        (0.25, 0.50),              # ev_power
+        (0.0, 0.20),               # top3_power
+        (0.0, 0.15),               # ability_power
+        (0.0, 0.08),               # favorite_penalty
+        (1.00, 1.08, 1.16),        # min_edge_to_switch
+        (1.00, 1.08),              # switch_margin
     ):
-        yield D3Policy(*values)
+        yield D3Policy(
+            top_k=values[0],
+            max_total_gap=values[1],
+            min_win_ratio=values[2],
+            min_top3_ratio=values[3],
+            edge_power=values[4],
+            ev_power=values[5],
+            top3_power=values[6],
+            ability_power=values[7],
+            favorite_penalty=values[8],
+            min_edge_to_switch=values[9],
+            min_ev_to_switch=0.72,
+            switch_margin=values[10],
+        )
 
 
 def tune_policy(records: list[dict], rmap: dict[str, dict], baseline: dict) -> tuple[D3Policy, dict, list[dict], int, int]:
@@ -284,8 +347,11 @@ def tune_policy(records: list[dict], rmap: dict[str, dict], baseline: dict) -> t
         valid += 1
 
         rb = metrics["robustness"]
+        br = metrics["blockRobustness"]
         key = (
+            metrics["floor80Score"],
             rb["robustScore"],
+            br["blockQ25ROI"],
             rb["monthlyQ25ROI"],
             metrics["winsorizedWinRecoveryRate50x"],
             metrics["winRecoveryRate"],
@@ -348,7 +414,8 @@ def main() -> None:
 
     goal_reached = holdout_metrics["winRecoveryRate"] >= float(args.goal_roi)
     promotion_ready = (
-        holdout_metrics["winRecoveryRate"] >= baseline_holdout["winRecoveryRate"] + 5.0
+        holdout_metrics["winRecoveryRate"] >= float(args.goal_roi)
+        and holdout_metrics["winRecoveryRate"] >= baseline_holdout["winRecoveryRate"] + 5.0
         and holdout_metrics["top3Rate"] >= 40.0
         and holdout_metrics["trifectaRecoveryRate"] >= 100.0
         and holdout_metrics["top3WinReturnShare"] <= 35.0
@@ -366,7 +433,8 @@ def main() -> None:
             "recencyHalfLifeDays": 120,
             "recentModelWindowDays": 120,
             "recentModelBlend": 0.30,
-            "policyObjective": "overall + monthly lower-quartile robustness",
+            "policyObjective": "80% floor deficit + monthly/chronological lower-quartile robustness",
+            "valueGate": "stable ability anchor; switch only on sufficient edge and score margin",
         },
         "leakagePolicy": {
             "currentRaceOdds": False,
@@ -401,8 +469,9 @@ def main() -> None:
         "promotionReady": promotion_ready,
         "adoptionRule": (
             "Do not promote merely because tune ROI is high. Untouched holdout must improve "
-            "baseline by >=5pp, keep top3>=40%, trifecta ROI>=100%, and top-3 win-return "
-            "concentration<=35%. 100% holdout win ROI remains the target, not a forced result."
+            "the requested ROI floor (default 80%), improve baseline by >=5pp, keep top3>=40%, "
+            "trifecta ROI>=100%, and top-3 win-return concentration<=35%. 100% remains an "
+            "upside target, not a forced result."
         ),
     }
     args.metrics_out.parent.mkdir(parents=True, exist_ok=True)

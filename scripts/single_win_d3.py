@@ -33,7 +33,7 @@ from single_win_d2 import (
     legacy_fallback_scores as d2_legacy_fallback_scores,
 )
 
-MODEL_VERSION = "predictjra-single-win-d3-v1-ability-market-decoupled"
+MODEL_VERSION = "predictjra-single-win-d3-v1.1-value-gate-80floor"
 
 # Critical: expected popularity and legacy singleEV are intentionally excluded here.
 # This model estimates horse ability/win chance independently of the market proxy.
@@ -71,6 +71,9 @@ class D3Policy:
     top3_power: float = 0.15
     ability_power: float = 0.15
     favorite_penalty: float = 0.00
+    min_edge_to_switch: float = 1.08
+    min_ev_to_switch: float = 0.72
+    switch_margin: float = 1.08
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -426,7 +429,20 @@ def choose_main(scored_rows: list[dict], selected_numbers: Iterable[int], policy
     if not safe:
         safe = [ability_order[0]]
 
-    def score(r: dict) -> float:
+    def reliability_score(r: dict) -> float:
+        """Stable anchor used when no sufficiently strong value challenger exists.
+
+        Because every eligible race must still buy one 100-yen win ticket, D3.1 avoids
+        forcing a weak value bet. The anchor is driven mainly by model win probability,
+        with top3/ability used only as modest stabilizers.
+        """
+        win = max(_float(r.get("d3_win_prob"), 0.0), 1e-9)
+        top3 = max(_float(r.get("d3_top3_prob"), 0.0), 1e-9)
+        gap = max(0.0, best_total - _float(r.get("_total"), 50.0))
+        ability_rel = math.exp(-gap / 18.0)
+        return win * (top3 ** 0.20) * (ability_rel ** 0.10)
+
+    def value_score(r: dict) -> float:
         edge = max(_float(r.get("d3_edge"), 0.0), 1e-8)
         ev = max(_float(r.get("d3_ev"), 0.0), 1e-8)
         win_rel = max(_float(r.get("d3_win_prob"), 0.0) / max(best_win, 1e-9), 1e-6)
@@ -444,10 +460,48 @@ def choose_main(scored_rows: list[dict], selected_numbers: Iterable[int], policy
             * favorite_factor
         )
 
-    best = max(
+    # D3.1 value gate: start from the safest model pick. Switch only when a challenger
+    # has a real estimated market edge AND its value score clears a margin. This is
+    # especially important when one bet is compulsory in every race.
+    anchor = max(
         safe,
         key=lambda r: (
-            score(r),
+            reliability_score(r),
+            _float(r.get("d3_win_prob")),
+            _float(r.get("d3_top3_prob")),
+            _float(r.get("_total")),
+            -int(r["horse_number"]),
+        ),
+    )
+    anchor_value = max(value_score(anchor), 1e-9)
+
+    challengers = []
+    for r in safe:
+        if int(r["horse_number"]) == int(anchor["horse_number"]):
+            continue
+        edge = _float(r.get("d3_edge"), 0.0)
+        ev = _float(r.get("d3_ev"), 0.0)
+        if edge < float(policy.min_edge_to_switch):
+            continue
+        if ev < float(policy.min_ev_to_switch):
+            continue
+
+        # The farther down the expected-popularity ladder, the more evidence is required
+        # before abandoning the stable anchor. This is not an odds input; expected
+        # popularity is the pre-race model output already allowed by the project rules.
+        ep = max(1, int(r.get("_expected_popularity", 1)))
+        longshot_extra = max(0, ep - 4) * 0.025
+        required_margin = float(policy.switch_margin) + longshot_extra
+        if value_score(r) >= anchor_value * required_margin:
+            challengers.append(r)
+
+    if not challengers:
+        return int(anchor["horse_number"])
+
+    best = max(
+        challengers,
+        key=lambda r: (
+            value_score(r),
             _float(r.get("d3_edge")),
             _float(r.get("d3_win_prob")),
             _float(r.get("_total")),
