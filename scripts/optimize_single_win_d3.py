@@ -293,20 +293,23 @@ def oof_predictions(rows: list[dict], min_train_races: int) -> tuple[list[dict],
 
 
 def policy_grid():
-    # D3.1 keeps the search roughly the same size as D2/D3 while adding the two
-    # value-gate controls. This avoids a huge hyperparameter explosion.
+    # D3.11 keeps the cumulative v73-v80 guards fixed and searches a compact
+    # neighborhood around the asymmetric challenger-support thresholds. General
+    # challengers may retain less anchor win probability, while the rank-8 tail and the
+    # candidate-pool win/top3 floors are strengthened.
     for values in itertools.product(
         (2, 3, 4),                 # top_k
         (6.0, 9.0),                # max_total_gap
-        (0.50, 0.65),              # min_win_ratio
-        (0.45, 0.55),              # min_top3_ratio
+        (0.55, 0.60),              # min_win_ratio (D3.11 stronger pool)
+        (0.52, 0.56),              # min_top3_ratio (D3.11 stronger pool)
         (1.00, 1.25),              # edge_power
         (0.25, 0.50),              # ev_power
         (0.0, 0.20),               # top3_power
-        (0.0, 0.15),               # ability_power
-        (0.0, 0.08),               # favorite_penalty
-        (1.00, 1.08, 1.16),        # min_edge_to_switch
-        (1.00, 1.08),              # switch_margin
+        (8, 10),                   # max challenger expected-popularity rank
+        (1.05, 1.07, 1.09),        # min_edge_to_switch
+        (1.09, 1.11, 1.13),        # switch_margin
+        (1.00, 1.05),              # min_relative_edge vs anchor
+        (0.61, 0.66),              # min anchor win-prob support (asymmetric expansion)
     ):
         yield D3Policy(
             top_k=values[0],
@@ -316,13 +319,35 @@ def policy_grid():
             edge_power=values[4],
             ev_power=values[5],
             top3_power=values[6],
-            ability_power=values[7],
-            favorite_penalty=values[8],
-            min_edge_to_switch=values[9],
+            ability_power=0.15,
+            favorite_penalty=0.0,
+            min_edge_to_switch=values[8],
             min_ev_to_switch=0.72,
-            switch_margin=values[10],
+            switch_margin=values[9],
+            min_relative_edge=values[10],
+            min_anchor_win_support=values[11],
+            max_challenger_expected_popularity=values[7],
+            min_tail_anchor_win_support=0.80,
+            max_value_switch_win_ratio=1.00,
+            max_value_switch_distance_m=2000.0,
+            avoid_equal_total_value_switch=True,
+            max_near_tie_today_deficit=1.0,
+            avoid_total_recent_disagreement_switch=True,
+            avoid_total_run_double_deficit_switch=True,
+            min_total_deficit_for_run_guard=1.0,
+            min_current_run_deficit_for_guard=0.11,
         )
 
+
+
+def temporal_tail_validation(rows: list[dict], ratio: float = 0.25) -> dict:
+    """Last part of tuning history, kept as an internal regime check."""
+    dates = sorted({str(r.get("date", "")) for r in rows})
+    if not dates:
+        return aggregate([])
+    cut = max(1, min(len(dates) - 1, int(math.floor(len(dates) * (1.0 - ratio))))) if len(dates) > 1 else 0
+    tail_dates = set(dates[cut:])
+    return aggregate([r for r in rows if str(r.get("date", "")) in tail_dates])
 
 def tune_policy(records: list[dict], rmap: dict[str, dict], baseline: dict) -> tuple[D3Policy, dict, list[dict], int, int]:
     best = None
@@ -348,11 +373,22 @@ def tune_policy(records: list[dict], rmap: dict[str, dict], baseline: dict) -> t
 
         rb = metrics["robustness"]
         br = metrics["blockRobustness"]
+        tail = temporal_tail_validation(rows)
+        metrics["internalTailValidation"] = tail
+        cross_regime_floor = min(
+            float(metrics["winsorizedWinRecoveryRate50x"]),
+            float(br["blockQ25ROI"]),
+            float(rb["monthlyQ25ROI"]),
+            float(tail["winsorizedWinRecoveryRate50x"]),
+        )
+        # First minimize the amount by which the weakest regime misses 80%. Only then
+        # reward headline ROI. This makes a small 75->80 improvement more likely to hold.
         key = (
+            -max(0.0, 80.0 - cross_regime_floor),
+            cross_regime_floor,
+            tail["winsorizedWinRecoveryRate50x"],
             metrics["floor80Score"],
             rb["robustScore"],
-            br["blockQ25ROI"],
-            rb["monthlyQ25ROI"],
             metrics["winsorizedWinRecoveryRate50x"],
             metrics["winRecoveryRate"],
             metrics["top3Rate"],
@@ -433,8 +469,8 @@ def main() -> None:
             "recencyHalfLifeDays": 120,
             "recentModelWindowDays": 120,
             "recentModelBlend": 0.30,
-            "policyObjective": "80% floor deficit + monthly/chronological lower-quartile robustness",
-            "valueGate": "stable ability anchor; switch only on sufficient edge and score margin",
+            "policyObjective": "80% weakest-regime floor + internal tail/monthly/chronological robustness",
+            "valueGate": "stable ability anchor; D3.11 uses asymmetric support: 61% general anchor-win support, 80% for expected-popularity rank 8, and stronger 55% win / 56% top3 candidate-pool floors, while retaining all v73-v80 value, consensus and regime guards",
         },
         "leakagePolicy": {
             "currentRaceOdds": False,

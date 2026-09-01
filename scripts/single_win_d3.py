@@ -33,7 +33,7 @@ from single_win_d2 import (
     legacy_fallback_scores as d2_legacy_fallback_scores,
 )
 
-MODEL_VERSION = "predictjra-single-win-d3-v1.1-value-gate-80floor"
+MODEL_VERSION = "predictjra-single-win-d3-v2.1-asymmetric-challenger-support"
 
 # Critical: expected popularity and legacy singleEV are intentionally excluded here.
 # This model estimates horse ability/win chance independently of the market proxy.
@@ -64,16 +64,28 @@ TOP3_FEATURE_COLS = ABILITY_FEATURE_COLS
 class D3Policy:
     top_k: int = 4
     max_total_gap: float = 9.0
-    min_win_ratio: float = 0.50
-    min_top3_ratio: float = 0.45
+    min_win_ratio: float = 0.55
+    min_top3_ratio: float = 0.56
     edge_power: float = 1.00
     ev_power: float = 0.50
     top3_power: float = 0.15
     ability_power: float = 0.15
     favorite_penalty: float = 0.00
-    min_edge_to_switch: float = 1.08
+    min_edge_to_switch: float = 1.05
     min_ev_to_switch: float = 0.72
-    switch_margin: float = 1.08
+    switch_margin: float = 1.11
+    min_relative_edge: float = 1.04
+    min_anchor_win_support: float = 0.61
+    max_challenger_expected_popularity: int = 8
+    min_tail_anchor_win_support: float = 0.80
+    max_value_switch_win_ratio: float = 1.00
+    max_value_switch_distance_m: float = 2000.0
+    avoid_equal_total_value_switch: bool = True
+    max_near_tie_today_deficit: float = 1.0
+    avoid_total_recent_disagreement_switch: bool = True
+    avoid_total_run_double_deficit_switch: bool = True
+    min_total_deficit_for_run_guard: float = 1.0
+    min_current_run_deficit_for_guard: float = 0.11
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -237,15 +249,26 @@ class D3Model:
         # stable, while rank+field buckets get pulled toward rank-only estimates.
         for rank, starts in rank_starts.items():
             wins = rank_wins.get(rank, 0.0)
-            prior_n = 35.0
+            prior_n = 50.0
             rate = (wins + prior_n * self.global_market_rate) / (starts + prior_n)
             self.rank_market_rate[rank] = max(float(rate), 1e-5)
+
+        # Expected-popularity ranks should be monotone in win chance. Sparse history can
+        # otherwise create false "value" when a lower rank accidentally has a higher
+        # empirical win rate. Enforce only the economically obvious ordering.
+        prev = None
+        for rank in sorted(self.rank_market_rate):
+            cur = self.rank_market_rate[rank]
+            if prev is not None:
+                cur = min(cur, prev)
+                self.rank_market_rate[rank] = cur
+            prev = cur
 
         for key, starts in bucket_starts.items():
             rank = key[0]
             wins = bucket_wins.get(key, 0.0)
             rank_prior = self.rank_market_rate.get(rank, self.global_market_rate)
-            prior_n = 22.0
+            prior_n = 80.0
             rate = (wins + prior_n * rank_prior) / (starts + prior_n)
             self.rank_field_market_rate[key] = max(float(rate), 1e-5)
 
@@ -260,7 +283,7 @@ class D3Model:
             ws = winner_payout_weights[rank]
             raw = _weighted_mean(vals, ws, self.global_payout_mean)
             eff_n = max(sum(ws), 0.0)
-            prior_n = 10.0
+            prior_n = 16.0
             shrunk = (eff_n * raw + prior_n * self.global_payout_mean) / (eff_n + prior_n)
             self.rank_payout_mean[rank] = float(np.clip(shrunk, 1.2, 35.0))
 
@@ -269,7 +292,7 @@ class D3Model:
             rank_prior = self.rank_payout_mean.get(key[0], self.global_payout_mean)
             raw = _weighted_mean(vals, ws, rank_prior)
             eff_n = max(sum(ws), 0.0)
-            prior_n = 8.0
+            prior_n = 24.0
             shrunk = (eff_n * raw + prior_n * rank_prior) / (eff_n + prior_n)
             self.rank_field_payout_mean[key] = float(np.clip(shrunk, 1.2, 40.0))
 
@@ -335,14 +358,15 @@ class D3Model:
         for row in rows:
             rank = _rank_bucket(int(row.get("_expected_popularity", row.get("_rank", 10))))
             fb = _field_bucket(int(row.get("_field", len(rows))))
-            market = self.rank_field_market_rate.get(
-                (rank, fb),
-                self.rank_market_rate.get(rank, self.global_market_rate),
-            )
-            payout = self.rank_field_payout_mean.get(
-                (rank, fb),
-                self.rank_payout_mean.get(rank, self.global_payout_mean),
-            )
+            rank_market = self.rank_market_rate.get(rank, self.global_market_rate)
+            bucket_market = self.rank_field_market_rate.get((rank, fb), rank_market)
+            # Field buckets are useful but noisier than rank-only history. Keep them as a
+            # modest adjustment rather than letting a small bucket manufacture an edge.
+            market = 0.75 * float(rank_market) + 0.25 * float(bucket_market)
+
+            rank_payout = self.rank_payout_mean.get(rank, self.global_payout_mean)
+            bucket_payout = self.rank_field_payout_mean.get((rank, fb), rank_payout)
+            payout = 0.80 * float(rank_payout) + 0.20 * float(bucket_payout)
             market_raw.append(max(float(market), 1e-6))
             payout_priors.append(float(payout))
         market_raw_arr = np.asarray(market_raw, dtype=float)
@@ -355,7 +379,12 @@ class D3Model:
             # If the market proxy were perfectly efficient, 20% takeout would imply
             # ~0.80 * edge as expected return. Blend that with robust payout history.
             edge_ev = float(0.80 * edge)
-            d3_ev = float(math.sqrt(max(edge_ev, 1e-9) * max(payout_ev, 1e-9)))
+            # D3.2 trusts the structurally stable ability-vs-market edge more than the
+            # noisier payout prior. A 70/30 geometric blend reduces jackpot overfitting.
+            d3_ev = float(
+                (max(edge_ev, 1e-9) ** 0.70)
+                * (max(payout_ev, 1e-9) ** 0.30)
+            )
             scored = dict(row)
             scored.update({
                 "d3_win_prob": float(p_win[i]),
@@ -463,6 +492,14 @@ def choose_main(scored_rows: list[dict], selected_numbers: Iterable[int], policy
     # D3.1 value gate: start from the safest model pick. Switch only when a challenger
     # has a real estimated market edge AND its value score clears a margin. This is
     # especially important when one bet is compulsory in every race.
+    #
+    # D3.11 uses asymmetric challenger support. After zero-base and feature-ablation
+    # checks, the time/pace/ability (時・展・実) signals remain useful; the remaining
+    # weakness is the one-size-fits-all support floor. Expected-popularity ranks 1-7 may
+    # challenge with 61% of the anchor's win probability, but the deepest allowed rank 8
+    # must retain 80%. At the same time the safe candidate pool itself is strengthened to
+    # 55% of the race-best win probability and 56% of the best top3 probability. This
+    # opens credible mid-ranked value while making tail promotions more conservative.
     anchor = max(
         safe,
         key=lambda r: (
@@ -474,6 +511,8 @@ def choose_main(scored_rows: list[dict], selected_numbers: Iterable[int], policy
         ),
     )
     anchor_value = max(value_score(anchor), 1e-9)
+    anchor_edge = max(_float(anchor.get("d3_edge"), 0.0), 1e-9)
+    anchor_win = max(_float(anchor.get("d3_win_prob"), 0.0), 1e-9)
 
     challengers = []
     for r in safe:
@@ -483,13 +522,35 @@ def choose_main(scored_rows: list[dict], selected_numbers: Iterable[int], policy
         ev = _float(r.get("d3_ev"), 0.0)
         if edge < float(policy.min_edge_to_switch):
             continue
+        # An absolute edge is not enough: the challenger must also be better value than
+        # the stable anchor and retain a meaningful share of the anchor's win chance.
+        if edge < anchor_edge * float(policy.min_relative_edge):
+            continue
+
+        # D3.4 tail win-support: the deepest still-allowed value challenger (expected
+        # popularity rank 8+) must preserve substantially more of the stable anchor's
+        # model win probability. This targets the high-variance edge of the v73 tail
+        # without banning a rank-8 horse when it is itself the reliability anchor.
+        ep = max(1, int(r.get("_expected_popularity", 1)))
+        required_win_support = float(policy.min_anchor_win_support)
+        if ep >= 8:
+            required_win_support = max(
+                required_win_support,
+                float(policy.min_tail_anchor_win_support),
+            )
+        if _float(r.get("d3_win_prob"), 0.0) < anchor_win * required_win_support:
+            continue
         if ev < float(policy.min_ev_to_switch):
             continue
 
         # The farther down the expected-popularity ladder, the more evidence is required
         # before abandoning the stable anchor. This is not an odds input; expected
         # popularity is the pre-race model output already allowed by the project rules.
-        ep = max(1, int(r.get("_expected_popularity", 1)))
+        # D3.3 tail-risk cap: deep expected-popularity ranks have sparse, noisy priors.
+        # They may still be selected when they are the reliability anchor; this gate only
+        # blocks speculative value-driven promotions away from that anchor.
+        if ep > int(policy.max_challenger_expected_popularity):
+            continue
         longshot_extra = max(0, ep - 4) * 0.025
         required_margin = float(policy.switch_margin) + longshot_extra
         if value_score(r) >= anchor_value * required_margin:
@@ -508,4 +569,75 @@ def choose_main(scored_rows: list[dict], selected_numbers: Iterable[int], policy
             -int(r["horse_number"]),
         ),
     )
+
+    # D3.5 model-consensus guard: D3 is a *value reranker*. If the strongest value
+    # challenger already exceeds the reliability anchor in raw P(win), yet still loses
+    # the multi-signal reliability score, the win model is disagreeing with top3/ability.
+    # Tune-only temporal blocks showed these near/over-anchor switches to be unstable, so
+    # keep the anchor instead of letting the market-edge prior act as a second ability
+    # selector. A ratio of 1.00 means only true over-anchor cases are vetoed.
+    challenger_win_ratio = _float(best.get("d3_win_prob"), 0.0) / max(anchor_win, 1e-9)
+    if challenger_win_ratio > float(policy.max_value_switch_win_ratio):
+        return int(anchor["horse_number"])
+
+    # D3.5 long-distance regime guard: the current feature/model stack is not distance-
+    # specialized enough for 2100m+ races. Across all three tune-only chronological
+    # blocks, value-driven switches above 2000m underperformed the reliability anchor.
+    # Until a dedicated long-distance model has enough history, avoid the speculative
+    # rerank while still allowing the same horse when it is itself the anchor.
+    distance_m = _float(best.get("distance_strength"), 0.0) * 3600.0
+    if distance_m > float(policy.max_value_switch_distance_m):
+        return int(anchor["horse_number"])
+
+    # D3.6 near-tie anchor guard: after the broad v73-v75 risk controls, the remaining
+    # unstable switches are concentrated in races where the challenger is not clearly
+    # better on the core pre-race ability indices.  Tune-only chronological blocks show
+    # that market-value reranking is especially noisy when total ability is exactly tied,
+    # or when the reliability anchor is only one Today-index point ahead.  In these
+    # near-tie states, keep the multi-signal anchor and demand that value reranking prove
+    # itself in less ambiguous ability configurations.
+    anchor_total = _float(anchor.get("_total"), 0.0)
+    challenger_total = _float(best.get("_total"), 0.0)
+    if bool(policy.avoid_equal_total_value_switch) and abs(anchor_total - challenger_total) <= 1e-9:
+        return int(anchor["horse_number"])
+
+    anchor_today = _float(anchor.get("_today"), 0.0)
+    challenger_today = _float(best.get("_today"), 0.0)
+    today_deficit = anchor_today - challenger_today
+    near_tie_limit = max(0.0, float(policy.max_near_tie_today_deficit))
+    if near_tie_limit > 0.0 and 0.0 < today_deficit <= near_tie_limit + 1e-9:
+        return int(anchor["horse_number"])
+
+    # D3.7 recent-consensus guard: a challenger whose total ability index is above the
+    # anchor but whose recent index is below it is being promoted despite conflicting
+    # ability signals.  On tune-only chronological checks, these value-driven switches
+    # underperformed the reliability anchor and also reduced top3 stability.  Keep the
+    # anchor in this disagreement state; a horse can still be selected normally when it
+    # is itself the reliability anchor.
+    anchor_recent = _float(anchor.get("_recent"), 0.0)
+    challenger_recent = _float(best.get("_recent"), 0.0)
+    if (
+        bool(policy.avoid_total_recent_disagreement_switch)
+        and challenger_total > anchor_total + 1e-9
+        and challenger_recent < anchor_recent - 1e-9
+    ):
+        return int(anchor["horse_number"])
+
+    # D3.8 run-consensus guard: after the v77 recent-index disagreement filter, a small
+    # residual loss cluster remained where the value challenger was weaker on BOTH the
+    # total ability index and the immediate currentRun component.  The 10-point boundary
+    # was unstable, so the guard deliberately starts at an 11-point currentRun deficit.
+    # This keeps borderline 10-point cases under the existing value gate while preventing
+    # market-value evidence from overriding a clear two-signal ability deficit.
+    anchor_run = _float(anchor.get("current_run"), 0.0)
+    challenger_run = _float(best.get("current_run"), 0.0)
+    total_deficit = anchor_total - challenger_total
+    run_deficit = anchor_run - challenger_run
+    if (
+        bool(policy.avoid_total_run_double_deficit_switch)
+        and total_deficit >= float(policy.min_total_deficit_for_run_guard) - 1e-9
+        and run_deficit >= float(policy.min_current_run_deficit_for_guard) - 1e-9
+    ):
+        return int(anchor["horse_number"])
+
     return int(best["horse_number"])
