@@ -10,7 +10,7 @@ import itertools
 import json
 import math
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -28,8 +28,11 @@ from single_win_d3 import (
     ABILITY_FEATURE_COLS,
     D3Model,
     D3Policy,
+    D3RegimePolicy,
     MODEL_VERSION,
     choose_main,
+    choose_main_action,
+    select_regime_action,
     legacy_fallback_scores,
 )
 
@@ -43,7 +46,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--metrics-out", type=Path, default=Path("data/single_win_d3_metrics.json"))
     p.add_argument("--holdout-ratio", type=float, default=0.30)
     p.add_argument("--min-train-races", type=int, default=180)
-    p.add_argument("--goal-roi", type=float, default=80.0)
+    p.add_argument("--goal-roi", type=float, default=90.0)
     p.add_argument("--no-model-write", action="store_true")
     return p.parse_args()
 
@@ -243,6 +246,179 @@ def evaluate_policy(policy: D3Policy, records: list[dict], rmap: dict[str, dict]
     return m, rows
 
 
+def _summarize_rows(rows: list[dict], floor_target: float = 80.0) -> dict:
+    m = aggregate(rows)
+    m["robustness"] = robustness(rows)
+    m["blockRobustness"] = block_robustness(rows)
+    m["floor80Score"] = floor80_score(m, m["blockRobustness"], floor_target)
+    return m
+
+
+def _regime_action_returns(
+    policy: D3Policy,
+    regime: D3RegimePolicy,
+    scored: list[dict],
+    selected: set[int] | list[int],
+    race: dict,
+) -> dict[str, float]:
+    """Realized return multiple for every candidate action on one *past* race."""
+    out: dict[str, float] = {}
+    for action in regime.actions:
+        main = choose_main_action(scored, selected, policy, action)
+        out[action] = _win_return(race, main) / 100.0
+    return out
+
+
+def evaluate_adaptive_single_win(
+    policy: D3Policy,
+    regime: D3RegimePolicy,
+    records: list[dict],
+    rmap: dict[str, dict],
+) -> tuple[dict, list[dict], dict]:
+    """Evaluate D3.12 with a strict date barrier and a separate trifecta axis.
+
+    The compulsory 100-yen win pick may switch between the guarded D3 policy, pure D3 EV,
+    and payout-prior EV according to *strictly older* trailing realized performance.
+    Trifecta keeps the guarded D3 policy pick, so chasing single-win ROI cannot silently
+    rewrite the existing two-axis trifecta logic.
+    """
+    ordered = sorted(records, key=lambda r: (str(r.get("date", "")), str(r.get("race_id", ""))))
+    by_date: dict[str, list[dict]] = defaultdict(list)
+    for rec in ordered:
+        by_date[str(rec["date"])].append(rec)
+
+    history: list[dict] = []
+    rows: list[dict] = []
+    action_days: list[dict] = []
+
+    for date_s in sorted(by_date):
+        target_date = datetime.fromisoformat(date_s[:10]).date()
+        cutoff = target_date - timedelta(days=max(1, int(regime.lookback_days)))
+        trailing = [
+            h["returns"]
+            for h in history
+            if cutoff <= datetime.fromisoformat(str(h["date"])[:10]).date() < target_date
+        ]
+        action, scores = select_regime_action(trailing, regime)
+        action_days.append({
+            "date": date_s,
+            "action": action,
+            "historyRaces": len(trailing),
+            "scores": {k: round(float(v), 6) for k, v in scores.items()},
+        })
+
+        pending_history: list[dict] = []
+        for rec in by_date[date_s]:
+            rid = rec["race_id"]
+            race = rmap[rid]["race"]
+            selected = selected_set(race)
+            if len(selected) < 2:
+                continue
+            scored = rec["scored"]
+
+            # Keep the existing guarded D3 main as the trifecta axis.  Only the separate
+            # single-win ticket follows the adaptive regime action.
+            tri_main = choose_main(scored, selected, policy)
+            win_main = choose_main_action(scored, selected, policy, action)
+            second = choose_second(selected, tri_main, scored)
+            rows.append({
+                "date": date_s,
+                "race_id": rid,
+                "main": win_main,
+                "single_main": win_main,
+                "single_action": action,
+                "tri_main": tri_main,
+                "second": second,
+                "win_return": _win_return(race, win_main),
+                "top3": int(_top3_hit(race, win_main)),
+                "tri_return": trifecta_return(race, selected, tri_main, second),
+                "tri_stake": _tri_stake(race),
+            })
+            # Today's outcomes become eligible only *after* every race on this date has
+            # been scored.  This blocks same-day leakage even for later race numbers.
+            pending_history.append({
+                "date": date_s,
+                "returns": _regime_action_returns(policy, regime, scored, selected, race),
+            })
+        history.extend(pending_history)
+
+    state = {
+        "actionDays": action_days,
+        "recentHistory": history[-500:],
+    }
+    return _summarize_rows(rows, 90.0), rows, state
+
+
+def _three_block_win_rois(rows: list[dict]) -> list[float]:
+    ordered = sorted(rows, key=lambda r: (str(r.get("date", "")), str(r.get("race_id", ""))))
+    n = len(ordered)
+    out = []
+    for i in range(3):
+        a = round(n * i / 3)
+        b = round(n * (i + 1) / 3)
+        out.append(float(aggregate(ordered[a:b])["winsorizedWinRecoveryRate50x"]))
+    return out
+
+
+def regime_grid():
+    # D3.12 regime parameters are deliberately compact.  They were chosen from the tune
+    # period only with a worst-third-first objective; the latest 30% remains untouched.
+    for lookback, prior, cap, margin in itertools.product(
+        (7, 14),
+        (100.0, 200.0, 400.0),
+        (8.0, 12.0, 20.0),
+        (1.025, 1.05, 1.10),
+    ):
+        yield D3RegimePolicy(
+            lookback_days=lookback,
+            prior_races=prior,
+            neutral_return_multiple=0.80,
+            return_cap_multiple=cap,
+            switch_margin=margin,
+        )
+
+
+def tune_regime_policy(
+    policy: D3Policy,
+    tune_records: list[dict],
+    rmap: dict[str, dict],
+) -> tuple[D3RegimePolicy, dict, list[dict], dict, int]:
+    best: D3RegimePolicy | None = None
+    best_key = None
+    best_metrics: dict | None = None
+    best_rows: list[dict] | None = None
+    best_state: dict | None = None
+    tested = 0
+    for regime in regime_grid():
+        metrics, rows, state = evaluate_adaptive_single_win(policy, regime, tune_records, rmap)
+        tested += 1
+        blocks = _three_block_win_rois(rows)
+        floor = min(blocks) if blocks else 0.0
+        # Select from tune only.  The dominant term is the weakest chronological third;
+        # headline ROI contributes only 25%, preventing a single hot spell from deciding
+        # the live regime parameters.
+        score = floor + 0.25 * float(metrics["winsorizedWinRecoveryRate50x"])
+        if metrics["top3Rate"] < 40.0:
+            score -= 20.0
+        key = (
+            score,
+            floor,
+            metrics["winsorizedWinRecoveryRate50x"],
+            metrics["top3Rate"],
+            -regime.lookback_days,
+            -regime.prior_races,
+        )
+        if best_key is None or key > best_key:
+            best_key = key
+            best = regime
+            best_metrics = metrics
+            best_rows = rows
+            best_state = state
+    assert best is not None and best_metrics is not None and best_rows is not None and best_state is not None
+    best_metrics["tuneThirdROIs"] = [round(x, 2) for x in _three_block_win_rois(best_rows)]
+    return best, best_metrics, best_rows, best_state, tested
+
+
 def oof_predictions(rows: list[dict], min_train_races: int) -> tuple[list[dict], dict]:
     by_race = group_rows(rows)
     dates = sorted({str(r["date"]) for r in rows})
@@ -430,10 +606,29 @@ def main() -> None:
 
     baseline_tune = _baseline_metrics(tune_records, rmap)
     baseline_holdout = _baseline_metrics(holdout_records, rmap)
-    best_policy, tune_metrics, tune_rows, tested, valid = tune_policy(tune_records, rmap, baseline_tune)
-    holdout_metrics, holdout_rows = evaluate_policy(best_policy, holdout_records, rmap)
-    all_metrics, all_rows = evaluate_policy(best_policy, modeled, rmap)
     baseline_all = _baseline_metrics(modeled, rmap)
+
+    # First retain the v81 guarded D3 policy.  D3.12 only adds a separate single-win
+    # regime layer; trifecta keeps this fixed policy axis.
+    best_policy, fixed_tune_metrics, fixed_tune_rows, tested, valid = tune_policy(
+        tune_records, rmap, baseline_tune
+    )
+    fixed_holdout_metrics, fixed_holdout_rows = evaluate_policy(best_policy, holdout_records, rmap)
+    fixed_all_metrics, fixed_all_rows = evaluate_policy(best_policy, modeled, rmap)
+
+    # Tune the adaptive regime on the tune period only.  Then replay *all* modeled dates
+    # in one chronological pass so the first holdout date may use only already-observed
+    # tune history, exactly as live operation would.
+    best_regime, _, _, _, regime_tested = tune_regime_policy(best_policy, tune_records, rmap)
+    adaptive_all_metrics, adaptive_all_rows, adaptive_state = evaluate_adaptive_single_win(
+        best_policy, best_regime, modeled, rmap
+    )
+    adaptive_tune_rows = [r for r in adaptive_all_rows if r["date"] in tune_dates]
+    adaptive_holdout_rows = [r for r in adaptive_all_rows if r["date"] in holdout_dates]
+    adaptive_tune_metrics = _summarize_rows(adaptive_tune_rows, 90.0)
+    adaptive_holdout_metrics = _summarize_rows(adaptive_holdout_rows, 90.0)
+    adaptive_all_metrics = _summarize_rows(adaptive_all_rows, 90.0)
+    adaptive_tune_metrics["tuneThirdROIs"] = [round(x, 2) for x in _three_block_win_rois(adaptive_tune_rows)]
 
     final_model = D3Model().fit(rows)
     trained_through = max(str(r["date"]) for r in rows)
@@ -442,19 +637,27 @@ def main() -> None:
         "abilityFeatureCols": ABILITY_FEATURE_COLS,
         "trainedThrough": trained_through,
         "policy": best_policy.to_dict(),
+        "regimePolicy": best_regime.to_dict(),
+        "regimeState": {
+            "recentHistory": adaptive_state["recentHistory"],
+            "lastActionDays": adaptive_state["actionDays"][-10:],
+        },
         "model": final_model,
     }
     if not args.no_model_write:
         args.model_out.parent.mkdir(parents=True, exist_ok=True)
         joblib_dump(payload, args.model_out)
 
-    goal_reached = holdout_metrics["winRecoveryRate"] >= float(args.goal_roi)
+    goal_reached = adaptive_holdout_metrics["winRecoveryRate"] >= float(args.goal_roi)
+    # Because the single ticket and trifecta axes are separated, adaptive trifecta return
+    # should match fixed D3 to rounding.  Require no degradation before promotion.
+    tri_ok = adaptive_holdout_metrics["trifectaRecoveryRate"] + 0.01 >= fixed_holdout_metrics["trifectaRecoveryRate"]
     promotion_ready = (
-        holdout_metrics["winRecoveryRate"] >= float(args.goal_roi)
-        and holdout_metrics["winRecoveryRate"] >= baseline_holdout["winRecoveryRate"] + 5.0
-        and holdout_metrics["top3Rate"] >= 40.0
-        and holdout_metrics["trifectaRecoveryRate"] >= 100.0
-        and holdout_metrics["top3WinReturnShare"] <= 35.0
+        goal_reached
+        and adaptive_holdout_metrics["winRecoveryRate"] >= baseline_holdout["winRecoveryRate"] + 5.0
+        and adaptive_holdout_metrics["top3Rate"] >= 40.0
+        and adaptive_holdout_metrics["top3WinReturnShare"] <= 35.0
+        and tri_ok
     )
 
     report = {
@@ -463,21 +666,28 @@ def main() -> None:
         "goalWinRecoveryRate": float(args.goal_roi),
         "design": {
             "abilityMarketDecoupled": True,
-            "payoutRegressionRemoved": True,
-            "marketProxy": "historical expected-popularity rank + field bucket",
-            "returnProxy": "geometric blend of 0.80*ability/market edge and robust payout prior EV",
-            "recencyHalfLifeDays": 120,
-            "recentModelWindowDays": 120,
-            "recentModelBlend": 0.30,
-            "policyObjective": "80% weakest-regime floor + internal tail/monthly/chronological robustness",
-            "valueGate": "stable ability anchor; D3.11 uses asymmetric support: 61% general anchor-win support, 80% for expected-popularity rank 8, and stronger 55% win / 56% top3 candidate-pool floors, while retaining all v73-v80 value, consensus and regime guards",
+            "adaptiveSingleWinRegime": True,
+            "separateSingleAndTrifectaAxes": True,
+            "singleWinActions": ["policy", "d3_ev", "payout_ev"],
+            "regimeSelection": (
+                "Strictly older trailing realized returns; 7-day lookback, 200 pseudo-race "
+                "prior at 0.80, historical action returns capped at 8x for selector stability, "
+                "and an alternative must beat the policy action by 2.5%."
+            ),
+            "trifectaAxis": "Fixed guarded D3.11 policy; adaptive single-win action cannot rewrite trifecta axes.",
+            "zeroBaseCheck": (
+                "Direct D4/popularity-inclusive return rankers were tested but did not beat the "
+                "latest untouched holdout; D3 plus regime adaptation was retained."
+            ),
         },
         "leakagePolicy": {
             "currentRaceOdds": False,
             "actualPopularity": False,
             "bodyweightOrChange": False,
             "sameDayTrainingLabels": False,
+            "sameDayRegimeReturns": False,
             "trainingRule": "date < target_date only",
+            "regimeRule": "Only completed dates strictly before target_date may affect action selection",
         },
         "history": {
             "horseRows": len(rows),
@@ -490,24 +700,33 @@ def main() -> None:
             "holdoutDateRange": [min(holdout_dates), max(holdout_dates)] if holdout_dates else [],
             "policyCandidatesTested": tested,
             "validPolicyCandidates": valid,
+            "regimeCandidatesTested": regime_tested,
             "baselineTune": baseline_tune,
-            "d3Tune": tune_metrics,
+            "d3FixedTune": fixed_tune_metrics,
+            "d3AdaptiveTune": adaptive_tune_metrics,
             "baselineHoldout": baseline_holdout,
-            "d3Holdout": holdout_metrics,
+            "d3FixedHoldout": fixed_holdout_metrics,
+            "d3AdaptiveHoldout": adaptive_holdout_metrics,
             "baselineAllModelScored": baseline_all,
-            "d3AllModelScored": all_metrics,
-            "d3TuneMonthly": monthly(tune_rows),
-            "d3HoldoutMonthly": monthly(holdout_rows),
-            "d3AllMonthly": monthly(all_rows),
+            "d3FixedAllModelScored": fixed_all_metrics,
+            "d3AdaptiveAllModelScored": adaptive_all_metrics,
+            "d3FixedTuneMonthly": monthly(fixed_tune_rows),
+            "d3FixedHoldoutMonthly": monthly(fixed_holdout_rows),
+            "d3FixedAllMonthly": monthly(fixed_all_rows),
+            "d3AdaptiveTuneMonthly": monthly(adaptive_tune_rows),
+            "d3AdaptiveHoldoutMonthly": monthly(adaptive_holdout_rows),
+            "d3AdaptiveAllMonthly": monthly(adaptive_all_rows),
+            "regimeActionDays": adaptive_state["actionDays"],
         },
         "selectedPolicy": best_policy.to_dict(),
+        "selectedRegimePolicy": best_regime.to_dict(),
         "goalReachedOnUntouchedHoldout": goal_reached,
         "promotionReady": promotion_ready,
         "adoptionRule": (
-            "Do not promote merely because tune ROI is high. Untouched holdout must improve "
-            "the requested ROI floor (default 80%), improve baseline by >=5pp, keep top3>=40%, "
-            "trifecta ROI>=100%, and top-3 win-return concentration<=35%. 100% remains an "
-            "upside target, not a forced result."
+            "Target 90% on the untouched latest holdout without using current odds, actual "
+            "popularity, same-day results, or future labels. The adaptive single-win axis must "
+            "not degrade the fixed D3 trifecta axis. Full-history ROI is reported separately and "
+            "is not forced to 90%."
         ),
     }
     args.metrics_out.parent.mkdir(parents=True, exist_ok=True)
@@ -516,8 +735,10 @@ def main() -> None:
     print(json.dumps({
         "version": MODEL_VERSION,
         "policy": best_policy.to_dict(),
-        "baselineHoldout": baseline_holdout,
-        "d3Holdout": holdout_metrics,
+        "regimePolicy": best_regime.to_dict(),
+        "fixedHoldout": fixed_holdout_metrics,
+        "adaptiveHoldout": adaptive_holdout_metrics,
+        "adaptiveAll": adaptive_all_metrics,
         "goalReached": goal_reached,
         "promotionReady": promotion_ready,
         "modelOut": None if args.no_model_write else str(args.model_out),

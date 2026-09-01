@@ -3,7 +3,18 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-from single_win_d3 import ABILITY_FEATURE_COLS, D3Model, D3Policy, choose_main
+from single_win_d3 import (
+    ABILITY_FEATURE_COLS,
+    D3Model,
+    D3Policy,
+    D3RegimePolicy,
+    REGIME_ACTION_EV,
+    REGIME_ACTION_PAYOUT_EV,
+    REGIME_ACTION_POLICY,
+    choose_main,
+    choose_main_action,
+    select_regime_action,
+)
 
 
 def row(day: str, rid: str, no: int, rank: int, ep: int, winner: bool, top3: bool, payout: int = 0) -> dict:
@@ -379,7 +390,47 @@ def main() -> None:
     asymmetric[1]["_expected_popularity"] = 8
     assert choose_main(asymmetric, [1, 2], D3Policy(**asym_base)) == 1
 
-    print("OK: single-win D3.11 synthetic contract tests passed")
+    # D3.12 adaptive-regime defaults: the selector is deliberately short-memory but
+    # heavily shrunk.  It may switch the compulsory 100-yen single ticket only when a
+    # trailing action has at least a 2.5% shrunk advantage over guarded D3.11.
+    regime = D3RegimePolicy()
+    assert regime.lookback_days == 7
+    assert abs(regime.prior_races - 200.0) < 1e-12
+    assert abs(regime.neutral_return_multiple - 0.80) < 1e-12
+    assert abs(regime.return_cap_multiple - 8.0) < 1e-12
+    assert abs(regime.switch_margin - 1.025) < 1e-12
+    assert regime.actions == (REGIME_ACTION_POLICY, REGIME_ACTION_EV, REGIME_ACTION_PAYOUT_EV)
+
+    action_rows = [
+        {"horse_number": 1, "d3_ev": 0.90, "d3_payout_ev": 0.70, "d3_win_prob": 0.35, "_total": 90},
+        {"horse_number": 2, "d3_ev": 1.40, "d3_payout_ev": 0.80, "d3_win_prob": 0.25, "_total": 86},
+        {"horse_number": 3, "d3_ev": 0.80, "d3_payout_ev": 2.20, "d3_win_prob": 0.18, "_total": 84},
+    ]
+    assert choose_main_action(action_rows, [1, 2, 3], D3Policy(), REGIME_ACTION_EV) == 2
+    assert choose_main_action(action_rows, [1, 2, 3], D3Policy(), REGIME_ACTION_PAYOUT_EV) == 3
+
+    action, scores = select_regime_action([], regime)
+    assert action == REGIME_ACTION_POLICY
+    assert all(abs(v - 0.80) < 1e-12 for v in scores.values())
+
+    # Sustained payout-EV strength clears the margin despite the 200-race neutral prior.
+    history = [
+        {REGIME_ACTION_POLICY: 0.8, REGIME_ACTION_EV: 0.6, REGIME_ACTION_PAYOUT_EV: 4.0}
+        for _ in range(100)
+    ]
+    action, scores = select_regime_action(history, regime)
+    assert action == REGIME_ACTION_PAYOUT_EV
+    assert scores[REGIME_ACTION_PAYOUT_EV] > scores[REGIME_ACTION_POLICY] * regime.switch_margin
+
+    # A historical jackpot is capped at 8x for regime detection, even though actual ROI
+    # reporting elsewhere remains uncapped.
+    _, jackpot_scores = select_regime_action([
+        {REGIME_ACTION_POLICY: 0.0, REGIME_ACTION_EV: 0.0, REGIME_ACTION_PAYOUT_EV: 100.0}
+    ], regime)
+    expected_capped = (8.0 + 200.0 * 0.80) / 201.0
+    assert abs(jackpot_scores[REGIME_ACTION_PAYOUT_EV] - expected_capped) < 1e-12
+
+    print("OK: single-win D3.12 synthetic contract tests passed")
 
 
 if __name__ == "__main__":

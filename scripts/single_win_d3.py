@@ -33,7 +33,7 @@ from single_win_d2 import (
     legacy_fallback_scores as d2_legacy_fallback_scores,
 )
 
-MODEL_VERSION = "predictjra-single-win-d3-v2.1-asymmetric-challenger-support"
+MODEL_VERSION = "predictjra-single-win-d3-v2.2-adaptive-regime-single-axis"
 
 # Critical: expected popularity and legacy singleEV are intentionally excluded here.
 # This model estimates horse ability/win chance independently of the market proxy.
@@ -86,6 +86,34 @@ class D3Policy:
     avoid_total_run_double_deficit_switch: bool = True
     min_total_deficit_for_run_guard: float = 1.0
     min_current_run_deficit_for_guard: float = 0.11
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+REGIME_ACTION_POLICY = "policy"
+REGIME_ACTION_EV = "d3_ev"
+REGIME_ACTION_PAYOUT_EV = "payout_ev"
+REGIME_ACTIONS = (REGIME_ACTION_POLICY, REGIME_ACTION_EV, REGIME_ACTION_PAYOUT_EV)
+
+
+@dataclass(frozen=True)
+class D3RegimePolicy:
+    """Trailing-regime selector for the compulsory 100-yen win ticket only.
+
+    The selector never uses current-race odds or same-day results.  It compares how three
+    pre-race D3 selection styles performed over a strictly older trailing window, caps
+    historical returns before comparison, and shrinks them heavily toward the JRA 80%
+    takeout-neutral prior.  The normal D3 policy remains the default unless another style
+    clears a small relative margin.
+    """
+
+    lookback_days: int = 7
+    prior_races: float = 200.0
+    neutral_return_multiple: float = 0.80
+    return_cap_multiple: float = 8.0
+    switch_margin: float = 1.025
+    actions: tuple[str, ...] = REGIME_ACTIONS
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -641,3 +669,77 @@ def choose_main(scored_rows: list[dict], selected_numbers: Iterable[int], policy
         return int(anchor["horse_number"])
 
     return int(best["horse_number"])
+
+def choose_main_action(
+    scored_rows: list[dict],
+    selected_numbers: Iterable[int],
+    policy: D3Policy,
+    action: str = REGIME_ACTION_POLICY,
+) -> int:
+    """Choose the compulsory single-win horse for one of the D3.12 action styles.
+
+    ``policy`` is the cumulative v73-v81 guarded selector.  The two alternative actions
+    are intentionally simple and transparent: maximize D3 blended EV or maximize the
+    payout-prior EV.  They are used only when the trailing regime selector has evidence
+    that the style is currently outperforming the guarded policy.
+    """
+    if action == REGIME_ACTION_POLICY:
+        return choose_main(scored_rows, selected_numbers, policy)
+
+    selected = {int(x) for x in selected_numbers}
+    candidates = [r for r in scored_rows if int(r["horse_number"]) in selected]
+    if not candidates:
+        raise ValueError("D3 choose_main_action: selected set has no scored horses")
+
+    if action == REGIME_ACTION_EV:
+        key_name = "d3_ev"
+    elif action == REGIME_ACTION_PAYOUT_EV:
+        key_name = "d3_payout_ev"
+    else:
+        raise ValueError(f"Unknown D3 regime action: {action}")
+
+    best = max(
+        candidates,
+        key=lambda r: (
+            _float(r.get(key_name), 0.0),
+            _float(r.get("d3_win_prob"), 0.0),
+            _float(r.get("_total"), 0.0),
+            -int(r["horse_number"]),
+        ),
+    )
+    return int(best["horse_number"])
+
+
+def select_regime_action(
+    history_action_returns: Iterable[dict[str, float]],
+    regime: D3RegimePolicy | None = None,
+) -> tuple[str, dict[str, float]]:
+    """Select a single-win action from strictly older, already-realized race returns.
+
+    Each history item is a mapping from every configured action to its realized return
+    multiple for one past race (0 for a miss, 2.5 for a 250-yen payout, etc.).  Callers
+    are responsible for the date barrier; the optimizer supplies only dates older than
+    the target day.  Returns are capped *for regime detection only*; actual ROI reporting
+    remains uncapped.
+    """
+    regime = regime or D3RegimePolicy()
+    history = list(history_action_returns)
+    actions = tuple(regime.actions) or REGIME_ACTIONS
+    baseline = actions[0]
+    prior_n = max(0.0, float(regime.prior_races))
+    neutral = max(0.0, float(regime.neutral_return_multiple))
+    cap = max(0.0, float(regime.return_cap_multiple))
+
+    scores: dict[str, float] = {}
+    for action in actions:
+        vals = []
+        for item in history:
+            v = max(0.0, _float(item.get(action), 0.0))
+            vals.append(min(v, cap) if cap > 0.0 else v)
+        scores[action] = (sum(vals) + prior_n * neutral) / max(len(vals) + prior_n, 1e-12)
+
+    best = max(actions, key=lambda a: (scores[a], -actions.index(a)))
+    if best != baseline and scores[best] < scores[baseline] * float(regime.switch_margin):
+        best = baseline
+    return best, scores
+
