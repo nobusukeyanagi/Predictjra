@@ -390,15 +390,17 @@ def main() -> None:
     asymmetric[1]["_expected_popularity"] = 8
     assert choose_main(asymmetric, [1, 2], D3Policy(**asym_base)) == 1
 
-    # D3.12 adaptive-regime defaults: the selector is deliberately short-memory but
-    # heavily shrunk.  It may switch the compulsory 100-yen single ticket only when a
-    # trailing action has at least a 2.5% shrunk advantage over guarded D3.11.
+    # D3.14 robust-regime + anti-chase defaults: the selector stays short-memory but freezes the
+    # meta-hyperparameters validated across multiple fixed-origin future blocks. It may
+    # switch the compulsory 100-yen ticket only at a 5% shrunk advantage over D3.11.
     regime = D3RegimePolicy()
-    assert regime.lookback_days == 7
-    assert abs(regime.prior_races - 200.0) < 1e-12
+    assert regime.lookback_days == 6
+    assert abs(regime.prior_races - 250.0) < 1e-12
     assert abs(regime.neutral_return_multiple - 0.80) < 1e-12
-    assert abs(regime.return_cap_multiple - 8.0) < 1e-12
-    assert abs(regime.switch_margin - 1.025) < 1e-12
+    assert abs(regime.return_cap_multiple - 6.0) < 1e-12
+    assert abs(regime.switch_margin - 1.05) < 1e-12
+    assert abs(regime.payout_ev_min_advantage_vs_ev - 1.02) < 1e-12
+    assert regime.avoid_consecutive_payout_ev is True
     assert regime.actions == (REGIME_ACTION_POLICY, REGIME_ACTION_EV, REGIME_ACTION_PAYOUT_EV)
 
     action_rows = [
@@ -413,7 +415,7 @@ def main() -> None:
     assert action == REGIME_ACTION_POLICY
     assert all(abs(v - 0.80) < 1e-12 for v in scores.values())
 
-    # Sustained payout-EV strength clears the margin despite the 200-race neutral prior.
+    # Sustained payout-EV strength clears the margin despite the 250-race neutral prior.
     history = [
         {REGIME_ACTION_POLICY: 0.8, REGIME_ACTION_EV: 0.6, REGIME_ACTION_PAYOUT_EV: 4.0}
         for _ in range(100)
@@ -422,15 +424,37 @@ def main() -> None:
     assert action == REGIME_ACTION_PAYOUT_EV
     assert scores[REGIME_ACTION_PAYOUT_EV] > scores[REGIME_ACTION_POLICY] * regime.switch_margin
 
-    # A historical jackpot is capped at 8x for regime detection, even though actual ROI
+    # A historical jackpot is capped at 6x for regime detection, even though actual ROI
     # reporting elsewhere remains uncapped.
     _, jackpot_scores = select_regime_action([
         {REGIME_ACTION_POLICY: 0.0, REGIME_ACTION_EV: 0.0, REGIME_ACTION_PAYOUT_EV: 100.0}
     ], regime)
-    expected_capped = (8.0 + 200.0 * 0.80) / 201.0
+    expected_capped = (6.0 + 250.0 * 0.80) / 251.0
     assert abs(jackpot_scores[REGIME_ACTION_PAYOUT_EV] - expected_capped) < 1e-12
 
-    print("OK: single-win D3.12 synthetic contract tests passed")
+
+    # D3.14 payout-vs-EV tie-break: if payout-EV clears the policy switch margin but
+    # is less than 2% above pure EV, choose pure EV when pure EV at least matches policy.
+    near_tie_history = [
+        {REGIME_ACTION_POLICY: 0.70, REGIME_ACTION_EV: 1.10, REGIME_ACTION_PAYOUT_EV: 1.115}
+        for _ in range(300)
+    ]
+    near_action, near_scores = select_regime_action(near_tie_history, regime)
+    assert near_scores[REGIME_ACTION_PAYOUT_EV] > near_scores[REGIME_ACTION_POLICY] * regime.switch_margin
+    assert near_action == REGIME_ACTION_EV
+
+    # D3.14 consecutive payout-EV breaker: callers may suppress a second payout-EV
+    # race day.  Pure EV is used as the de-jackpot fallback when it is not below policy.
+    repeat_history = [
+        {REGIME_ACTION_POLICY: 0.70, REGIME_ACTION_EV: 0.90, REGIME_ACTION_PAYOUT_EV: 1.50}
+        for _ in range(300)
+    ]
+    repeat_action, _ = select_regime_action(
+        repeat_history, regime, allow_repeat_payout_ev=False
+    )
+    assert repeat_action == REGIME_ACTION_EV
+
+    print("OK: single-win D3.14 synthetic contract tests passed")
 
 
 if __name__ == "__main__":

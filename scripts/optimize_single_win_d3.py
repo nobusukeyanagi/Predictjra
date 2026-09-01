@@ -30,6 +30,8 @@ from single_win_d3 import (
     D3Policy,
     D3RegimePolicy,
     MODEL_VERSION,
+    REGIME_ACTION_POLICY,
+    REGIME_ACTION_PAYOUT_EV,
     choose_main,
     choose_main_action,
     select_regime_action,
@@ -275,7 +277,7 @@ def evaluate_adaptive_single_win(
     records: list[dict],
     rmap: dict[str, dict],
 ) -> tuple[dict, list[dict], dict]:
-    """Evaluate D3.12 with a strict date barrier and a separate trifecta axis.
+    """Evaluate D3.14 with a strict date barrier and a separate trifecta axis.
 
     The compulsory 100-yen win pick may switch between the guarded D3 policy, pure D3 EV,
     and payout-prior EV according to *strictly older* trailing realized performance.
@@ -290,6 +292,8 @@ def evaluate_adaptive_single_win(
     history: list[dict] = []
     rows: list[dict] = []
     action_days: list[dict] = []
+    previous_action = REGIME_ACTION_POLICY
+    previous_action_date = None
 
     for date_s in sorted(by_date):
         target_date = datetime.fromisoformat(date_s[:10]).date()
@@ -299,12 +303,20 @@ def evaluate_adaptive_single_win(
             for h in history
             if cutoff <= datetime.fromisoformat(str(h["date"])[:10]).date() < target_date
         ]
-        action, scores = select_regime_action(trailing, regime)
+        consecutive_after_payout = (
+            previous_action == REGIME_ACTION_PAYOUT_EV
+            and previous_action_date is not None
+            and (target_date - previous_action_date).days == 1
+        )
+        action, scores = select_regime_action(
+            trailing, regime, allow_repeat_payout_ev=not consecutive_after_payout
+        )
         action_days.append({
             "date": date_s,
             "action": action,
             "historyRaces": len(trailing),
             "scores": {k: round(float(v), 6) for k, v in scores.items()},
+            "consecutivePayoutGuard": bool(consecutive_after_payout),
         })
 
         pending_history: list[dict] = []
@@ -341,6 +353,8 @@ def evaluate_adaptive_single_win(
                 "returns": _regime_action_returns(policy, regime, scored, selected, race),
             })
         history.extend(pending_history)
+        previous_action = action
+        previous_action_date = target_date
 
     state = {
         "actionDays": action_days,
@@ -361,21 +375,18 @@ def _three_block_win_rois(rows: list[dict]) -> list[float]:
 
 
 def regime_grid():
-    # D3.12 regime parameters are deliberately compact.  They were chosen from the tune
-    # period only with a worst-third-first objective; the latest 30% remains untouched.
-    for lookback, prior, cap, margin in itertools.product(
-        (7, 14),
-        (100.0, 200.0, 400.0),
-        (8.0, 12.0, 20.0),
-        (1.025, 1.05, 1.10),
-    ):
-        yield D3RegimePolicy(
-            lookback_days=lookback,
-            prior_races=prior,
-            neutral_return_multiple=0.80,
-            return_cap_multiple=cap,
-            switch_margin=margin,
-        )
+    # D3.14 keeps the D3.13 frozen regime hyperparameters instead of re-optimizing them on each
+    # history snapshot.  The fixed values were selected only after requiring positive
+    # ROI uplift versus D3.12 across three independent fixed-origin future blocks
+    # (40%, 50%, and 60% training cutoffs).  Daily action selection remains adaptive;
+    # only the meta-hyperparameters are frozen to reduce second-order overfitting.
+    yield D3RegimePolicy(
+        lookback_days=6,
+        prior_races=250.0,
+        neutral_return_multiple=0.80,
+        return_cap_multiple=6.0,
+        switch_margin=1.05,
+    )
 
 
 def tune_regime_policy(
@@ -608,7 +619,7 @@ def main() -> None:
     baseline_holdout = _baseline_metrics(holdout_records, rmap)
     baseline_all = _baseline_metrics(modeled, rmap)
 
-    # First retain the v81 guarded D3 policy.  D3.12 only adds a separate single-win
+    # First retain the v81 guarded D3 policy.  D3.13 keeps the separate single-win
     # regime layer; trifecta keeps this fixed policy axis.
     best_policy, fixed_tune_metrics, fixed_tune_rows, tested, valid = tune_policy(
         tune_records, rmap, baseline_tune
@@ -670,9 +681,11 @@ def main() -> None:
             "separateSingleAndTrifectaAxes": True,
             "singleWinActions": ["policy", "d3_ev", "payout_ev"],
             "regimeSelection": (
-                "Strictly older trailing realized returns; 7-day lookback, 200 pseudo-race "
-                "prior at 0.80, historical action returns capped at 8x for selector stability, "
-                "and an alternative must beat the policy action by 2.5%."
+                "Strictly older trailing realized returns; fixed 6-day lookback, 250 pseudo-race "
+                "prior at 0.80, historical action returns capped at 6x, and an alternative must "
+                "beat policy by 5%. Payout-EV must also beat pure EV by 2% or pure EV is preferred; "
+                "immediately consecutive payout-EV days are suppressed to avoid jackpot chasing. "
+                "Hyperparameters remain frozen from the 40/50/60% fixed-origin validation."
             ),
             "trifectaAxis": "Fixed guarded D3.11 policy; adaptive single-win action cannot rewrite trifecta axes.",
             "zeroBaseCheck": (

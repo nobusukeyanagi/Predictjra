@@ -33,7 +33,7 @@ from single_win_d2 import (
     legacy_fallback_scores as d2_legacy_fallback_scores,
 )
 
-MODEL_VERSION = "predictjra-single-win-d3-v2.2-adaptive-regime-single-axis"
+MODEL_VERSION = "predictjra-single-win-d3-v2.4-regime-anti-chase"
 
 # Critical: expected popularity and legacy singleEV are intentionally excluded here.
 # This model estimates horse ability/win chance independently of the market proxy.
@@ -108,11 +108,13 @@ class D3RegimePolicy:
     clears a small relative margin.
     """
 
-    lookback_days: int = 7
-    prior_races: float = 200.0
+    lookback_days: int = 6
+    prior_races: float = 250.0
     neutral_return_multiple: float = 0.80
-    return_cap_multiple: float = 8.0
-    switch_margin: float = 1.025
+    return_cap_multiple: float = 6.0
+    switch_margin: float = 1.05
+    payout_ev_min_advantage_vs_ev: float = 1.02
+    avoid_consecutive_payout_ev: bool = True
     actions: tuple[str, ...] = REGIME_ACTIONS
 
     def to_dict(self) -> dict:
@@ -676,7 +678,7 @@ def choose_main_action(
     policy: D3Policy,
     action: str = REGIME_ACTION_POLICY,
 ) -> int:
-    """Choose the compulsory single-win horse for one of the D3.12 action styles.
+    """Choose the compulsory single-win horse for one of the D3.13 action styles.
 
     ``policy`` is the cumulative v73-v81 guarded selector.  The two alternative actions
     are intentionally simple and transparent: maximize D3 blended EV or maximize the
@@ -713,6 +715,8 @@ def choose_main_action(
 def select_regime_action(
     history_action_returns: Iterable[dict[str, float]],
     regime: D3RegimePolicy | None = None,
+    *,
+    allow_repeat_payout_ev: bool = True,
 ) -> tuple[str, dict[str, float]]:
     """Select a single-win action from strictly older, already-realized race returns.
 
@@ -741,5 +745,31 @@ def select_regime_action(
     best = max(actions, key=lambda a: (scores[a], -actions.index(a)))
     if best != baseline and scores[best] < scores[baseline] * float(regime.switch_margin):
         best = baseline
+
+    # D3.14 anti-chase: payout-prior EV is deliberately noisier than pure D3 EV.
+    # If its shrunk regime score is only marginally better, prefer pure EV provided
+    # pure EV at least matches the guarded policy.  This avoids treating tiny payout
+    # score differences as evidence of a different market regime.
+    if best == REGIME_ACTION_PAYOUT_EV and REGIME_ACTION_EV in scores:
+        min_adv = max(1.0, float(regime.payout_ev_min_advantage_vs_ev))
+        if (
+            scores[REGIME_ACTION_PAYOUT_EV] < scores[REGIME_ACTION_EV] * min_adv
+            and scores[REGIME_ACTION_EV] >= scores[baseline]
+        ):
+            best = REGIME_ACTION_EV
+
+    # A payout-EV win can be dominated by one day's longshot return.  When callers
+    # identify an immediately consecutive race day after payout-EV was already used,
+    # do not chase the same payout regime again.  Fall back to pure EV if it at least
+    # matches policy; otherwise return to the guarded policy.
+    if (
+        best == REGIME_ACTION_PAYOUT_EV
+        and bool(regime.avoid_consecutive_payout_ev)
+        and not allow_repeat_payout_ev
+    ):
+        if REGIME_ACTION_EV in scores and scores[REGIME_ACTION_EV] >= scores[baseline]:
+            best = REGIME_ACTION_EV
+        else:
+            best = baseline
     return best, scores
 
