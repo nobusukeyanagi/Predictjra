@@ -2,7 +2,7 @@ name: Update race data
 
 on:
   schedule:
-    - cron: '0 13 * * *'
+    - cron: '0 15 * * *'
       timezone: 'Asia/Tokyo'
     - cron: '0 19 * * *'
       timezone: 'Asia/Tokyo'
@@ -51,7 +51,7 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             MODE="${{ inputs.mode }}"
             DATE="${{ inputs.target_date }}"
-          elif [[ "${{ github.event.schedule }}" == "0 13 * * *" ]]; then
+          elif [[ "${{ github.event.schedule }}" == "0 15 * * *" ]]; then
             MODE="prepare"
             DATE=""
           else
@@ -82,12 +82,17 @@ jobs:
           python scripts/test_frame_colors.py
           # Live result updates must fail closed on partial/mismatched results.
           python scripts/test_update_races_safety.py
+          # A genuine no-race day must exit cleanly without weakening fail-closed behavior.
+          python scripts/test_update_races_no_race.py
           python scripts/test_v55_returns_display.py
 
       - name: Fetch, index and update
         shell: bash
         run: |
-          python scripts/update_races_v2.py             --mode "${{ steps.args.outputs.mode }}"             --date "${{ steps.args.outputs.date }}"             --diagnostics "$RUNNER_TEMP/update-race-diagnostics.json"
+          python scripts/run_update_races_safe.py \
+            --mode "${{ steps.args.outputs.mode }}" \
+            --date "${{ steps.args.outputs.date }}" \
+            --diagnostics "$RUNNER_TEMP/update-race-diagnostics.json"
 
       - name: Verify live update completed safely
         shell: bash
@@ -114,7 +119,10 @@ jobs:
                   raise SystemExit(
                       "unresolved result races remain: " + ", ".join(unresolved)
                   )
-          print("Updater diagnostics passed fail-closed publication checks.")
+          if data.get("noRaceDay") is True:
+              print(f"No JRA races on {data.get('target')}; normal no-op update.")
+          else:
+              print("Updater diagnostics passed fail-closed publication checks.")
           PY
 
       - name: Protect design files
@@ -163,7 +171,10 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/discord-notification"
           if [[ "${{ steps.changes.outputs.changed }}" == "true" ]]; then
-            python scripts/build_discord_notification.py               --mode "${{ steps.args.outputs.mode }}"               --date "${{ steps.args.outputs.date }}"               --output "$RUNNER_TEMP/discord-notification/notification.json"
+            python scripts/build_discord_notification.py \
+              --mode "${{ steps.args.outputs.mode }}" \
+              --date "${{ steps.args.outputs.date }}" \
+              --output "$RUNNER_TEMP/discord-notification/notification.json"
           else
             printf '%s\n' '{"send": false}' > "$RUNNER_TEMP/discord-notification/notification.json"
           fi
