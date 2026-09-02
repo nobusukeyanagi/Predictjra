@@ -341,7 +341,7 @@ const INDEX_LOGIC_V3_HTML = `
   </section>
   <section class="index-logic-item">
     <h3>想人・予想選定</h3>
-    <p>想人は当日オッズ・当日実人気・馬体重/増減を使わず、過去人気・近走評価・騎手/調教師など事前情報から市場人気を推定します。想定1〜3番人気のうち総合指数が最も低い1頭を危険馬として除外し、残りから出走頭数の半数切り上げ・最大7頭を総合指数順に選定します。本命はその選定馬のうち、総合上位から大きく離れない安全条件を満たした馬について単EV最大を採用します。対抗は本命以外の選定馬のうち想定人気が最も低い馬、残りを相手とします。単勝は見送りを設けず、全予想対象レースで本命を1頭選びます。</p>
+    <p>想人は当日オッズ・当日実人気・馬体重/増減を使わず、過去人気・近走評価・騎手/調教師など事前情報から市場人気を推定します。想定1〜3番人気のうち総合指数が最も低い1頭を危険馬として除外し、残りから出走頭数の半数切り上げ・最大7頭を総合指数順に選定します。三連単の軸・相手は従来の選定を維持し、単勝だけは選定馬の中から過去確定レースで学習したD3単勝専用本命を別に決定します。単勝は見送りを設けず、全予想対象レースで100円購入します。</p>
   </section>`;
 
 function raceDetail(race) {
@@ -500,8 +500,14 @@ function resultBoxes(result, race, prediction) {
   return `<div class="horses">${groups.join('<span class="place-sep">›</span>')}</div>`;
 }
 
+function singleWinMain(race, prediction) {
+  const explicit = Number(race?.winMain ?? race?.modelMeta?.singleWin?.main);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  return Number(prediction?.axes?.[0]);
+}
+
 function mainHorseWon(race, prediction) {
-  const main = Number(prediction?.axes?.[0]);
+  const main = singleWinMain(race, prediction);
   if (!Number.isFinite(main)) return false;
   const firstPlace = race?.result?.places?.[0] || [];
   return firstPlace.map(Number).includes(main);
@@ -534,7 +540,7 @@ function winReturn(race, prediction = effectivePrediction(race)) {
   if (!predictionSettled(race)) return 0;
   const stored = Number(race?.winReturn);
   if (Number.isFinite(stored) && stored >= 0 && race?.result?.winPayouts) return stored;
-  const main = Number(prediction?.axes?.[0]);
+  const main = singleWinMain(race, prediction);
   if (!Number.isFinite(main)) return 0;
   return (race?.result?.winPayouts || []).reduce((sum, item) => {
     const horses = (item?.horses || []).map(Number);

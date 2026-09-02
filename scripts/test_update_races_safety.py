@@ -139,6 +139,38 @@ def test_single_win_is_stored_even_when_trifecta_misses() -> None:
     assert race["winStake"] == 100
 
 
+
+def test_single_win_uses_separate_win_main() -> None:
+    data = sample_data(RID1)
+    race = data["days"][0]["races"][0]
+    race["prediction"] = {"axes": [1, 3], "opponents": [2, 4, 5, 6, 7]}
+    race["winMain"] = 2
+    race["modelMeta"] = {
+        "singleWin": {
+            "version": "predictjra-single-win-runtime-v91",
+            "main": 2,
+            "action": "policy",
+            "actionMains": {"policy": 2},
+        }
+    }
+    result = {
+        "places": [[2], [1], [3]],
+        "winPayouts": [{"horses": [2], "payout": 510}],
+        "trifectas": [{"horses": [2, 1, 3], "payout": 4100}],
+    }
+    diagnostics = {"races": []}
+    original_fetch = legacy.fetch_result
+    try:
+        legacy.fetch_result = lambda *_args: (result, "test")
+        updater.result_day(data, TARGET, diagnostics)
+    finally:
+        legacy.fetch_result = original_fetch
+    out = data["days"][0]["races"][0]
+    assert out["winReturn"] == 510
+    assert out["winMain"] == 2
+    assert out["modelMeta"]["singleWin"]["actionReturns"]["policy"] == 5.1
+
+
 def test_debut_result_only_has_no_prediction_or_stake() -> None:
     race = sample_race(RID1)
     race.update({
@@ -199,6 +231,7 @@ if __name__ == "__main__":
         test_confirmed_cancellation_is_removed_only_after_full_resolution,
         test_result_payout_mismatch_is_rejected,
         test_single_win_is_stored_even_when_trifecta_misses,
+        test_single_win_uses_separate_win_main,
         test_debut_result_only_has_no_prediction_or_stake,
         test_win_payout_parser_and_validation,
         test_jra_program_parser_does_not_create_cancelled_notice_race,

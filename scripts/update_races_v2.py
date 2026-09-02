@@ -17,6 +17,12 @@ from pathlib import Path
 
 import update_races as legacy
 from predict_engine import MODEL_VERSION, build_prediction, fetch_rich_card
+from single_win_runtime import (
+    BRIDGE_VERSION as SINGLE_WIN_BRIDGE_VERSION,
+    build_live_context,
+    decide_live_race,
+    finalize_live_action_returns,
+)
 from market_history import (
     apply_updates as apply_market_updates,
     enrich_card_with_market_history,
@@ -60,6 +66,7 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
     errors: list[dict] = []
     debut_ids: set[str] = set()
     market_payload = load_market_history()
+    single_win_context = build_live_context(data, target.isoformat())
 
     for race_id in ids:
         existing_race = existing.get(race_id)
@@ -75,25 +82,75 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
         )
         if current_prediction or current_debut_placeholder:
             field_size = int(existing_race.get("horseCount") or 0)
-            if legacy.horse_frame_map_complete(
-                existing_race.get("horseFrames"), field_size
-            ):
+            local = copy.deepcopy(existing_race)
+            local_changed = False
+
+            # v91 can upgrade an already-prepared current-model race to the new
+            # single-win bridge without refetching the card.  This preserves the
+            # frame-only repair path and avoids unnecessary network failures.
+            if current_prediction:
+                single_meta = ((local.get("modelMeta") or {}).get("singleWin") or {})
+                if (
+                    single_meta.get("version") != SINGLE_WIN_BRIDGE_VERSION
+                    or local.get("winMain") is None
+                ):
+                    try:
+                        win_main, single_win_meta = decide_live_race(
+                            target.isoformat(), local, single_win_context
+                        )
+                    except ValueError as exc:
+                        # Legacy/current-model rows created before the bridge can lack
+                        # indexDetail in old fixtures or emergency data.  Preserve the
+                        # no-network repair path with the existing trifecta main rather
+                        # than turning a local repair into a fetch failure.
+                        if "no D3 feature rows" not in str(exc):
+                            raise
+                        win_main = int((local.get("prediction", {}).get("axes") or [0])[0] or 0)
+                        single_win_meta = {
+                            "version": SINGLE_WIN_BRIDGE_VERSION,
+                            "main": win_main,
+                            "action": "legacy-fallback",
+                            "actionScores": {},
+                            "actionMains": {"policy": win_main},
+                            "modelMode": "legacy-prepared-fallback",
+                            "trainingRaces": int(single_win_context.get("trainingRaces") or 0),
+                        }
+                    local["winMain"] = int(win_main)
+                    local["winStake"] = 100
+                    model_meta = dict(local.get("modelMeta") or {})
+                    model_meta["singleWin"] = single_win_meta
+                    local["modelMeta"] = model_meta
+                    local_changed = True
+
+            frames_ok = legacy.horse_frame_map_complete(
+                local.get("horseFrames"), field_size
+            )
+            if frames_ok:
                 if current_debut_placeholder:
                     debut_ids.add(race_id)
-                print(
-                    f"SKIP {race_id}: already prepared "
-                    f"({'新馬結果表示のみ' if current_debut_placeholder else MODEL_VERSION})"
-                )
+                if local_changed:
+                    staged.append(local)
+                    diagnostics["races"].append({
+                        "raceId": race_id,
+                        "status": "single-win-upgraded",
+                        "winMain": local.get("winMain"),
+                    })
+                    print(f"UPGRADE {race_id}: added {SINGLE_WIN_BRIDGE_VERSION}")
+                else:
+                    print(
+                        f"SKIP {race_id}: already prepared "
+                        f"({'新馬結果表示のみ' if current_debut_placeholder else MODEL_VERSION})"
+                    )
                 continue
+
             if 1 <= field_size <= 18:
-                repaired = dict(existing_race)
-                before = dict(existing_race.get("horseFrames") or {})
-                repaired["horseFrames"] = legacy.jra_frame_map(field_size)
-                repaired["dataSources"] = {
-                    **repaired.get("dataSources", {}),
+                before = dict(local.get("horseFrames") or {})
+                local["horseFrames"] = legacy.jra_frame_map(field_size)
+                local["dataSources"] = {
+                    **local.get("dataSources", {}),
                     "frames": "jra-deterministic-repair",
                 }
-                staged.append(repaired)
+                staged.append(local)
                 if current_debut_placeholder:
                     debut_ids.add(race_id)
                 diagnostics["races"].append({
@@ -101,7 +158,8 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
                     "status": "frame-repaired",
                     "horseCount": field_size,
                     "oldHorseFrames": before,
-                    "horseFrames": repaired["horseFrames"],
+                    "horseFrames": local["horseFrames"],
+                    "winMain": local.get("winMain"),
                 })
                 print(
                     f"REPAIR {race_id}: corrected horseFrames from deterministic "
@@ -174,6 +232,7 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
                     "payout": 0,
                     "trifectaPayouts": race.get("trifectaPayouts", []),
                     "stake": 0,
+                    "winMain": None,
                     "winReturn": 0,
                     "winStake": 0,
                     "dataSources": {
@@ -202,6 +261,17 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
             built["modelMeta"]["marketHorseIds"] = market_horse_ids
             built["modelMeta"]["historicalOddsAttached"] = int(odds_attached)
             prediction = built["prediction"]
+            single_win_input = {
+                "raceId": race_id,
+                "prediction": prediction,
+                "danger": built["danger"],
+                "predictionDisabled": False,
+                "modelMeta": built["modelMeta"],
+            }
+            win_main, single_win_meta = decide_live_race(
+                target.isoformat(), single_win_input, single_win_context
+            )
+            built["modelMeta"]["singleWin"] = single_win_meta
 
             race = dict(existing_race or {})
             race.update({
@@ -222,6 +292,7 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
                 "payout": int(race.get("payout", 0)),
                 "trifectaPayouts": race.get("trifectaPayouts", []),
                 "stake": legacy.stake_for_prediction(prediction),
+                "winMain": int(win_main),
                 "winReturn": int(race.get("winReturn", 0)),
                 "winStake": 100,
                 "dataSources": {
@@ -239,6 +310,8 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
                 "horses": len(horses),
                 "danger": built["danger"],
                 "prediction": prediction,
+                "winMain": int(win_main),
+                "singleWinAction": single_win_meta.get("action"),
                 "qualityWarnings": built["indexDetail"].get("qualityWarnings", []),
                 "sources": race["dataSources"],
             })
@@ -414,7 +487,7 @@ def result_day(data: dict, target: date, diagnostics: dict) -> int:
                     if legacy.combo_is_covered(prediction, t["horses"])
                 ]
                 payout = sum(int(t["payout"]) for t in winning)
-                main = int((prediction.get("axes") or [0])[0] or 0)
+                main = int(race.get("winMain") or (prediction.get("axes") or [0])[0] or 0)
                 win_return = sum(
                     int(item["payout"])
                     for item in result.get("winPayouts", [])
@@ -428,9 +501,12 @@ def result_day(data: dict, target: date, diagnostics: dict) -> int:
                 race["stake"] = legacy.stake_for_prediction(prediction)
                 race["winReturn"] = int(win_return)
                 race["winStake"] = 100
+                finalize_live_action_returns(race)
                 diagnostics["races"].append({
                     "raceId": race_id,
                     "status": race["status"],
+                    "winMain": int(main),
+                    "trifectaMain": int((prediction.get("axes") or [0])[0] or 0),
                     "winReturn": int(win_return),
                     "trifectaReturn": payout,
                     "anyHit": bool(win_return or payout),

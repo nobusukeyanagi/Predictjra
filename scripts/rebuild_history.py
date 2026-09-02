@@ -56,6 +56,8 @@ from prediction_logic_candidate import (
     select_prediction,
 )
 
+from single_win_runtime import RollingRebuildSingleWin
+
 JST = ZoneInfo("Asia/Tokyo")
 
 TRACKS = {
@@ -68,7 +70,7 @@ TRACK_ORDER = {name: i for i, name in enumerate(TRACKS.values(), start=1)}
 # prediction score override is allowed; all races use prediction_logic_candidate.py.
 SAPPORO11_ID = "202601010811"
 
-REBUILD_VERSION = "predictjra-history-v68-d-single-ev"
+REBUILD_VERSION = "predictjra-history-v91-d3-single-win-bridge"
 SOURCE_REPO = "sugaimo15/keibayosoku"
 SOURCE_REF = "claude/horse-racing-predictor-ak6crm"
 
@@ -1494,6 +1496,7 @@ def main() -> int:
     audit_races = []
     daily = {}
     old_result_mismatches = []
+    single_win_selector = RollingRebuildSingleWin()
 
     for date_s in target_dates:
         day = existing_by_date.get(date_s)
@@ -1504,6 +1507,8 @@ def main() -> int:
 
         old_by_id = {r.get("raceId"): r for r in day.get("races", [])}
         rebuilt = []
+        single_win_selector.begin_day(date_s)
+        pending_single_win = []
 
         day_races = [r for r in races.values() if r.date == date_s]
         day_races.sort(key=lambda x: (int(x.race_id[4:6]), int(x.race_id[-2:])))
@@ -1532,20 +1537,7 @@ def main() -> int:
             payout_return = sum(int(t["payout"]) for t in winners)
             stake = len(prediction["opponents"]) * 6 * 100
             status = "hit" if winners else "miss"
-            main_horse = int(prediction["axes"][0])
-            win_return = sum(
-                int(item["payout"])
-                for item in result.get("winPayouts", [])
-                if main_horse in [int(x) for x in item.get("horses", [])]
-            )
-            any_hit = bool(win_return or payout_return)
-
-            if any_hit:
-                day_hits += 1
-            day_win_return += win_return
-            day_win_stake += 100
-            day_payout += payout_return
-            day_stake += stake
+            # Single-win return is calculated after the separate D3 winMain is selected.
 
             card = race.card.copy()
             card["horse_number"] = pd.to_numeric(card["horse_number"], errors="raise").astype(int)
@@ -1570,6 +1562,40 @@ def main() -> int:
                 "excluded": [int(danger)],
             }
 
+            # D3.19/v91: single-win is a separate axis.  The trifecta prediction above
+            # is preserved exactly; only the compulsory 100-yen win ticket is reranked.
+            single_win_race = {
+                "raceId": rid,
+                "prediction": prediction,
+                "danger": [int(danger)],
+                "predictionDisabled": False,
+                "result": result,
+                "modelMeta": {
+                    "indexDetail": index_detail,
+                    "nonStarters": sorted(
+                        set(int(x) for x in race.card["horse_number"])
+                        - set(race.actual_popularity)
+                    ),
+                },
+            }
+            win_main, single_win_meta, single_win_rows = single_win_selector.decide(
+                date_s, single_win_race
+            )
+            single_win_race["winMain"] = int(win_main)
+            single_win_race["modelMeta"]["singleWin"] = single_win_meta
+            win_return = sum(
+                int(item["payout"])
+                for item in result.get("winPayouts", [])
+                if int(win_main) in [int(x) for x in item.get("horses", [])]
+            )
+            any_hit = bool(win_return or payout_return)
+            if any_hit:
+                day_hits += 1
+            day_win_return += win_return
+            day_win_stake += 100
+            day_payout += payout_return
+            day_stake += stake
+
             updated = dict(old)
             updated.pop("seedNote", None)
             updated.update({
@@ -1588,6 +1614,7 @@ def main() -> int:
                 "payout": int(payout_return),
                 "trifectaPayouts": [int(x) for x in tri_payouts],
                 "stake": int(stake),
+                "winMain": int(win_main),
                 "winReturn": int(win_return),
                 "winStake": 100,
                 "modelMeta": {
@@ -1604,6 +1631,7 @@ def main() -> int:
                     "popularityMethod": "market-memory v5 temporal-context expanding-window model",
                     "selectionRule": SELECTION_RULE_TEXT,
                     "logicSource": "scripts/prediction_logic_candidate.py",
+                    "singleWin": single_win_meta,
                     "nonStarters": sorted(
                         set(int(x) for x in race.card["horse_number"])
                         - set(race.actual_popularity)
@@ -1616,6 +1644,7 @@ def main() -> int:
                 },
             })
             rebuilt.append(updated)
+            pending_single_win.append((updated, single_win_meta, single_win_rows))
 
             actual_pop = race.actual_popularity
             est_order = [
@@ -1632,6 +1661,9 @@ def main() -> int:
                 "raceNo": updated["raceNo"],
                 "horseCount": updated["horseCount"],
                 "prediction": prediction,
+                "winMain": int(win_main),
+                "trifectaMain": int(prediction["axes"][0]),
+                "singleWinAction": single_win_meta["action"],
                 "danger": danger,
                 "result": result["places"],
                 "trifectas": result["trifectas"],
@@ -1653,6 +1685,8 @@ def main() -> int:
                 ),
                 "oldResultMatchedArchive": rid not in old_result_mismatches,
             })
+
+        single_win_selector.finish_day(date_s, pending_single_win)
 
         # New-race races are restored as result-only rows after all predicted races.
         for pred_path in debut_files_by_date.get(date_s, []):
@@ -1726,6 +1760,13 @@ def main() -> int:
                 raise RuntimeError(f"{r['raceId']}: stake invalid")
             if r.get("winStake") != 100:
                 raise RuntimeError(f"{r['raceId']}: win stake invalid")
+            win_main = int(r.get("winMain") or 0)
+            selected_numbers = set(int(x) for x in (p["axes"] + p["opponents"]))
+            if win_main not in selected_numbers:
+                raise RuntimeError(f"{r['raceId']}: winMain must stay inside selected set")
+            single_meta = (r.get("modelMeta", {}).get("singleWin") or {})
+            if int(single_meta.get("main") or 0) != win_main:
+                raise RuntimeError(f"{r['raceId']}: singleWin metadata/main mismatch")
 
             detail = r.get("modelMeta", {}).get("indexDetail")
             if not detail:
