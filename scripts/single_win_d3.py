@@ -33,7 +33,7 @@ from single_win_d2 import (
     legacy_fallback_scores as d2_legacy_fallback_scores,
 )
 
-MODEL_VERSION = "predictjra-single-win-d3-v2.4-regime-anti-chase"
+MODEL_VERSION = "predictjra-single-win-d3-v2.8-reclaim-timing-balance"
 
 # Critical: expected popularity and legacy singleEV are intentionally excluded here.
 # This model estimates horse ability/win chance independently of the market proxy.
@@ -115,6 +115,32 @@ class D3RegimePolicy:
     switch_margin: float = 1.05
     payout_ev_min_advantage_vs_ev: float = 1.02
     avoid_consecutive_payout_ev: bool = True
+    # D3.15 / v85: when the day-level regime stays on guarded policy, allow a tiny
+    # race-level override only when both independent EV views agree on the same horse
+    # and that horse has a clear currentRun advantage without a material Recent deficit.
+    enable_policy_dual_ev_override: bool = True
+    min_policy_override_run_advantage: float = 0.10
+    max_policy_override_recent_deficit: float = 6.0
+    # D3.16 / v86: final reliability reclaim. After the regime/consensus layers have
+    # chosen the single-win horse, allow the guarded policy horse to reclaim the ticket
+    # only when its immediate ability evidence is decisively stronger. This layer is
+    # race-local and never feeds its realized return back into regime history.
+    enable_policy_reliability_reclaim: bool = True
+    min_policy_reclaim_run_advantage: float = 0.11
+    min_policy_reclaim_recent_advantage: float = 4.0
+    min_policy_reclaim_power_advantage: float = 0.17
+    # D3.17 / v87: after the v86 reclaim, give pure-EV one final race-local chance
+    # when immediate run evidence is extreme, or when both Today and Recent are clearly
+    # stronger. A final secondary policy reclaim then protects strong power+recent cases.
+    # D3.18 / v88 rebalances reclaim timing: power-only early reclaim is deliberately
+    # harder (17pt), while the later power+Recent reclaim is slightly easier (11pt + 6 Recent).
+    enable_final_ev_momentum_override: bool = True
+    min_final_ev_run_advantage: float = 0.15
+    min_final_ev_today_advantage: float = 5.0
+    min_final_ev_recent_advantage: float = 1.0
+    enable_secondary_policy_reclaim: bool = True
+    min_secondary_policy_power_advantage: float = 0.11
+    min_secondary_policy_recent_advantage: float = 6.0
     actions: tuple[str, ...] = REGIME_ACTIONS
 
     def to_dict(self) -> dict:
@@ -711,6 +737,134 @@ def choose_main_action(
     )
     return int(best["horse_number"])
 
+
+
+def choose_regime_main(
+    scored_rows: list[dict],
+    selected_numbers: Iterable[int],
+    policy: D3Policy,
+    regime: D3RegimePolicy,
+    action: str,
+) -> int:
+    """Choose the actual compulsory 100-yen single-win horse for a regime day.
+
+    D3.15 may promote a dual-EV consensus horse on policy days. D3.16 then lets the
+    guarded policy horse reclaim the ticket when immediate run/recent or power evidence
+    is decisive. D3.17 adds two strictly race-local layers after that: pure EV may
+    re-enter when it has either >=15 currentRun points advantage, or both >=5 Today and
+    >=1 Recent points; guarded policy then gets one secondary reclaim at >=12
+    currentPower plus >=6 Recent points advantage.
+
+    None of these race-local outcomes are fed back into the trailing regime-return
+    history, preserving the strictly-older-date barrier.
+    """
+    current = choose_main_action(scored_rows, selected_numbers, policy, action)
+    row_map = {int(r["horse_number"]): r for r in scored_rows}
+
+    # D3.15: policy-day dual-EV consensus promotion.
+    if action == REGIME_ACTION_POLICY and bool(regime.enable_policy_dual_ev_override):
+        ev_main = choose_main_action(
+            scored_rows, selected_numbers, policy, REGIME_ACTION_EV
+        )
+        payout_main = choose_main_action(
+            scored_rows, selected_numbers, policy, REGIME_ACTION_PAYOUT_EV
+        )
+        if ev_main == payout_main and ev_main != current:
+            anchor = row_map.get(int(current))
+            challenger = row_map.get(int(ev_main))
+            if anchor is not None and challenger is not None:
+                run_advantage = _float(challenger.get("current_run"), 0.0) - _float(
+                    anchor.get("current_run"), 0.0
+                )
+                recent_deficit = _float(anchor.get("_recent"), 50.0) - _float(
+                    challenger.get("_recent"), 50.0
+                )
+                if (
+                    run_advantage + 1e-12
+                    >= float(regime.min_policy_override_run_advantage)
+                    and recent_deficit
+                    <= float(regime.max_policy_override_recent_deficit) + 1e-12
+                ):
+                    current = int(ev_main)
+
+    policy_main = choose_main_action(
+        scored_rows, selected_numbers, policy, REGIME_ACTION_POLICY
+    )
+
+    # D3.16: guarded-policy reliability reclaim.
+    if bool(regime.enable_policy_reliability_reclaim) and int(policy_main) != int(current):
+        policy_row = row_map.get(int(policy_main))
+        current_row = row_map.get(int(current))
+        if policy_row is not None and current_row is not None:
+            run_advantage = _float(policy_row.get("current_run"), 0.0) - _float(
+                current_row.get("current_run"), 0.0
+            )
+            recent_advantage = _float(policy_row.get("_recent"), 50.0) - _float(
+                current_row.get("_recent"), 50.0
+            )
+            power_advantage = _float(policy_row.get("current_power"), 0.0) - _float(
+                current_row.get("current_power"), 0.0
+            )
+            run_recent_reclaim = (
+                run_advantage + 1e-12 >= float(regime.min_policy_reclaim_run_advantage)
+                and recent_advantage + 1e-12
+                >= float(regime.min_policy_reclaim_recent_advantage)
+            )
+            power_reclaim = (
+                power_advantage + 1e-12 >= float(regime.min_policy_reclaim_power_advantage)
+            )
+            if run_recent_reclaim or power_reclaim:
+                current = int(policy_main)
+
+    # D3.17: final pure-EV sprint/momentum override.
+    if bool(regime.enable_final_ev_momentum_override):
+        ev_main = choose_main_action(
+            scored_rows, selected_numbers, policy, REGIME_ACTION_EV
+        )
+        if int(ev_main) != int(current):
+            current_row = row_map.get(int(current))
+            ev_row = row_map.get(int(ev_main))
+            if current_row is not None and ev_row is not None:
+                ev_run_advantage = _float(ev_row.get("current_run"), 0.0) - _float(
+                    current_row.get("current_run"), 0.0
+                )
+                ev_today_advantage = _float(ev_row.get("_today"), 50.0) - _float(
+                    current_row.get("_today"), 50.0
+                )
+                ev_recent_advantage = _float(ev_row.get("_recent"), 50.0) - _float(
+                    current_row.get("_recent"), 50.0
+                )
+                sprint_override = (
+                    ev_run_advantage + 1e-12 >= float(regime.min_final_ev_run_advantage)
+                )
+                momentum_override = (
+                    ev_today_advantage + 1e-12 >= float(regime.min_final_ev_today_advantage)
+                    and ev_recent_advantage + 1e-12
+                    >= float(regime.min_final_ev_recent_advantage)
+                )
+                if sprint_override or momentum_override:
+                    current = int(ev_main)
+
+    # D3.17: secondary policy reclaim after the EV momentum layer.
+    if bool(regime.enable_secondary_policy_reclaim) and int(policy_main) != int(current):
+        policy_row = row_map.get(int(policy_main))
+        current_row = row_map.get(int(current))
+        if policy_row is not None and current_row is not None:
+            secondary_power_advantage = _float(
+                policy_row.get("current_power"), 0.0
+            ) - _float(current_row.get("current_power"), 0.0)
+            secondary_recent_advantage = _float(
+                policy_row.get("_recent"), 50.0
+            ) - _float(current_row.get("_recent"), 50.0)
+            if (
+                secondary_power_advantage + 1e-12
+                >= float(regime.min_secondary_policy_power_advantage)
+                and secondary_recent_advantage + 1e-12
+                >= float(regime.min_secondary_policy_recent_advantage)
+            ):
+                current = int(policy_main)
+
+    return int(current)
 
 def select_regime_action(
     history_action_returns: Iterable[dict[str, float]],

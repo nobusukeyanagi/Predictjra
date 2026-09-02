@@ -14,6 +14,7 @@ from single_win_d3 import (
     choose_main,
     choose_main_action,
     select_regime_action,
+    choose_regime_main,
 )
 
 
@@ -401,6 +402,13 @@ def main() -> None:
     assert abs(regime.switch_margin - 1.05) < 1e-12
     assert abs(regime.payout_ev_min_advantage_vs_ev - 1.02) < 1e-12
     assert regime.avoid_consecutive_payout_ev is True
+    assert regime.enable_policy_dual_ev_override is True
+    assert abs(regime.min_policy_override_run_advantage - 0.10) < 1e-12
+    assert abs(regime.max_policy_override_recent_deficit - 6.0) < 1e-12
+    assert regime.enable_policy_reliability_reclaim is True
+    assert abs(regime.min_policy_reclaim_run_advantage - 0.11) < 1e-12
+    assert abs(regime.min_policy_reclaim_recent_advantage - 4.0) < 1e-12
+    assert abs(regime.min_policy_reclaim_power_advantage - 0.17) < 1e-12
     assert regime.actions == (REGIME_ACTION_POLICY, REGIME_ACTION_EV, REGIME_ACTION_PAYOUT_EV)
 
     action_rows = [
@@ -454,7 +462,181 @@ def main() -> None:
     )
     assert repeat_action == REGIME_ACTION_EV
 
-    print("OK: single-win D3.14 synthetic contract tests passed")
+    # D3.15 policy-day dual-EV currentRun consensus override.  Guarded policy keeps
+    # horse 1 because horse 2 sits outside its 9-point total-gap safe pool, while both
+    # EV views independently prefer horse 2.  A 10-point currentRun advantage with only
+    # a 6-point Recent deficit is sufficient; 9 points or a 7-point Recent deficit is not.
+    consensus_rows = [
+        {
+            "horse_number": 1, "_total": 90.0, "_recent": 90.0, "_today": 90.0,
+            "_expected_popularity": 1, "d3_win_prob": 0.35,
+            "d3_top3_prob": 0.70, "d3_edge": 1.00, "d3_ev": 0.80,
+            "d3_payout_ev": 0.70, "distance_strength": 1600 / 3600,
+            "current_run": 0.70,
+        },
+        {
+            "horse_number": 2, "_total": 80.0, "_recent": 84.0, "_today": 88.0,
+            "_expected_popularity": 5, "d3_win_prob": 0.24,
+            "d3_top3_prob": 0.60, "d3_edge": 2.80, "d3_ev": 2.20,
+            "d3_payout_ev": 2.40, "distance_strength": 1600 / 3600,
+            "current_run": 0.80,
+        },
+    ]
+    assert choose_main_action(consensus_rows, [1, 2], D3Policy(), REGIME_ACTION_POLICY) == 1
+    assert choose_main_action(consensus_rows, [1, 2], D3Policy(), REGIME_ACTION_EV) == 2
+    assert choose_main_action(consensus_rows, [1, 2], D3Policy(), REGIME_ACTION_PAYOUT_EV) == 2
+    assert choose_regime_main(
+        consensus_rows, [1, 2], D3Policy(), regime, REGIME_ACTION_POLICY
+    ) == 2
+    # Non-policy regime days are never rewritten by the policy-day override.
+    assert choose_regime_main(
+        consensus_rows, [1, 2], D3Policy(), regime, REGIME_ACTION_EV
+    ) == 2
+
+    run_boundary = [dict(consensus_rows[0]), dict(consensus_rows[1])]
+    run_boundary[1]["current_run"] = 0.79
+    assert choose_regime_main(
+        run_boundary, [1, 2], D3Policy(), regime, REGIME_ACTION_POLICY
+    ) == 1
+
+    recent_boundary = [dict(consensus_rows[0]), dict(consensus_rows[1])]
+    recent_boundary[1]["_recent"] = 83.0
+    assert choose_regime_main(
+        recent_boundary, [1, 2], D3Policy(), regime, REGIME_ACTION_POLICY
+    ) == 1
+
+    no_override = D3RegimePolicy(enable_policy_dual_ev_override=False)
+    assert choose_regime_main(
+        consensus_rows, [1, 2], D3Policy(), no_override, REGIME_ACTION_POLICY
+    ) == 1
+
+    # D3.16 final policy reliability reclaim.  On an EV-regime day, policy may reclaim
+    # the compulsory win ticket only with decisive immediate-ability evidence.
+    reclaim_rows = [
+        {
+            "horse_number": 1, "_total": 90.0, "_recent": 94.0, "_today": 90.0,
+            "_expected_popularity": 1, "d3_win_prob": 0.35, "d3_top3_prob": 0.70,
+            "d3_edge": 1.00, "d3_ev": 0.80, "d3_payout_ev": 0.70,
+            "distance_strength": 1600 / 3600, "current_run": 0.81,
+            "current_power": 0.70,
+        },
+        {
+            "horse_number": 2, "_total": 80.0, "_recent": 90.0, "_today": 88.0,
+            "_expected_popularity": 5, "d3_win_prob": 0.25, "d3_top3_prob": 0.62,
+            "d3_edge": 2.50, "d3_ev": 2.00, "d3_payout_ev": 1.40,
+            "distance_strength": 1600 / 3600, "current_run": 0.70,
+            "current_power": 0.70,
+        },
+    ]
+    assert choose_main_action(reclaim_rows, [1, 2], D3Policy(), REGIME_ACTION_EV) == 2
+    assert choose_regime_main(
+        reclaim_rows, [1, 2], D3Policy(), regime, REGIME_ACTION_EV
+    ) == 1
+
+    # Ten currentRun points are not enough at the boundary.
+    reclaim_run_boundary = [dict(reclaim_rows[0]), dict(reclaim_rows[1])]
+    reclaim_run_boundary[0]["current_run"] = 0.80
+    assert choose_regime_main(
+        reclaim_run_boundary, [1, 2], D3Policy(), regime, REGIME_ACTION_EV
+    ) == 2
+
+    # Eleven run points without four Recent points are also insufficient.
+    reclaim_recent_boundary = [dict(reclaim_rows[0]), dict(reclaim_rows[1])]
+    reclaim_recent_boundary[0]["_recent"] = 93.0
+    assert choose_regime_main(
+        reclaim_recent_boundary, [1, 2], D3Policy(), regime, REGIME_ACTION_EV
+    ) == 2
+
+    # D3.18: early power-only reclaim waits for a 17-point currentPower advantage.
+    reclaim_power = [dict(reclaim_rows[0]), dict(reclaim_rows[1])]
+    reclaim_power[0]["current_run"] = 0.70
+    reclaim_power[0]["_recent"] = 90.0
+    reclaim_power[0]["current_power"] = 0.87
+    reclaim_power[1]["current_power"] = 0.70
+    assert choose_regime_main(
+        reclaim_power, [1, 2], D3Policy(), regime, REGIME_ACTION_EV
+    ) == 1
+    reclaim_power_boundary = [dict(reclaim_power[0]), dict(reclaim_power[1])]
+    reclaim_power_boundary[0]["current_power"] = 0.86
+    assert choose_regime_main(
+        reclaim_power_boundary, [1, 2], D3Policy(), regime, REGIME_ACTION_EV
+    ) == 2
+
+    no_reclaim = D3RegimePolicy(enable_policy_reliability_reclaim=False)
+    assert choose_regime_main(
+        reclaim_rows, [1, 2], D3Policy(), no_reclaim, REGIME_ACTION_EV
+    ) == 2
+
+    # D3.17 final pure-EV sprint: after older final guards, a 15-point currentRun
+    # advantage can re-enter pure EV. Fourteen points must remain below the boundary.
+    sprint_rows = [
+        {
+            "horse_number": 1, "_total": 90.0, "_recent": 86.0, "_today": 86.0,
+            "_expected_popularity": 1, "d3_win_prob": 0.34, "d3_top3_prob": 0.70,
+            "d3_edge": 1.00, "d3_ev": 0.80, "d3_payout_ev": 0.70,
+            "distance_strength": 1600 / 3600, "current_run": 0.55, "current_power": 0.65,
+        },
+        {
+            "horse_number": 2, "_total": 80.0, "_recent": 84.0, "_today": 85.0,
+            "_expected_popularity": 5, "d3_win_prob": 0.25, "d3_top3_prob": 0.60,
+            "d3_edge": 2.80, "d3_ev": 2.20, "d3_payout_ev": 2.40,
+            "distance_strength": 1600 / 3600, "current_run": 0.70, "current_power": 0.60,
+        },
+    ]
+    v87_only = D3RegimePolicy(
+        enable_policy_dual_ev_override=False, enable_policy_reliability_reclaim=False
+    )
+    assert choose_regime_main(
+        sprint_rows, [1, 2], D3Policy(), v87_only, REGIME_ACTION_POLICY
+    ) == 2
+    sprint_boundary = [dict(sprint_rows[0]), dict(sprint_rows[1])]
+    sprint_boundary[1]["current_run"] = 0.69
+    assert choose_regime_main(
+        sprint_boundary, [1, 2], D3Policy(), v87_only, REGIME_ACTION_POLICY
+    ) == 1
+
+    # D3.17 momentum path: Today +5 and Recent +1 is sufficient even without +15 run.
+    momentum_rows = [dict(sprint_rows[0]), dict(sprint_rows[1])]
+    momentum_rows[1]["current_run"] = 0.60
+    momentum_rows[1]["_today"] = 91.0
+    momentum_rows[1]["_recent"] = 87.0
+    assert choose_regime_main(
+        momentum_rows, [1, 2], D3Policy(), v87_only, REGIME_ACTION_POLICY
+    ) == 2
+    momentum_today_boundary = [dict(momentum_rows[0]), dict(momentum_rows[1])]
+    momentum_today_boundary[1]["_today"] = 90.0
+    assert choose_regime_main(
+        momentum_today_boundary, [1, 2], D3Policy(), v87_only, REGIME_ACTION_POLICY
+    ) == 1
+    momentum_recent_boundary = [dict(momentum_rows[0]), dict(momentum_rows[1])]
+    momentum_recent_boundary[1]["_recent"] = 86.0
+    assert choose_regime_main(
+        momentum_recent_boundary, [1, 2], D3Policy(), v87_only, REGIME_ACTION_POLICY
+    ) == 1
+
+    # D3.18 secondary policy reclaim: after EV re-entry, +11 power with +6 Recent
+    # returns to guarded policy. Ten power points or only five Recent points do not.
+    secondary_rows = [dict(momentum_rows[0]), dict(momentum_rows[1])]
+    secondary_rows[0]["_recent"] = 93.0
+    secondary_rows[1]["_recent"] = 87.0
+    secondary_rows[1]["current_run"] = 0.70
+    secondary_rows[0]["current_power"] = 0.71
+    secondary_rows[1]["current_power"] = 0.60
+    assert choose_regime_main(
+        secondary_rows, [1, 2], D3Policy(), v87_only, REGIME_ACTION_POLICY
+    ) == 1
+    secondary_power_boundary = [dict(secondary_rows[0]), dict(secondary_rows[1])]
+    secondary_power_boundary[0]["current_power"] = 0.70
+    assert choose_regime_main(
+        secondary_power_boundary, [1, 2], D3Policy(), v87_only, REGIME_ACTION_POLICY
+    ) == 2
+    secondary_recent_boundary = [dict(secondary_rows[0]), dict(secondary_rows[1])]
+    secondary_recent_boundary[0]["_recent"] = 92.0
+    assert choose_regime_main(
+        secondary_recent_boundary, [1, 2], D3Policy(), v87_only, REGIME_ACTION_POLICY
+    ) == 2
+
+    print("OK: single-win D3.18 synthetic contract tests passed")
 
 
 if __name__ == "__main__":

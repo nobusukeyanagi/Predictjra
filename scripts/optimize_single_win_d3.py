@@ -34,6 +34,7 @@ from single_win_d3 import (
     REGIME_ACTION_PAYOUT_EV,
     choose_main,
     choose_main_action,
+    choose_regime_main,
     select_regime_action,
     legacy_fallback_scores,
 )
@@ -277,7 +278,7 @@ def evaluate_adaptive_single_win(
     records: list[dict],
     rmap: dict[str, dict],
 ) -> tuple[dict, list[dict], dict]:
-    """Evaluate D3.14 with a strict date barrier and a separate trifecta axis.
+    """Evaluate D3.15 with a strict date barrier and a separate trifecta axis.
 
     The compulsory 100-yen win pick may switch between the guarded D3 policy, pure D3 EV,
     and payout-prior EV according to *strictly older* trailing realized performance.
@@ -331,7 +332,7 @@ def evaluate_adaptive_single_win(
             # Keep the existing guarded D3 main as the trifecta axis.  Only the separate
             # single-win ticket follows the adaptive regime action.
             tri_main = choose_main(scored, selected, policy)
-            win_main = choose_main_action(scored, selected, policy, action)
+            win_main = choose_regime_main(scored, selected, policy, regime, action)
             second = choose_second(selected, tri_main, scored)
             rows.append({
                 "date": date_s,
@@ -375,7 +376,7 @@ def _three_block_win_rois(rows: list[dict]) -> list[float]:
 
 
 def regime_grid():
-    # D3.14 keeps the D3.13 frozen regime hyperparameters instead of re-optimizing them on each
+    # D3.18 keeps the D3.13 frozen regime hyperparameters; v84-v88 only add/rebalance final-stage guards instead of re-optimizing them on each
     # history snapshot.  The fixed values were selected only after requiring positive
     # ROI uplift versus D3.12 across three independent fixed-origin future blocks
     # (40%, 50%, and 60% training cutoffs).  Daily action selection remains adaptive;
@@ -690,7 +691,10 @@ def main() -> None:
             "trifectaAxis": "Fixed guarded D3.11 policy; adaptive single-win action cannot rewrite trifecta axes.",
             "zeroBaseCheck": (
                 "Direct D4/popularity-inclusive return rankers were tested but did not beat the "
-                "latest untouched holdout; D3 plus regime adaptation was retained."
+                "latest untouched holdout; D3 plus regime adaptation was retained. D3.15 adds a final-stage "
+                "dual-EV currentRun consensus override on policy days, D3.16 adds a final policy "
+                "reliability reclaim, D3.17 adds a pure-EV sprint/momentum override followed by "
+                "a power+recent secondary policy reclaim, and D3.18 rebalances reclaim timing."
             ),
         },
         "leakagePolicy": {
@@ -701,6 +705,22 @@ def main() -> None:
             "sameDayRegimeReturns": False,
             "trainingRule": "date < target_date only",
             "regimeRule": "Only completed dates strictly before target_date may affect action selection",
+            "policyDayOverride": (
+                "If policy is selected, d3_ev and payout_ev must agree on the same alternative; "
+                "the alternative needs >=10 currentRun points advantage and <=6 Recent-index "
+                "points deficit. Override outcomes do not feed back into regime history."
+            ),
+            "policyReliabilityReclaim": (
+                "After the final single-win horse is chosen, guarded policy may reclaim only if it has "
+                ">=11 currentRun points plus >=4 raw Recent points advantage, or >=17 currentPower "
+                "points advantage. Reclaim outcomes also do not feed back into regime history."
+            ),
+            "finalEvMomentumOverride": (
+                "After v86 reclaim, pure EV may re-enter only with >=15 currentRun points advantage, "
+                "or with both >=5 Today and >=1 Recent points advantage. Guarded policy may then "
+                "reclaim at >=11 currentPower plus >=6 Recent points advantage. These outcomes do not "
+                "feed back into regime history."
+            ),
         },
         "history": {
             "horseRows": len(rows),
