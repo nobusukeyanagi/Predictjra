@@ -25,7 +25,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: update-race-data
+  group: predictjra-data-writer
   cancel-in-progress: false
 
 jobs:
@@ -85,6 +85,7 @@ jobs:
           # A genuine no-race day must exit cleanly without weakening fail-closed behavior.
           python scripts/test_update_races_no_race.py
           python scripts/test_v55_returns_display.py
+          python scripts/test_action_push_serialization.py
 
       - name: Fetch, index and update
         shell: bash
@@ -164,7 +165,31 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/races.json data/market_history.json
           git commit -m "Update JRA race data (${{ steps.args.outputs.mode }} ${{ steps.args.outputs.date }})"
-          git push
+
+          # Normally Rebuild cannot overlap because both workflows use the same
+          # concurrency group. If main still advances because of a manual/non-workflow
+          # push, safely rebase and retry without force-pushing.
+          pushed=false
+          for attempt in 1 2 3 4; do
+            if git push origin HEAD:main; then
+              pushed=true
+              break
+            fi
+
+            echo "::warning::main advanced before race-data push (attempt $attempt/4); fetching and rebasing."
+            git fetch origin main
+            if ! git rebase origin/main; then
+              git rebase --abort || true
+              echo "::error::Race-data changes conflict with newer main. No force-push was attempted."
+              exit 1
+            fi
+            sleep $((attempt * 3))
+          done
+
+          if [[ "$pushed" != "true" ]]; then
+            echo "::error::Could not push race-data changes after 4 safe retries."
+            exit 1
+          fi
 
       - name: Build Discord notification payload
         shell: bash

@@ -41,7 +41,7 @@ permissions:
   actions: write
 
 concurrency:
-  group: rebuild-historical-predictions
+  group: predictjra-data-writer
   cancel-in-progress: false
 
 jobs:
@@ -120,6 +120,7 @@ jobs:
           python scripts/test_prediction_logic.py
           python scripts/test_popularity_v54.py
           python scripts/test_v55_returns_display.py
+          python scripts/test_action_push_serialization.py
 
       - name: Verify historical backfill implementation
         shell: bash
@@ -584,7 +585,32 @@ jobs:
             MESSAGE="Update historical JRA facts cache"
           fi
           git commit -m "$MESSAGE"
-          git push
+
+          # Another writer may have advanced main while a long Rebuild was running.
+          # The shared concurrency group prevents workflow/workflow collisions; this
+          # retry also covers non-conflicting manual pushes that land between checkout
+          # and this final commit. Never force-push or auto-resolve a real conflict.
+          pushed=false
+          for attempt in 1 2 3 4; do
+            if git push origin HEAD:main; then
+              pushed=true
+              break
+            fi
+
+            echo "::warning::main advanced before Rebuild push (attempt $attempt/4); fetching and rebasing."
+            git fetch origin main
+            if ! git rebase origin/main; then
+              git rebase --abort || true
+              echo "::error::Rebuild changes conflict with newer main. No force-push was attempted."
+              exit 1
+            fi
+            sleep $((attempt * 3))
+          done
+
+          if [[ "$pushed" != "true" ]]; then
+            echo "::error::Could not push Rebuild changes after 4 safe retries."
+            exit 1
+          fi
 
       - name: Redeploy Pages after apply
         if: >-
