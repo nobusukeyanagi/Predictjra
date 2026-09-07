@@ -1,9 +1,9 @@
 {
   "cacheVersion": "predictjra-historical-facts-v8-jra-official-executed",
-  "generatedAt": "2026-09-02T15:45:15+09:00",
+  "generatedAt": "2026-09-07T15:14:10+09:00",
   "sourceRepository": "sugaimo15/keibayosoku",
   "sourceRef": "claude/horse-racing-predictor-ak6crm",
-  "sourceCommit": "3c50160afa5e4e671ad0ab6f5c3b82cbb21e12fe",
+  "sourceCommit": "6610ef99b36879c80b4b372170ed0f7cbfb565d3",
   "availableDates": [
     "2026-01-04",
     "2026-01-05",
@@ -76,7 +76,9 @@
     "2026-08-22",
     "2026-08-23",
     "2026-08-29",
-    "2026-08-30"
+    "2026-08-30",
+    "2026-09-05",
+    "2026-09-06"
   ],
   "safeDates": [
     "2026-01-04",
@@ -150,7 +152,9 @@
     "2026-08-22",
     "2026-08-23",
     "2026-08-29",
-    "2026-08-30"
+    "2026-08-30",
+    "2026-09-05",
+    "2026-09-06"
   ],
   "skippedDates": [],
   "ignoredFiles": [
@@ -233,7 +237,9 @@
     "2026-08-22": 36,
     "2026-08-23": 36,
     "2026-08-29": 36,
-    "2026-08-30": 36
+    "2026-08-30": 36,
+    "2026-09-05": 36,
+    "2026-09-06": 36
   },
   "dateSources": {
     "2026-01-04": "result-derived-pre-race-card",
@@ -307,7 +313,9 @@
     "2026-08-22": "archived-race-card",
     "2026-08-23": "archived-race-card",
     "2026-08-29": "archived-race-card",
-    "2026-08-30": "archived-race-card"
+    "2026-08-30": "archived-race-card",
+    "2026-09-05": "archived-race-card",
+    "2026-09-06": "archived-race-card"
   },
   "resultDerivedDates": [
     "2026-01-04",
@@ -448,9 +456,11 @@
       "2026-08-22",
       "2026-08-23",
       "2026-08-29",
-      "2026-08-30"
+      "2026-08-30",
+      "2026-09-05",
+      "2026-09-06"
     ],
-    "repairedRaceCount": 267,
+    "repairedRaceCount": 269,
     "repairedRaces": [
       {
         "date": "2026-01-04",
@@ -3121,6 +3131,26 @@
         "replacedInvalidResult": true,
         "retainedExistingPayout": true,
         "source": "https://race.netkeiba.com/race/result.html?race_id=202604030401"
+      },
+      {
+        "date": "2026-09-05",
+        "raceId": "202606040101",
+        "repairKind": "full-pair",
+        "resultCreated": false,
+        "payoutCreated": false,
+        "replacedInvalidResult": true,
+        "retainedExistingPayout": true,
+        "source": "https://sports.yahoo.co.jp/keiba/race/result/2606040101"
+      },
+      {
+        "date": "2026-09-06",
+        "raceId": "202606040201",
+        "repairKind": "full-pair",
+        "resultCreated": false,
+        "payoutCreated": false,
+        "replacedInvalidResult": true,
+        "retainedExistingPayout": true,
+        "source": "https://sports.yahoo.co.jp/keiba/race/result/2606040201"
       }
     ],
     "cancelledRaceCount": 0,
@@ -3200,6 +3230,8 @@
       "2026-08-23: race enumeration source=JRA official updated program, races=36 (https://www.jra.go.jp/keiba/calendar2026/2026/8/0823.html)",
       "2026-08-29: race enumeration source=JRA official updated program, races=36 (https://www.jra.go.jp/keiba/calendar2026/2026/8/0829.html)",
       "2026-08-30: race enumeration source=JRA official updated program, races=36 (https://www.jra.go.jp/keiba/calendar2026/2026/8/0830.html)",
+      "2026-09-05: race enumeration source=JRA official updated program, races=36 (https://www.jra.go.jp/keiba/calendar2026/2026/9/0905.html)",
+      "2026-09-06: race enumeration source=JRA official updated program, races=36 (https://www.jra.go.jp/keiba/calendar2026/2026/9/0906.html)",
       "2026060101: race enumeration source=jra-official, races=12",
       "2026080101: race enumeration source=jra-official, races=12",
       "2026060102: race enumeration source=jra-official, races=12",
@@ -3397,7 +3429,13 @@
       "2026070303: race enumeration source=jra-official, races=12",
       "2026010204: race enumeration source=jra-official, races=12",
       "2026040304: race enumeration source=jra-official, races=12",
-      "2026070304: race enumeration source=jra-official, races=12"
+      "2026070304: race enumeration source=jra-official, races=12",
+      "2026010205: race enumeration source=jra-official, races=12",
+      "2026060401: race enumeration source=jra-official, races=12",
+      "2026090401: race enumeration source=jra-official, races=12",
+      "2026010206: race enumeration source=jra-official, races=12",
+      "2026060402: race enumeration source=jra-official, races=12",
+      "2026090402: race enumeration source=jra-official, races=12"
     ],
     "source": "JRA official updated program + source facts + SportsNavi/netkeiba result fallback"
   },
@@ -11753,16 +11791,52 @@
         "win_odds"
       ],
       "synthesizedReasons": []
+    },
+    {
+      "date": "2026-09-05",
+      "races": 36,
+      "cardSource": "archived-race-card",
+      "resultDerivedCards": 0,
+      "sanitizedLegacySnapshots": 36,
+      "synthesizedFromCards": 0,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ],
+      "synthesizedReasons": []
+    },
+    {
+      "date": "2026-09-06",
+      "races": 36,
+      "cardSource": "archived-race-card",
+      "resultDerivedCards": 0,
+      "sanitizedLegacySnapshots": 36,
+      "synthesizedFromCards": 0,
+      "removedColumns": [
+        "horse_weight",
+        "ml_ev",
+        "ml_rank",
+        "ml_win_prob",
+        "predicted_rank",
+        "score",
+        "win_odds"
+      ],
+      "synthesizedReasons": []
     }
   ],
-  "targetHorseCount": 9528,
-  "historicalResultFiles": 14526,
-  "cachedFileCount": 21636,
+  "targetHorseCount": 9644,
+  "historicalResultFiles": 14713,
+  "cachedFileCount": 22039,
   "archive": {
     "path": "history-source.tar.gz",
     "parts": [],
-    "sizeBytes": 13365205,
-    "sha256": "19384a6831b375e25f3de7c077f2e5a16fabd67c7f2c28e9c9e7f9a461ece046"
+    "sizeBytes": 13553296,
+    "sha256": "daf09f426b688138c6fcb429ee3a77cacd3327c8887d3f0103d983f87e66ff25"
   },
   "policy": {
     "raceEnumeration": "use exact race IDs from SportsNavi SSR meeting lists, cross-check with netkeiba static date lists, and never synthesize nonexistent 1R..12R slots",
