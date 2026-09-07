@@ -35,7 +35,7 @@ from single_win_d3 import (
     select_regime_action,
 )
 
-BRIDGE_VERSION = "predictjra-single-win-runtime-v91"
+BRIDGE_VERSION = "predictjra-single-win-runtime-v92"
 MIN_TRAIN_RACES = 180
 REFIT_EVERY_DATES = 4
 

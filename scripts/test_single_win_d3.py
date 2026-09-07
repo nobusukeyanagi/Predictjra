@@ -391,15 +391,15 @@ def main() -> None:
     asymmetric[1]["_expected_popularity"] = 8
     assert choose_main(asymmetric, [1, 2], D3Policy(**asym_base)) == 1
 
-    # D3.14 robust-regime + anti-chase defaults: the selector stays short-memory but freezes the
-    # meta-hyperparameters validated across multiple fixed-origin future blocks. It may
-    # switch the compulsory 100-yen ticket only at a 5% shrunk advantage over D3.11.
+    # D3.19 responsive-regime defaults: keep the six-day/250-race shrinkage but
+    # preserve legitimate mid-price returns up to 10x and require only a 1% shrunk
+    # advantage before an EV action may replace guarded policy.
     regime = D3RegimePolicy()
     assert regime.lookback_days == 6
     assert abs(regime.prior_races - 250.0) < 1e-12
     assert abs(regime.neutral_return_multiple - 0.80) < 1e-12
-    assert abs(regime.return_cap_multiple - 6.0) < 1e-12
-    assert abs(regime.switch_margin - 1.05) < 1e-12
+    assert abs(regime.return_cap_multiple - 10.0) < 1e-12
+    assert abs(regime.switch_margin - 1.01) < 1e-12
     assert abs(regime.payout_ev_min_advantage_vs_ev - 1.02) < 1e-12
     assert regime.avoid_consecutive_payout_ev is True
     assert regime.enable_policy_dual_ev_override is True
@@ -432,12 +432,12 @@ def main() -> None:
     assert action == REGIME_ACTION_PAYOUT_EV
     assert scores[REGIME_ACTION_PAYOUT_EV] > scores[REGIME_ACTION_POLICY] * regime.switch_margin
 
-    # A historical jackpot is capped at 6x for regime detection, even though actual ROI
+    # A historical jackpot is capped at 10x for regime detection, even though actual ROI
     # reporting elsewhere remains uncapped.
     _, jackpot_scores = select_regime_action([
         {REGIME_ACTION_POLICY: 0.0, REGIME_ACTION_EV: 0.0, REGIME_ACTION_PAYOUT_EV: 100.0}
     ], regime)
-    expected_capped = (6.0 + 250.0 * 0.80) / 251.0
+    expected_capped = (10.0 + 250.0 * 0.80) / 251.0
     assert abs(jackpot_scores[REGIME_ACTION_PAYOUT_EV] - expected_capped) < 1e-12
 
 
@@ -636,7 +636,7 @@ def main() -> None:
         secondary_recent_boundary, [1, 2], D3Policy(), v87_only, REGIME_ACTION_POLICY
     ) == 2
 
-    print("OK: single-win D3.18 synthetic contract tests passed")
+    print("OK: single-win D3.19 synthetic contract tests passed")
 
 
 if __name__ == "__main__":

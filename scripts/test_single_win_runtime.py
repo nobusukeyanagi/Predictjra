@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""v91 bridge tests: D3 winMain is independent and result labels are delayed correctly."""
+"""v92 bridge tests: D3 winMain is independent and result labels are delayed correctly."""
 from __future__ import annotations
 
 from single_win_runtime import RollingRebuildSingleWin
@@ -74,4 +74,4 @@ if __name__ == "__main__":
     for test in tests:
         test()
         print(f"PASS {test.__name__}")
-    print(f"OK: {len(tests)} v91 single-win runtime tests passed")
+    print(f"OK: {len(tests)} v92 single-win runtime tests passed")

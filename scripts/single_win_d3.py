@@ -33,7 +33,7 @@ from single_win_d2 import (
     legacy_fallback_scores as d2_legacy_fallback_scores,
 )
 
-MODEL_VERSION = "predictjra-single-win-d3-v2.8-reclaim-timing-balance"
+MODEL_VERSION = "predictjra-single-win-d3-v2.9-responsive-regime"
 
 # Critical: expected popularity and legacy singleEV are intentionally excluded here.
 # This model estimates horse ability/win chance independently of the market proxy.
@@ -111,8 +111,8 @@ class D3RegimePolicy:
     lookback_days: int = 6
     prior_races: float = 250.0
     neutral_return_multiple: float = 0.80
-    return_cap_multiple: float = 6.0
-    switch_margin: float = 1.05
+    return_cap_multiple: float = 10.0
+    switch_margin: float = 1.01
     payout_ev_min_advantage_vs_ev: float = 1.02
     avoid_consecutive_payout_ev: bool = True
     # D3.15 / v85: when the day-level regime stays on guarded policy, allow a tiny

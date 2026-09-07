@@ -376,17 +376,16 @@ def _three_block_win_rois(rows: list[dict]) -> list[float]:
 
 
 def regime_grid():
-    # D3.18 keeps the D3.13 frozen regime hyperparameters; v84-v88 only add/rebalance final-stage guards instead of re-optimizing them on each
-    # history snapshot.  The fixed values were selected only after requiring positive
-    # ROI uplift versus D3.12 across three independent fixed-origin future blocks
-    # (40%, 50%, and 60% training cutoffs).  Daily action selection remains adaptive;
-    # only the meta-hyperparameters are frozen to reduce second-order overfitting.
+    # D3.19 / v92: keep the six-day, 250-race shrunk regime but make it more responsive.
+    # The cap is widened from 6x to 10x so legitimate mid-price winners remain visible
+    # to regime detection, while the alternative-action hurdle is reduced from 5% to 1%.
+    # These two values are frozen after chronological annual replay; no per-run tuning.
     yield D3RegimePolicy(
         lookback_days=6,
         prior_races=250.0,
         neutral_return_multiple=0.80,
-        return_cap_multiple=6.0,
-        switch_margin=1.05,
+        return_cap_multiple=10.0,
+        switch_margin=1.01,
     )
 
 
