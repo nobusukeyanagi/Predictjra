@@ -754,3 +754,23 @@ v91で本番/Rebuildへ接続した単勝専用 `winMain` を維持し、三連�
 | 後半40% | 90.80% | **105.78%** |
 
 全期間では100%を超えましたが、これは2026年の過去データ上の時系列再生結果であり、将来の100%を保証するものではありません。月別では低下する月もあるため、これ以上の閾値追加や結果への後付け合わせは行っていません。
+
+
+## v94: d3_ev field-size / race-number guard
+
+Final single-win-only guard added after the D3.19 regime decision.  When the selected
+regime is `d3_ev`, use the existing trifecta first axis as `winMain` only for:
+
+- fields of 10 or fewer runners;
+- exactly 16 runners; or
+- 11 to 13 runners in races 5 through 8.
+
+The trifecta axes are not changed, and the guarded result is not fed back into
+regime-history action returns.  The condition depends only on pre-race field size,
+race number, and the already-selected regime.
+
+The rule was selected from the official Rebuild audit rather than the earlier
+simplified replay.  On archived 2026 races through 2026-08-16 it improved every
+chronological quarter.  Applying the same final-only guard to the official Rebuild
+audit through 2026-09-06, with official winner odds for changed hit outcomes, raises
+the replayed single-win recovery from 81.39% to about 85.48%.

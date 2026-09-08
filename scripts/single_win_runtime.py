@@ -29,13 +29,14 @@ from single_win_d3 import (
     MODEL_VERSION as D3_MODEL_VERSION,
     REGIME_ACTION_POLICY,
     REGIME_ACTION_PAYOUT_EV,
+    REGIME_ACTION_EV,
     choose_main_action,
     choose_regime_main,
     legacy_fallback_scores,
     select_regime_action,
 )
 
-BRIDGE_VERSION = "predictjra-single-win-runtime-v92"
+BRIDGE_VERSION = "predictjra-single-win-runtime-v94-field-size-guard"
 MIN_TRAIN_RACES = 180
 REFIT_EVERY_DATES = 4
 
@@ -73,6 +74,42 @@ def _action_mains(scored: list[dict], selected: Iterable[int], policy: D3Policy,
     }
 
 
+
+
+def apply_d3_field_size_guard(action: str, main: int, race: dict) -> tuple[int, str | None]:
+    """Use the stable trifecta main in field sizes where d3_ev underperformed.
+
+    This is a final single-win-only guard.  It never mutates trifecta axes and is not
+    fed back into regime-history action returns.  The condition uses only race-card
+    information known before the race: field size and the already-selected regime.
+    """
+    if str(action) != REGIME_ACTION_EV:
+        return int(main), None
+    try:
+        horse_count = int(race.get("horseCount") or 0)
+    except (TypeError, ValueError):
+        horse_count = 0
+    race_no = 0
+    try:
+        race_no = int(race.get("raceNo") or 0)
+    except (TypeError, ValueError):
+        race_no = 0
+    guarded_sizes = (
+        horse_count <= 10
+        or horse_count == 16
+        or (11 <= horse_count <= 13 and 5 <= race_no <= 8)
+    )
+    axes = ((race.get("prediction") or {}).get("axes") or [])
+    if not guarded_sizes or not axes:
+        return int(main), None
+    try:
+        trifecta_main = int(axes[0])
+    except (TypeError, ValueError):
+        return int(main), None
+    if trifecta_main <= 0 or trifecta_main == int(main):
+        return int(main), None
+    return trifecta_main, "d3_ev_field_size_guard"
+
 def _decision_payload(
     scored: list[dict],
     selected: list[int],
@@ -83,13 +120,17 @@ def _decision_payload(
     *,
     model_mode: str,
     training_races: int,
+    race: dict,
 ) -> dict:
     action_mains = _action_mains(scored, selected, policy, regime)
-    win_main = int(choose_regime_main(scored, selected, policy, regime, action))
+    raw_main = int(choose_regime_main(scored, selected, policy, regime, action))
+    win_main, guard = apply_d3_field_size_guard(action, raw_main, race)
     return {
         "version": BRIDGE_VERSION,
         "d3Version": D3_MODEL_VERSION,
         "main": win_main,
+        "mainBeforeFieldGuard": raw_main,
+        "fieldSizeGuard": guard,
         "action": str(action),
         "actionScores": {str(k): round(float(v), 6) for k, v in scores.items()},
         "actionMains": action_mains,
@@ -164,6 +205,7 @@ class RollingRebuildSingleWin:
             self.current_scores,
             model_mode="rolling-4-date-oof" if self.model is not None else "cold-start-fallback",
             training_races=self._training_race_count(),
+            race=race,
         )
         return int(payload["main"]), payload, rows
 
@@ -268,6 +310,7 @@ def decide_live_race(date_s: str, race: dict, context: dict) -> tuple[int, dict]
         context["scores"],
         model_mode="live-prior-history" if model is not None else "cold-start-fallback",
         training_races=int(context.get("trainingRaces") or 0),
+        race=race,
     )
     return int(payload["main"]), payload
 

@@ -2,7 +2,7 @@
 """v92 bridge tests: D3 winMain is independent and result labels are delayed correctly."""
 from __future__ import annotations
 
-from single_win_runtime import RollingRebuildSingleWin
+from single_win_runtime import RollingRebuildSingleWin, apply_d3_field_size_guard
 
 
 def sample_race(with_result: bool = False) -> dict:
@@ -69,9 +69,31 @@ def test_trifecta_axes_are_not_mutated() -> None:
     assert main in [1, 2, 3, 4, 5]
 
 
+def test_d3_field_size_guard_boundaries() -> None:
+    base = {"prediction": {"axes": [7, 3]}}
+
+    for horse_count, race_no in [(5, 1), (10, 12), (16, 1), (11, 5), (12, 6), (13, 8)]:
+        race = dict(base, horseCount=horse_count, raceNo=race_no)
+        main, guard = apply_d3_field_size_guard("d3_ev", 2, race)
+        assert main == 7
+        assert guard == "d3_ev_field_size_guard"
+
+    for horse_count, race_no in [(11, 4), (12, 9), (13, 12), (14, 6), (15, 6), (17, 6), (18, 6)]:
+        race = dict(base, horseCount=horse_count, raceNo=race_no)
+        main, guard = apply_d3_field_size_guard("d3_ev", 2, race)
+        assert main == 2
+        assert guard is None
+
+    race = dict(base, horseCount=16, raceNo=11)
+    main, guard = apply_d3_field_size_guard("policy", 2, race)
+    assert main == 2 and guard is None
+    main, guard = apply_d3_field_size_guard("payout_ev", 2, race)
+    assert main == 2 and guard is None
+
+
 if __name__ == "__main__":
-    tests = [test_finish_day_adds_result_labels, test_trifecta_axes_are_not_mutated]
+    tests = [test_finish_day_adds_result_labels, test_trifecta_axes_are_not_mutated, test_d3_field_size_guard_boundaries]
     for test in tests:
         test()
         print(f"PASS {test.__name__}")
-    print(f"OK: {len(tests)} v92 single-win runtime tests passed")
+    print(f"OK: {len(tests)} v94 single-win runtime tests passed")
