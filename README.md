@@ -285,3 +285,32 @@ Discord通知は、通常の `Update race data` によるページ公開が成�
 外部サイトのHTML構造変更、取得元の障害、JRA側の開催変更などにより取得処理の修正が必要になる場合があります。
 
 その場合も、取得できなかったデータを推測で補完したり、部分結果を正常データとして採用したりせず、原因を特定できない状態では更新を止める方針を優先します。
+
+## 開発・保守メモ（今後のロジック改善用）
+
+予想ロジック改善を繰り返しても実装が分岐しないよう、**実装の正本は `scripts/` 配下**に統一します。
+
+- `scripts/prediction_logic_candidate.py`: 指数・選出ロジックの検証候補
+- `scripts/prediction_logic_production.py`: 本番採用済みスナップショット
+- `scripts/single_win_d3.py`: 単勝専用D3のモデル・選択ロジック
+- `scripts/single_win_runtime.py`: Live / Rebuild共通のD3接続層
+- `scripts/single_win_d2.py`: D2互換・D3依存元として残す正本
+- ルートの `single_win_d2.py` / `optimize_single_win_d2.py` / `test_single_win_d2.py` は旧コマンド互換用の薄い入口だけとし、実装を複製しません。
+
+### ロジック変更前後の回帰テスト
+
+予想ロジックを触る前後は、まず次を実行します。
+
+```bash
+python scripts/run_regression_tests.py --profile quick
+```
+
+`quick` は候補/本番分離、予想エンジン、想定人気、D2/D3、単勝EV関連など、ロジック改善で壊しやすい契約をまとめて確認します。
+
+大きな変更や本番反映前は、全 `scripts/test_*.py` を対象にします。
+
+```bash
+python scripts/run_regression_tests.py --profile full
+```
+
+このランナーは `data/races.json` や本番ロジックを書き換えません。開始時に候補版と本番版が同一か差分ありかも表示するため、未採用候補を本番版と取り違えにくくします。
