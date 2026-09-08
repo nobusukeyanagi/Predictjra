@@ -1566,6 +1566,8 @@ def main() -> int:
             # is preserved exactly; only the compulsory 100-yen win ticket is reranked.
             single_win_race = {
                 "raceId": rid,
+                "raceNo": int(rid[-2:]),
+                "horseCount": int(len(card)),
                 "prediction": prediction,
                 "danger": [int(danger)],
                 "predictionDisabled": False,

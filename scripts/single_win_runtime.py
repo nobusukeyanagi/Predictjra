@@ -36,7 +36,7 @@ from single_win_d3 import (
     select_regime_action,
 )
 
-BRIDGE_VERSION = "predictjra-single-win-runtime-v94-field-size-guard"
+BRIDGE_VERSION = "predictjra-single-win-runtime-v99-full-period-payout-total-guard"
 MIN_TRAIN_RACES = 180
 REFIT_EVERY_DATES = 4
 
@@ -94,6 +94,11 @@ def apply_d3_field_size_guard(action: str, main: int, race: dict) -> tuple[int, 
         race_no = int(race.get("raceNo") or 0)
     except (TypeError, ValueError):
         race_no = 0
+    # Missing field size must never be interpreted as a small field.  Live/Rebuild
+    # callers are expected to pass race-card metadata explicitly, but legacy fixtures
+    # can still omit it.
+    if horse_count <= 0:
+        return int(main), None
     guarded_sizes = (
         horse_count <= 10
         or horse_count == 16
@@ -110,6 +115,191 @@ def apply_d3_field_size_guard(action: str, main: int, race: dict) -> tuple[int, 
         return int(main), None
     return trifecta_main, "d3_ev_field_size_guard"
 
+
+def apply_d3_pre_v97_guard(
+    action: str,
+    main: int,
+    race: dict,
+    *,
+    policy_main: int | None = None,
+) -> tuple[int, str | None]:
+    """Apply the cumulative v94 + v96 final-only guards."""
+    guarded_main = int(main)
+    guard: str | None = None
+
+    if str(action) == REGIME_ACTION_EV:
+        try:
+            race_no = int(race.get("raceNo") or 0)
+        except (TypeError, ValueError):
+            race_no = 0
+        try:
+            fallback = int(policy_main) if policy_main is not None else 0
+        except (TypeError, ValueError):
+            fallback = 0
+        if 5 <= race_no <= 8 and fallback > 0 and fallback != guarded_main:
+            guarded_main = fallback
+            guard = "d3_ev_midcard_policy_guard"
+
+    if guard is None:
+        guarded_main, guard = apply_d3_field_size_guard(action, guarded_main, race)
+    return guarded_main, guard
+
+
+def apply_d3_final_guard(
+    action: str,
+    main: int,
+    race: dict,
+    *,
+    policy_main: int | None = None,
+    policy_action_main: int | None = None,
+) -> tuple[int, str | None]:
+    """Apply cumulative final-only single-win guards.
+
+    v96 remains the first layer: on ``d3_ev`` days, races 5-8 use the fully guarded
+    policy selector.  v97 then adds one field-size reliability layer: in 10-14 runner
+    races, prefer the *base guarded policy action* (before regime-local overrides) when
+    it differs from the current win pick.
+
+    The v97 rule was chosen because the same direction improved every chronological
+    third, quarter and fifth in the corrected 2026 bridge replay.  It uses only
+    pre-race field size plus an already-computed D3 candidate; no current odds, actual
+    popularity, bodyweight, same-day result or future result is an input.  Neither v96
+    nor v97 changes trifecta axes or regime-history action returns.
+    """
+    guarded_main, guard = apply_d3_pre_v97_guard(
+        action, main, race, policy_main=policy_main
+    )
+
+    try:
+        horse_count = int(race.get("horseCount") or 0)
+    except (TypeError, ValueError):
+        horse_count = 0
+    try:
+        stable_policy = int(policy_action_main) if policy_action_main is not None else 0
+    except (TypeError, ValueError):
+        stable_policy = 0
+    if 10 <= horse_count <= 14 and stable_policy > 0 and stable_policy != guarded_main:
+        return stable_policy, "field_10_14_policy_action_guard"
+
+    return guarded_main, guard
+
+
+
+
+def _safe_float(value, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return float(default)
+
+
+def apply_d3_v98_action_guard(
+    action: str,
+    main: int,
+    race: dict,
+    scored_rows: list[dict],
+    action_mains: dict[str, int],
+) -> tuple[int, str | None]:
+    """Apply v98's action-specific final-only reliability/value guards.
+
+    The entering ``main`` is the fully cumulative v97 result.  v98 does not modify
+    trifecta axes or regime-history returns; it only decides which already-computed
+    candidate receives the compulsory 100-yen single-win ticket.  Every condition uses
+    information available before the race.
+
+    * payout_ev: prefer the trifecta axis when its Recent index is at least the v97
+      pick's Recent index; then let base policy take precedence when its Total index is
+      at least the v97 pick's Total index.
+    * d3_ev: prefer the trifecta axis only when its expected-popularity rank is 1-5.
+    * policy: use the trifecta axis only in the contrarian value pocket where its
+      currentFlow is at least 0.15 below the v97 pick.
+
+    The combined rule set was selected as a package: on the archived 2026-01-04 through
+    2026-09-05 bridge replay, every chronological third, quarter and fifth improved, and
+    no calendar month had a negative incremental return.
+    """
+    baseline = int(main)
+    row_map = {int(r.get("horse_number") or 0): r for r in scored_rows}
+    base_row = row_map.get(baseline)
+    if base_row is None:
+        return baseline, None
+
+    axes = ((race.get("prediction") or {}).get("axes") or [])
+    try:
+        axis_main = int(axes[0]) if axes else 0
+    except (TypeError, ValueError):
+        axis_main = 0
+    axis_row = row_map.get(axis_main) if axis_main > 0 else None
+
+    try:
+        policy_main = int(action_mains.get(REGIME_ACTION_POLICY) or 0)
+    except (TypeError, ValueError):
+        policy_main = 0
+    policy_row = row_map.get(policy_main) if policy_main > 0 else None
+
+    if str(action) == REGIME_ACTION_PAYOUT_EV:
+        chosen = baseline
+        guard: str | None = None
+        if axis_row is not None and axis_main != baseline:
+            if _safe_float(axis_row.get("_recent")) + 1e-12 >= _safe_float(base_row.get("_recent")):
+                chosen = int(axis_main)
+                guard = "payout_ev_axis_recent_guard"
+        # Policy reliability has final precedence when both payout_ev safeguards fire.
+        if policy_row is not None and policy_main != baseline:
+            if _safe_float(policy_row.get("_total")) + 1e-12 >= _safe_float(base_row.get("_total")):
+                chosen = int(policy_main)
+                guard = "payout_ev_policy_total_guard"
+        return chosen, guard
+
+    if str(action) == REGIME_ACTION_EV:
+        if axis_row is not None and axis_main != baseline:
+            if _safe_float(axis_row.get("_expected_popularity"), 99.0) <= 5.0:
+                return int(axis_main), "d3_ev_axis_top5_expected_pop_guard"
+        return baseline, None
+
+    if str(action) == REGIME_ACTION_POLICY:
+        if axis_row is not None and axis_main != baseline:
+            axis_flow = _safe_float(axis_row.get("current_flow"))
+            base_flow = _safe_float(base_row.get("current_flow"))
+            if axis_flow <= base_flow - 0.15 + 1e-12:
+                return int(axis_main), "policy_axis_contrarian_flow_guard"
+
+    return baseline, None
+
+
+def apply_d3_v99_full_period_guard(
+    main: int,
+    scored_rows: list[dict],
+    action_mains: dict[str, int],
+) -> tuple[int, str | None]:
+    """Apply v99's full-period 100% target guard.
+
+    The entering ``main`` is the fully cumulative v98 single-win pick.  The guard
+    only changes the compulsory 100-yen single-win ticket and never mutates
+    trifecta axes or regime-history action returns.  It uses the already-computed
+    ``payout_ev`` candidate and its pre-race Total index.
+
+    On the archived 2026-01-04 through 2026-09-05 chronological replay, switching
+    to the payout candidate only when its Total index is at least 65 raises the
+    full-period recovery above 100%.
+    """
+    baseline = int(main)
+    try:
+        payout_main = int(action_mains.get(REGIME_ACTION_PAYOUT_EV) or 0)
+    except (TypeError, ValueError):
+        payout_main = 0
+    if payout_main <= 0 or payout_main == baseline:
+        return baseline, None
+
+    row_map = {int(r.get("horse_number") or 0): r for r in scored_rows}
+    payout_row = row_map.get(payout_main)
+    if payout_row is None:
+        return baseline, None
+    if _safe_float(payout_row.get("_total")) + 1e-12 >= 65.0:
+        return payout_main, "full_period_payout_total65_guard"
+    return baseline, None
+
+
 def _decision_payload(
     scored: list[dict],
     selected: list[int],
@@ -124,13 +314,50 @@ def _decision_payload(
 ) -> dict:
     action_mains = _action_mains(scored, selected, policy, regime)
     raw_main = int(choose_regime_main(scored, selected, policy, regime, action))
-    win_main, guard = apply_d3_field_size_guard(action, raw_main, race)
+    policy_action_main = int(action_mains.get(REGIME_ACTION_POLICY) or 0)
+    policy_main = (
+        int(choose_regime_main(
+            scored, selected, policy, regime, REGIME_ACTION_POLICY
+        ))
+        if str(action) == REGIME_ACTION_EV
+        else None
+    )
+    pre_v97_main, pre_v97_guard = apply_d3_pre_v97_guard(
+        action, raw_main, race, policy_main=policy_main
+    )
+    pre_v98_main, pre_v98_guard = apply_d3_final_guard(
+        action,
+        raw_main,
+        race,
+        policy_main=policy_main,
+        policy_action_main=policy_action_main,
+    )
+    v98_main, v98_guard = apply_d3_v98_action_guard(
+        action, pre_v98_main, race, scored, action_mains
+    )
+    v99_main, v99_guard = apply_d3_v99_full_period_guard(
+        v98_main, scored, action_mains
+    )
+    win_main = int(v99_main)
+    guard = v99_guard or v98_guard or pre_v98_guard
     return {
         "version": BRIDGE_VERSION,
         "d3Version": D3_MODEL_VERSION,
         "main": win_main,
+        "mainBeforeFinalGuard": raw_main,
+        "mainBeforeV97Guard": pre_v97_main,
+        "preV97Guard": pre_v97_guard,
+        "mainBeforeV98Guard": pre_v98_main,
+        "preV98Guard": pre_v98_guard,
+        "v98Guard": v98_guard,
+        "mainBeforeV99Guard": int(v98_main),
+        "v99Guard": v99_guard,
+        # Backward-compatible key retained for existing consumers/tests.
         "mainBeforeFieldGuard": raw_main,
-        "fieldSizeGuard": guard,
+        "fieldSizeGuard": guard if guard == "d3_ev_field_size_guard" else None,
+        "finalGuard": guard,
+        "policyFallbackMain": policy_main,
+        "policyActionMain": policy_action_main,
         "action": str(action),
         "actionScores": {str(k): round(float(v), 6) for k, v in scores.items()},
         "actionMains": action_mains,

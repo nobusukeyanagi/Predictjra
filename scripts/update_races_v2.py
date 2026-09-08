@@ -263,6 +263,8 @@ def prepare_day(data: dict, target: date, diagnostics: dict) -> int:
             prediction = built["prediction"]
             single_win_input = {
                 "raceId": race_id,
+                "raceNo": int(race_no),
+                "horseCount": int(field_size),
                 "prediction": prediction,
                 "danger": built["danger"],
                 "predictionDisabled": False,

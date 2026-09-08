@@ -2,7 +2,13 @@
 """v92 bridge tests: D3 winMain is independent and result labels are delayed correctly."""
 from __future__ import annotations
 
-from single_win_runtime import RollingRebuildSingleWin, apply_d3_field_size_guard
+from single_win_runtime import (
+    RollingRebuildSingleWin,
+    apply_d3_field_size_guard,
+    apply_d3_final_guard,
+    apply_d3_v98_action_guard,
+    apply_d3_v99_full_period_guard,
+)
 
 
 def sample_race(with_result: bool = False) -> dict:
@@ -57,6 +63,12 @@ def test_finish_day_adds_result_labels() -> None:
     assert sum(int(r["is_winner"]) for r in selector.training_rows) == 1
     assert sum(int(r["is_top3"]) for r in selector.training_rows) == 3
     assert "actionReturns" in meta
+    assert "mainBeforeV97Guard" in meta
+    assert "policyActionMain" in meta
+    assert "mainBeforeV98Guard" in meta
+    assert "v98Guard" in meta
+    assert "mainBeforeV99Guard" in meta
+    assert "v99Guard" in meta
 
 
 def test_trifecta_axes_are_not_mutated() -> None:
@@ -91,9 +103,165 @@ def test_d3_field_size_guard_boundaries() -> None:
     assert main == 2 and guard is None
 
 
+def test_d3_midcard_policy_guard_boundaries() -> None:
+    base = {"prediction": {"axes": [7, 3]}, "horseCount": 16}
+
+    # v96 overrides the older field-size guard in the robust 5R-8R band.
+    for race_no in (5, 6, 7, 8):
+        race = dict(base, raceNo=race_no)
+        main, guard = apply_d3_final_guard(
+            "d3_ev", 2, race, policy_main=5
+        )
+        assert main == 5
+        assert guard == "d3_ev_midcard_policy_guard"
+
+    # Adjacent races retain v94 behavior; 16 runners therefore fall back to axis 7.
+    for race_no in (4, 9):
+        race = dict(base, raceNo=race_no)
+        main, guard = apply_d3_final_guard(
+            "d3_ev", 2, race, policy_main=5
+        )
+        assert main == 7
+        assert guard == "d3_ev_field_size_guard"
+
+    # Non-d3_ev regimes are unaffected by v96.
+    race = dict(base, raceNo=6)
+    main, guard = apply_d3_final_guard("policy", 2, race, policy_main=5)
+    assert main == 2 and guard is None
+
+    # Missing fallback remains safe and preserves the cumulative v94 guard.
+    main, guard = apply_d3_final_guard("d3_ev", 2, race)
+    assert main == 7 and guard == "d3_ev_field_size_guard"
+
+
+def test_v97_field_policy_guard_boundaries() -> None:
+    # v97 is a final-only reliability layer for medium fields.
+    for action in ("policy", "d3_ev", "payout_ev"):
+        for horse_count in (10, 11, 12, 13, 14):
+            race = {
+                "prediction": {"axes": [7, 3]},
+                "horseCount": horse_count,
+                "raceNo": 10,
+            }
+            main, guard = apply_d3_final_guard(
+                action, 2, race, policy_main=5, policy_action_main=6
+            )
+            assert main == 6
+            assert guard == "field_10_14_policy_action_guard"
+
+    # Adjacent field sizes preserve the cumulative v96/v94 result.
+    race = {"prediction": {"axes": [7, 3]}, "horseCount": 15, "raceNo": 10}
+    main, guard = apply_d3_final_guard(
+        "policy", 2, race, policy_action_main=6
+    )
+    assert main == 2 and guard is None
+
+    # If the stable policy already matches, do not manufacture a guard marker.
+    race = {"prediction": {"axes": [7, 3]}, "horseCount": 12, "raceNo": 10}
+    main, guard = apply_d3_final_guard(
+        "policy", 2, race, policy_action_main=2
+    )
+    assert main == 2 and guard is None
+
+
+
+def _v98_scored() -> list[dict]:
+    return [
+        {"horse_number": 1, "_recent": 70, "_total": 75, "_expected_popularity": 7, "current_flow": 0.70},
+        {"horse_number": 2, "_recent": 72, "_total": 74, "_expected_popularity": 4, "current_flow": 0.50},
+        {"horse_number": 3, "_recent": 68, "_total": 76, "_expected_popularity": 3, "current_flow": 0.66},
+    ]
+
+
+def test_v98_action_specific_guards() -> None:
+    race = {"prediction": {"axes": [2, 3]}, "horseCount": 16, "raceNo": 10}
+    scored = _v98_scored()
+
+    # payout_ev: axis Recent support fires first.
+    main, guard = apply_d3_v98_action_guard(
+        "payout_ev", 1, race, scored, {"policy": 1}
+    )
+    assert main == 2 and guard == "payout_ev_axis_recent_guard"
+
+    # payout_ev: a distinct policy horse with Total support has final precedence.
+    main, guard = apply_d3_v98_action_guard(
+        "payout_ev", 1, race, scored, {"policy": 3}
+    )
+    assert main == 3 and guard == "payout_ev_policy_total_guard"
+
+    # d3_ev: axis is eligible only inside expected-popularity ranks 1-5.
+    main, guard = apply_d3_v98_action_guard(
+        "d3_ev", 1, race, scored, {"policy": 3}
+    )
+    assert main == 2 and guard == "d3_ev_axis_top5_expected_pop_guard"
+
+    scored_tail = [dict(x) for x in scored]
+    scored_tail[1]["_expected_popularity"] = 6
+    main, guard = apply_d3_v98_action_guard(
+        "d3_ev", 1, race, scored_tail, {"policy": 3}
+    )
+    assert main == 1 and guard is None
+
+    # policy: 0.20 lower currentFlow is inside the contrarian pocket.
+    main, guard = apply_d3_v98_action_guard(
+        "policy", 1, race, scored, {"policy": 3}
+    )
+    assert main == 2 and guard == "policy_axis_contrarian_flow_guard"
+
+    scored_near = [dict(x) for x in scored]
+    scored_near[1]["current_flow"] = 0.56
+    main, guard = apply_d3_v98_action_guard(
+        "policy", 1, race, scored_near, {"policy": 3}
+    )
+    assert main == 1 and guard is None
+
+def test_missing_field_size_is_not_treated_as_small_field() -> None:
+    race = {"prediction": {"axes": [7, 3]}, "raceNo": 10}
+    main, guard = apply_d3_field_size_guard("d3_ev", 2, race)
+    assert main == 2 and guard is None
+
+
+def test_v99_full_period_payout_total_guard() -> None:
+    scored = [
+        {"horse_number": 1, "_total": 72},
+        {"horse_number": 2, "_total": 65},
+        {"horse_number": 3, "_total": 64},
+    ]
+
+    # Boundary 65 is included.
+    main, guard = apply_d3_v99_full_period_guard(
+        1, scored, {"payout_ev": 2}
+    )
+    assert main == 2
+    assert guard == "full_period_payout_total65_guard"
+
+    # 64 remains on the cumulative v98 pick.
+    main, guard = apply_d3_v99_full_period_guard(
+        1, scored, {"payout_ev": 3}
+    )
+    assert main == 1 and guard is None
+
+    # Matching or missing candidates never manufacture a guard marker.
+    main, guard = apply_d3_v99_full_period_guard(
+        1, scored, {"payout_ev": 1}
+    )
+    assert main == 1 and guard is None
+    main, guard = apply_d3_v99_full_period_guard(1, scored, {})
+    assert main == 1 and guard is None
+
+
 if __name__ == "__main__":
-    tests = [test_finish_day_adds_result_labels, test_trifecta_axes_are_not_mutated, test_d3_field_size_guard_boundaries]
+    tests = [
+        test_finish_day_adds_result_labels,
+        test_trifecta_axes_are_not_mutated,
+        test_d3_field_size_guard_boundaries,
+        test_d3_midcard_policy_guard_boundaries,
+        test_v97_field_policy_guard_boundaries,
+        test_v98_action_specific_guards,
+        test_v99_full_period_payout_total_guard,
+        test_missing_field_size_is_not_treated_as_small_field,
+    ]
     for test in tests:
         test()
         print(f"PASS {test.__name__}")
-    print(f"OK: {len(tests)} v94 single-win runtime tests passed")
+    print(f"OK: {len(tests)} v99 single-win runtime tests passed")
