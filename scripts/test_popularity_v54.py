@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 from pathlib import Path
 
 from joblib import load
@@ -85,10 +84,10 @@ def validate_top3_overlap(meta: dict) -> float:
             f"({rate:.4f} < {TOP3_OVERLAP_TARGET:.4f}); continuing because it remains "
             f"above the {TOP3_OVERLAP_HARD_FLOOR:.0%} hard floor."
         )
-        if os.environ.get("GITHUB_ACTIONS", "").lower() == "true":
-            print(f"::warning::{message}")
-        else:
-            print(f"WARNING: {message}")
+        # Keep this as ordinary log output. GitHub's ::warning:: command creates an
+        # Annotations warning even though 72% is only a soft quality target. The 70%
+        # hard floor above remains a real failure and still aborts the workflow.
+        print(f"INFO: {message}")
 
     return rate
 

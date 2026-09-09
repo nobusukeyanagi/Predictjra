@@ -634,7 +634,7 @@ def sanitize_card(card: pd.DataFrame) -> pd.DataFrame:
 def build_race_model(source_root: Path, date_s: str, pred_path: Path, history: pd.DataFrame, time_baselines: dict | None = None) -> RaceModel:
     race_id = pred_path.stem
     card_path = source_root / "data" / "race_cards" / date_s.replace("-", "") / f"{race_id}.csv"
-    result_path = source_root / "data" / "race_results" / "2026" / f"{race_id}.csv"
+    result_path = source_root / "data" / "race_results" / race_id[:4] / f"{race_id}.csv"
     payout_path = source_root / "data" / "race_payouts" / f"{race_id}.csv"
 
     card = sanitize_card(read_csv(card_path))
@@ -1102,7 +1102,7 @@ def build_debut_result_only(source_root: Path, date_s: str, pred_path: Path) -> 
     """Build a display-only row for a 新馬戦 without running any prediction logic."""
     race_id = pred_path.stem
     card_path = source_root / "data" / "race_cards" / date_s.replace("-", "") / f"{race_id}.csv"
-    result_path = source_root / "data" / "race_results" / "2026" / f"{race_id}.csv"
+    result_path = source_root / "data" / "race_results" / race_id[:4] / f"{race_id}.csv"
     payout_path = source_root / "data" / "race_payouts" / f"{race_id}.csv"
 
     card = sanitize_card(read_csv(card_path))

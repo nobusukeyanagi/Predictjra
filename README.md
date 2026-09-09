@@ -59,6 +59,7 @@ GitHub Pages + GitHub Actions で、JRAの出走情報を取得し、予想・�
 - 過去オッズ履歴は `data/market_history.json` に保持し、対象日以上の日付をコード上で拒否します。
 - 検証方式は **expanding-window（過去→未来）**。同日および未来日の確定人気は教師に使いません。
 - 新馬戦を除く2,094レースの検証用データで、想定人気Top3一致率 **72.29%** を確認しています。
+- Top3一致率の **72%は品質目標、70%はハードフロア**です。70%以上72%未満は通常ログ（INFO）のみとし、GitHub ActionsのWarning注釈は作りません。70%未満は従来どおり検証失敗にします。
 - 分類器は `HistGradientBoostingClassifier`。モデル本体は `data/popularity_model_v54.joblib`、説明・監査情報は `data/popularity_model.json` に保存します。
 
 ### 新馬戦
@@ -146,17 +147,26 @@ Rebuildでは新馬戦も結果表示専用行として復元し、`predictionDi
 
 採用するときだけ `mode = apply` を実行します。`apply` では、候補版を本番版へ昇格させ、同じロジックで過去データを再計算してcommitします。本番データが変わった場合はGitHub Pagesも再公開されます。Rebuildによる公開ではDiscord通知を送りません。
 
-## Historical facts cache — v8
+## Historical facts cache — v9
 
 過去の出走情報・結果などの事実データは `data/history_cache/` に保存します。
 
-現在のキャッシュ形式は **`predictjra-historical-facts-v8-jra-official-executed`** です。
+現在のキャッシュ形式は **`predictjra-historical-facts-v9-2025-backfill`** です。
 
 ### 対象期間
 
-- 2026年の確定result/payoutを実際の日付で列挙し、**2026-01-04（2026年JRA最初の開催日）以降**を対象にします。
+- 2025年・2026年の確定result/payoutを実際の日付で列挙し、**2025-01-05（2025年JRA最初の開催日）以降**を対象にします。
 - 保存済みの正規race cardがある日はそのrace cardを優先します。
 - race cardが保存されていない過去日は、確定resultから **レース前に確定していた固定項目だけ** を抽出してrace cardを再構成します。
+
+### 2025年データの初回追加手順
+
+v105反映後、GitHub Actions の `Rebuild historical predictions` を次の順に実行します。
+
+1. まず検証: `scope=range` / `start_date=2025-01-01` / `end_date=2025-12-31` / `mode=validate` / `cache_policy=refresh`
+2. 成功後に本番反映: `scope=all` / `mode=apply` / `cache_policy=auto`
+
+`v9` へのキャッシュVersion更新でも旧v8キャッシュは自動的にrefresh対象になります。`all` は2025-01-05以降の完全検証済み開催日を対象にします。
 
 再構成時に使用できる主な固定項目:
 

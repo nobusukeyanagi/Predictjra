@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Focused leakage/completeness/cancellation tests for historical backfill v8."""
+"""Focused leakage/completeness/cancellation tests for historical backfill v9."""
 from __future__ import annotations
 
 import tarfile
@@ -224,30 +224,49 @@ def test_one_fetch_failure_does_not_disable_later_repairs() -> None:
             assert (payout_dir / f"{rid}.csv").is_file()
 
 
-def test_full_cache_build_accepts_verified_shortened_day_and_has_zero_skips() -> None:
+def test_full_cache_build_accepts_multiyear_2025_2026_history() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp) / "source"
         cache = Path(tmp) / "cache"
         (root / "data" / "race_cards").mkdir(parents=True)
-        result_dir = root / "data" / "race_results" / "2026"
         payout_dir = root / "data" / "race_payouts"
-        result_dir.mkdir(parents=True)
         payout_dir.mkdir(parents=True)
-        for race_no in range(1, 8):
-            rid = f"2026060101{race_no:02d}"
-            sample_result(rid, "2026-01-04").to_csv(result_dir / f"{rid}.csv", index=False, encoding="utf-8-sig")
-            sample_payout(rid).to_csv(payout_dir / f"{rid}.csv", index=False, encoding="utf-8-sig")
+
+        fixtures = [
+            ("2025-01-05", "2025060101", "2025"),
+            ("2026-01-04", "2026060101", "2026"),
+        ]
+        for race_date, prefix, year in fixtures:
+            result_dir = root / "data" / "race_results" / year
+            result_dir.mkdir(parents=True)
+            for race_no in range(1, 8):
+                rid = f"{prefix}{race_no:02d}"
+                sample_result(rid, race_date).to_csv(
+                    result_dir / f"{rid}.csv", index=False, encoding="utf-8-sig"
+                )
+                sample_payout(rid).to_csv(
+                    payout_dir / f"{rid}.csv", index=False, encoding="utf-8-sig"
+                )
 
         manifest = bhc.build_cache(root, cache, web_discovery=False)
-        assert manifest["safeDates"] == ["2026-01-04"]
+        assert manifest["cacheVersion"] == bhc.CACHE_VERSION
+        assert manifest["safeDates"] == ["2025-01-05", "2026-01-04"]
         assert manifest["skippedDates"] == []
+        assert manifest["dateRaceCounts"]["2025-01-05"] == 7
         assert manifest["dateRaceCounts"]["2026-01-04"] == 7
+
         with tarfile.open(cache / "history-source.tar.gz", "r:gz") as tf:
-            member = tf.extractfile("data/race_cards/20260104/202606010101.csv")
-            assert member is not None
-            header = member.read().decode("utf-8-sig").splitlines()[0].split(",")
-        assert not (bhc.PROHIBITED_CURRENT_COLUMNS & set(header))
-        assert "finish_position" not in header
+            for year, date_s, rid in [
+                ("2025", "20250105", "202506010101"),
+                ("2026", "20260104", "202606010101"),
+            ]:
+                result_member = tf.getmember(f"data/race_results/{year}/{rid}.csv")
+                assert result_member is not None
+                card_member = tf.extractfile(f"data/race_cards/{date_s}/{rid}.csv")
+                assert card_member is not None
+                header = card_member.read().decode("utf-8-sig").splitlines()[0].split(",")
+                assert not (bhc.PROHIBITED_CURRENT_COLUMNS & set(header))
+                assert "finish_position" not in header
 
 
 def test_netkeiba_parser_still_works() -> None:
@@ -331,11 +350,12 @@ def test_cancelled_missing_result_is_removed_not_unresolved() -> None:
         assert info["cancelled"][0]["raceId"] == rid
         assert rid not in sum(info["expectedByDate"].values(), [])
 
+
 def main() -> int:
     tests = [v for k, v in globals().items() if k.startswith("test_") and callable(v)]
     for test in sorted(tests, key=lambda f: f.__name__):
         test()
-    print(f"OK: {len(tests)} historical backfill v8 tests passed")
+    print(f"OK: {len(tests)} historical backfill v9 tests passed")
     return 0
 
 

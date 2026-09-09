@@ -35,7 +35,7 @@ import requests
 from bs4 import BeautifulSoup
 
 JST = ZoneInfo("Asia/Tokyo")
-CACHE_VERSION = "predictjra-historical-facts-v8-jra-official-executed"
+CACHE_VERSION = "predictjra-historical-facts-v9-2025-backfill"
 SOURCE_REPO = "sugaimo15/keibayosoku"
 SOURCE_REF = "claude/horse-racing-predictor-ak6crm"
 
@@ -186,8 +186,8 @@ RESULT_CARD_COLUMNS = [
 RESULT_REQUIRED_COLUMNS = set(RESULT_CARD_COLUMNS) | {
     "date", "finish_position", "popularity", "win_odds", "time",
 }
-BACKFILL_START = date(2026, 1, 1)
-EXPECTED_FIRST_JRA_DATE = date(2026, 1, 4)
+BACKFILL_START = date(2025, 1, 1)
+EXPECTED_FIRST_JRA_DATE = date(2025, 1, 5)
 
 
 def _one_value(df: pd.DataFrame, column: str, race_id: str) -> str:
@@ -379,37 +379,42 @@ def _observed_meeting_slots(
     end: date,
 ) -> tuple[dict[str, dict], list[str]]:
     """Return observed meeting-day prefixes without inventing missing race numbers."""
-    result_root = source_root / "data" / "race_results" / str(start.year)
-    if not result_root.is_dir():
-        raise FileNotFoundError(result_root)
+    result_base = source_root / "data" / "race_results"
+    result_roots: list[Path] = []
+    for year in range(start.year, end.year + 1):
+        result_root = result_base / str(year)
+        if not result_root.is_dir():
+            raise FileNotFoundError(result_root)
+        result_roots.append(result_root)
 
     slots: dict[str, dict] = {}
     warnings: list[str] = []
-    for path in sorted(result_root.glob("*.csv")):
-        rid = path.stem
-        if not is_central_jra_race_id(rid):
-            continue
-        try:
-            result = read_csv(path)
-            date_s = result_date(result, rid)
-            d = pd.Timestamp(date_s).date()
-        except Exception as exc:  # noqa: BLE001
-            warnings.append(
-                f"{rid}: cannot read date while enumerating source: "
-                f"{type(exc).__name__}: {exc}"
-            )
-            continue
-        if not (start <= d <= end):
-            continue
-        prefix = rid[:10]
-        slot = slots.setdefault(prefix, {"date": date_s, "observed": set()})
-        if slot["date"] != date_s:
-            warnings.append(
-                f"{prefix}: meeting slot maps to multiple dates "
-                f"{slot['date']} and {date_s}"
-            )
-            continue
-        slot["observed"].add(rid)
+    for result_root in result_roots:
+        for path in sorted(result_root.glob("*.csv")):
+            rid = path.stem
+            if not is_central_jra_race_id(rid):
+                continue
+            try:
+                result = read_csv(path)
+                date_s = result_date(result, rid)
+                d = pd.Timestamp(date_s).date()
+            except Exception as exc:  # noqa: BLE001
+                warnings.append(
+                    f"{rid}: cannot read date while enumerating source: "
+                    f"{type(exc).__name__}: {exc}"
+                )
+                continue
+            if not (start <= d <= end):
+                continue
+            prefix = rid[:10]
+            slot = slots.setdefault(prefix, {"date": date_s, "observed": set()})
+            if slot["date"] != date_s:
+                warnings.append(
+                    f"{prefix}: meeting slot maps to multiple dates "
+                    f"{slot['date']} and {date_s}"
+                )
+                continue
+            slot["observed"].add(rid)
     if not slots:
         raise RuntimeError("No central-JRA meeting slots were discovered from the result archive")
     return slots, warnings
@@ -791,17 +796,22 @@ def restore_existing_cache_facts(cache_dir: Path, source_root: Path) -> dict:
 
             restored_results = 0
             restored_payouts = 0
-            old_results = extract / "data" / "race_results" / "2026"
-            if old_results.is_dir():
-                dst_dir = source_root / "data" / "race_results" / "2026"
-                dst_dir.mkdir(parents=True, exist_ok=True)
-                for src in old_results.glob("*.csv"):
-                    if not is_central_jra_race_id(src.stem):
+            old_results_base = extract / "data" / "race_results"
+            if old_results_base.is_dir():
+                for old_results in sorted(old_results_base.iterdir()):
+                    if not old_results.is_dir() or not re.fullmatch(r"20\d{2}", old_results.name):
                         continue
-                    dst = dst_dir / src.name
-                    if not dst.exists():
-                        shutil.copy2(src, dst)
-                        restored_results += 1
+                    if int(old_results.name) < BACKFILL_START.year:
+                        continue
+                    dst_dir = source_root / "data" / "race_results" / old_results.name
+                    dst_dir.mkdir(parents=True, exist_ok=True)
+                    for src in old_results.glob("*.csv"):
+                        if not is_central_jra_race_id(src.stem):
+                            continue
+                        dst = dst_dir / src.name
+                        if not dst.exists():
+                            shutil.copy2(src, dst)
+                            restored_results += 1
             old_payouts = extract / "data" / "race_payouts"
             if old_payouts.is_dir():
                 dst_dir = source_root / "data" / "race_payouts"
@@ -1440,15 +1450,16 @@ def repair_result_archive_from_web(
     repaired: list[dict] = []
     unresolved: list[dict] = []
     cancelled: list[dict] = []
-    result_root = source_root / "data" / "race_results" / str(start.year)
+    result_base = source_root / "data" / "race_results"
     payout_root = source_root / "data" / "race_payouts"
-    result_root.mkdir(parents=True, exist_ok=True)
+    result_base.mkdir(parents=True, exist_ok=True)
     payout_root.mkdir(parents=True, exist_ok=True)
 
     for date_s, ids in expected_by_date.items():
         target = pd.Timestamp(date_s).date()
         for rid in ids:
-            result_path = result_root / f"{rid}.csv"
+            result_path = result_base / rid[:4] / f"{rid}.csv"
+            result_path.parent.mkdir(parents=True, exist_ok=True)
             payout_path = payout_root / f"{rid}.csv"
 
             existing_result: pd.DataFrame | None = None
@@ -1646,7 +1657,7 @@ def inspect_result_backfill(
     expected_by_date: dict[str, list[str]] | None = None,
 ) -> dict[str, dict]:
     """Index valid central-JRA result/payout pairs and quarantine broken dates."""
-    result_root = source_root / "data" / "race_results" / "2026"
+    result_root = source_root / "data" / "race_results"
     if not result_root.is_dir():
         raise FileNotFoundError(result_root)
 
@@ -1661,7 +1672,7 @@ def inspect_result_backfill(
         for date_s in expected_by_date
     }
 
-    for path in sorted(result_root.glob("*.csv")):
+    for path in sorted(result_root.glob("20[0-9][0-9]/*.csv")):
         rid = path.stem
         if not is_central_jra_race_id(rid):
             continue
@@ -1771,30 +1782,40 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
-def latest_2026_source_date(source_root: Path) -> date:
+def latest_historical_source_date(source_root: Path) -> date:
+    """Return the latest archived JRA date at or after the configured backfill start."""
     dates: list[date] = []
     card_root = source_root / "data" / "race_cards"
     if card_root.is_dir():
         for child in card_root.iterdir():
-            if child.is_dir() and re.fullmatch(r"2026\d{4}", child.name):
+            if child.is_dir() and re.fullmatch(r"20\d{6}", child.name):
                 try:
-                    dates.append(datetime.strptime(child.name, "%Y%m%d").date())
+                    d = datetime.strptime(child.name, "%Y%m%d").date()
                 except ValueError:
-                    pass
-    result_root = source_root / "data" / "race_results" / "2026"
+                    continue
+                if d >= EXPECTED_FIRST_JRA_DATE:
+                    dates.append(d)
+
+    result_root = source_root / "data" / "race_results"
     if result_root.is_dir():
-        for path in result_root.glob("*.csv"):
+        for path in result_root.glob("20[0-9][0-9]/*.csv"):
             if not CANONICAL_RACE_FILE.fullmatch(path.name):
                 continue
             try:
-                dates.append(datetime.strptime(result_date(read_csv(path), path.stem), "%Y-%m-%d").date())
+                d = datetime.strptime(result_date(read_csv(path), path.stem), "%Y-%m-%d").date()
             except Exception:
                 continue
+            if d >= EXPECTED_FIRST_JRA_DATE:
+                dates.append(d)
+
     if not dates:
-        raise RuntimeError("Cannot determine latest 2026 historical source date")
+        raise RuntimeError("Cannot determine latest historical JRA source date")
     latest = max(dates)
     if latest < EXPECTED_FIRST_JRA_DATE:
-        raise RuntimeError(f"Latest source date {latest} predates 2026 JRA season")
+        raise RuntimeError(
+            f"Latest source date {latest} predates configured JRA backfill start "
+            f"{EXPECTED_FIRST_JRA_DATE}"
+        )
     return latest
 
 
@@ -1812,7 +1833,7 @@ def build_cache(
     # race IDs from observed meeting slots and repair only scattered missing files.
     # Static netkeiba DB lists are a cross-check, never a hard dependency.
     cache_restore = restore_existing_cache_facts(cache_dir, source_root)
-    latest = latest_2026_source_date(source_root)
+    latest = latest_historical_source_date(source_root)
     if web_discovery:
         web_repair = repair_result_archive_from_web(
             source_root,
@@ -1868,9 +1889,12 @@ def build_cache(
         if not any(card_dir.glob("*.csv")):
             continue
         try:
-            date_s = datetime.strptime(card_dir.name, "%Y%m%d").date().isoformat()
+            card_date = datetime.strptime(card_dir.name, "%Y%m%d").date()
         except ValueError:
             continue
+        if not (EXPECTED_FIRST_JRA_DATE <= card_date <= latest):
+            continue
+        date_s = card_date.isoformat()
         inspection = inspect_card_date(source_root, card_dir)
         card_inspections[date_s] = inspection
         if inspection["ignoredFiles"]:
@@ -1962,7 +1986,7 @@ def build_cache(
 
             for name in race_names:
                 rid = Path(name).stem
-                result_path = source_root / "data" / "race_results" / "2026" / f"{rid}.csv"
+                result_path = source_root / "data" / "race_results" / rid[:4] / f"{rid}.csv"
                 payout_path = source_root / "data" / "race_payouts" / f"{rid}.csv"
                 for path in (result_path, payout_path):
                     if not path.exists():
