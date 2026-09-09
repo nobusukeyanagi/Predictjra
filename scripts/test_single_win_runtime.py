@@ -8,6 +8,11 @@ from single_win_runtime import (
     apply_d3_final_guard,
     apply_d3_v98_action_guard,
     apply_d3_v99_full_period_guard,
+    apply_d3_v100_policy_r12_guard,
+    apply_d3_v101_policy_r7_second_axis_guard,
+    apply_d3_v102_policy_r2_second_axis_guard,
+    apply_d3_v103_d3ev_r7_second_axis_guard,
+    apply_d3_v104_d3ev_r3_second_axis_guard,
 )
 
 
@@ -69,6 +74,15 @@ def test_finish_day_adds_result_labels() -> None:
     assert "v98Guard" in meta
     assert "mainBeforeV99Guard" in meta
     assert "v99Guard" in meta
+    assert "mainBeforeV100Guard" in meta
+    assert "v100Guard" in meta
+    assert "mainBeforeV101Guard" in meta
+    assert "v101Guard" in meta
+    assert "mainBeforeV102Guard" in meta
+    assert "v102Guard" in meta
+    assert "mainBeforeV103Guard" in meta
+    assert "v103Guard" in meta
+    assert "v104Guard" in meta
 
 
 def test_trifecta_axes_are_not_mutated() -> None:
@@ -215,6 +229,138 @@ def test_v98_action_specific_guards() -> None:
     )
     assert main == 1 and guard is None
 
+def test_v100_policy_r12_axis_guard() -> None:
+    race = {"prediction": {"axes": [7, 3]}, "raceNo": 12, "horseCount": 16}
+
+    main, guard = apply_d3_v100_policy_r12_guard("policy", 2, race)
+    assert main == 7
+    assert guard == "policy_r12_axis_guard"
+
+    # Adjacent race numbers and other regime actions are untouched.
+    for race_no in (11, 13):
+        main, guard = apply_d3_v100_policy_r12_guard(
+            "policy", 2, dict(race, raceNo=race_no)
+        )
+        assert main == 2 and guard is None
+    for action in ("d3_ev", "payout_ev"):
+        main, guard = apply_d3_v100_policy_r12_guard(action, 2, race)
+        assert main == 2 and guard is None
+
+    # If the established axis already matches the v99 final pick, preserve it without
+    # creating a misleading guard marker.
+    main, guard = apply_d3_v100_policy_r12_guard("policy", 7, race)
+    assert main == 7 and guard is None
+
+    # Missing/invalid axis must fail closed.
+    main, guard = apply_d3_v100_policy_r12_guard(
+        "policy", 2, {"prediction": {"axes": []}, "raceNo": 12}
+    )
+    assert main == 2 and guard is None
+
+
+
+def test_v101_policy_r7_second_axis_guard() -> None:
+    race = {"prediction": {"axes": [7, 3]}, "raceNo": 7, "horseCount": 16}
+
+    main, guard = apply_d3_v101_policy_r7_second_axis_guard("policy", 2, race)
+    assert main == 3
+    assert guard == "policy_r7_second_axis_guard"
+
+    # Adjacent race numbers and other actions are untouched.
+    for race_no in (6, 8):
+        main, guard = apply_d3_v101_policy_r7_second_axis_guard(
+            "policy", 2, dict(race, raceNo=race_no)
+        )
+        assert main == 2 and guard is None
+    for action in ("d3_ev", "payout_ev"):
+        main, guard = apply_d3_v101_policy_r7_second_axis_guard(action, 2, race)
+        assert main == 2 and guard is None
+
+    # Matching/missing second axes fail closed without a misleading marker.
+    main, guard = apply_d3_v101_policy_r7_second_axis_guard("policy", 3, race)
+    assert main == 3 and guard is None
+    main, guard = apply_d3_v101_policy_r7_second_axis_guard(
+        "policy", 2, {"prediction": {"axes": [7]}, "raceNo": 7}
+    )
+    assert main == 2 and guard is None
+
+
+def test_v102_policy_r2_second_axis_guard() -> None:
+    race = {"prediction": {"axes": [7, 3]}, "raceNo": 2, "horseCount": 16}
+
+    main, guard = apply_d3_v102_policy_r2_second_axis_guard("policy", 2, race)
+    assert main == 3
+    assert guard == "policy_r2_second_axis_guard"
+
+    # Adjacent race numbers and other actions are untouched.
+    for race_no in (1, 3):
+        main, guard = apply_d3_v102_policy_r2_second_axis_guard(
+            "policy", 2, dict(race, raceNo=race_no)
+        )
+        assert main == 2 and guard is None
+    for action in ("d3_ev", "payout_ev"):
+        main, guard = apply_d3_v102_policy_r2_second_axis_guard(action, 2, race)
+        assert main == 2 and guard is None
+
+    # Matching/missing second axes fail closed without a misleading marker.
+    main, guard = apply_d3_v102_policy_r2_second_axis_guard("policy", 3, race)
+    assert main == 3 and guard is None
+    main, guard = apply_d3_v102_policy_r2_second_axis_guard(
+        "policy", 2, {"prediction": {"axes": [7]}, "raceNo": 2}
+    )
+    assert main == 2 and guard is None
+
+
+
+def test_v103_d3ev_r7_second_axis_guard() -> None:
+    race = {"prediction": {"axes": [7, 3]}, "raceNo": 7, "horseCount": 16}
+
+    main, guard = apply_d3_v103_d3ev_r7_second_axis_guard("d3_ev", 2, race)
+    assert main == 3
+    assert guard == "d3_ev_r7_second_axis_guard"
+
+    # Adjacent race numbers and other actions are untouched.
+    for race_no in (6, 8):
+        main, guard = apply_d3_v103_d3ev_r7_second_axis_guard(
+            "d3_ev", 2, dict(race, raceNo=race_no)
+        )
+        assert main == 2 and guard is None
+    for action in ("policy", "payout_ev"):
+        main, guard = apply_d3_v103_d3ev_r7_second_axis_guard(action, 2, race)
+        assert main == 2 and guard is None
+
+    # Matching/missing second axes fail closed without a misleading marker.
+    main, guard = apply_d3_v103_d3ev_r7_second_axis_guard("d3_ev", 3, race)
+    assert main == 3 and guard is None
+    main, guard = apply_d3_v103_d3ev_r7_second_axis_guard(
+        "d3_ev", 2, {"prediction": {"axes": [7]}, "raceNo": 7}
+    )
+    assert main == 2 and guard is None
+
+def test_v104_d3ev_r3_second_axis_guard() -> None:
+    race = {"prediction": {"axes": [7, 3]}, "raceNo": 3, "horseCount": 16}
+
+    main, guard = apply_d3_v104_d3ev_r3_second_axis_guard("d3_ev", 2, race)
+    assert main == 3
+    assert guard == "d3_ev_r3_second_axis_guard"
+
+    for race_no in (2, 4):
+        main, guard = apply_d3_v104_d3ev_r3_second_axis_guard(
+            "d3_ev", 2, dict(race, raceNo=race_no)
+        )
+        assert main == 2 and guard is None
+    for action in ("policy", "payout_ev"):
+        main, guard = apply_d3_v104_d3ev_r3_second_axis_guard(action, 2, race)
+        assert main == 2 and guard is None
+
+    main, guard = apply_d3_v104_d3ev_r3_second_axis_guard("d3_ev", 3, race)
+    assert main == 3 and guard is None
+    main, guard = apply_d3_v104_d3ev_r3_second_axis_guard(
+        "d3_ev", 2, {"prediction": {"axes": [7]}, "raceNo": 3}
+    )
+    assert main == 2 and guard is None
+
+
 def test_missing_field_size_is_not_treated_as_small_field() -> None:
     race = {"prediction": {"axes": [7, 3]}, "raceNo": 10}
     main, guard = apply_d3_field_size_guard("d3_ev", 2, race)
@@ -259,9 +405,14 @@ if __name__ == "__main__":
         test_v97_field_policy_guard_boundaries,
         test_v98_action_specific_guards,
         test_v99_full_period_payout_total_guard,
+        test_v100_policy_r12_axis_guard,
+        test_v101_policy_r7_second_axis_guard,
+        test_v102_policy_r2_second_axis_guard,
+        test_v103_d3ev_r7_second_axis_guard,
+        test_v104_d3ev_r3_second_axis_guard,
         test_missing_field_size_is_not_treated_as_small_field,
     ]
     for test in tests:
         test()
         print(f"PASS {test.__name__}")
-    print(f"OK: {len(tests)} v99 single-win runtime tests passed")
+    print(f"OK: {len(tests)} v104 single-win runtime tests passed")
