@@ -962,3 +962,27 @@ v98までの最終単勝guardを維持したうえで、2026-01-04〜2026-09-05�
 
 v99はユーザー指定どおり全期間100%を最優先した版であり、時系列4/5分割には小幅なマイナス区間があります。
 このため、将来レースへの100%再現を保証するものではありません。
+
+
+## v106: cross-year robust regime（2026固有ガードの退役）
+
+2025年の履歴を追加すると、v99〜v104を中心とする2026年期間最適化ガードが年跨ぎで再現しないことが確認できたため、v106では設計目的を変更した。
+
+### 有効経路
+
+- 最終 `winMain` は `choose_regime_main()` の汎用D3結果をそのまま使用する。
+- v94〜v104のfield-size / midcard / Total65 / 2R / 3R / 7R / 12R等のmanual final guardは有効経路から外す。関数自体は過去Runの監査・互換テスト用に残す。
+- したがってraceNoを変えただけでv106の最終単勝が変わることはない。
+
+### regime meta selector
+
+- strictly older 30 / 120 / 365 day windows
+- weights: 0.20 / 0.35 / 0.45
+- detection cap: 10x
+- shrinkage prior: 250 races at neutral 0.80x
+- robust score = 70% weighted multi-horizon mean + 30% weakest-horizon score
+- challengerは最低2期間でpolicyをswitch margin以上上回り、全期間でpolicyの99%未満へ落ちないことを要求
+- switch margin: 1.02
+- payout_ev vs d3_ev additional margin: 1.03
+
+この変更は2025/2026の結果を見て固定条件を足すのではなく、未来の各日でその日より前の実績だけから自動適応することを目的とする。最終評価は全履歴のGitHub Actions walk-forward validateを正とする。

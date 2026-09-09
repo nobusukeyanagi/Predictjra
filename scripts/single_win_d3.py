@@ -21,7 +21,7 @@ from __future__ import annotations
 import math
 from collections import defaultdict
 from dataclasses import asdict, dataclass
-from datetime import date
+from datetime import date, timedelta
 from typing import Iterable
 
 import numpy as np
@@ -33,7 +33,7 @@ from single_win_d2 import (
     legacy_fallback_scores as d2_legacy_fallback_scores,
 )
 
-MODEL_VERSION = "predictjra-single-win-d3-v2.9-responsive-regime"
+MODEL_VERSION = "predictjra-single-win-d3-v3.0-crossyear-robust-regime"
 
 # Critical: expected popularity and legacy singleEV are intentionally excluded here.
 # This model estimates horse ability/win chance independently of the market proxy.
@@ -99,21 +99,28 @@ REGIME_ACTIONS = (REGIME_ACTION_POLICY, REGIME_ACTION_EV, REGIME_ACTION_PAYOUT_E
 
 @dataclass(frozen=True)
 class D3RegimePolicy:
-    """Trailing-regime selector for the compulsory 100-yen win ticket only.
+    """Cross-year robust selector for the compulsory 100-yen win ticket only.
 
-    The selector never uses current-race odds or same-day results.  It compares how three
-    pre-race D3 selection styles performed over a strictly older trailing window, caps
-    historical returns before comparison, and shrinks them heavily toward the JRA 80%
-    takeout-neutral prior.  The normal D3 policy remains the default unless another style
-    clears a small relative margin.
+    v106 replaces the old six-day hot-regime detector with a multi-horizon selector.
+    Every score is built only from races strictly older than the target date.  The same
+    action must be supported across short, medium and long windows before it may replace
+    guarded policy.  This deliberately gives up some short-term peak ROI in exchange for
+    lower sensitivity to one season, one meeting or one jackpot.
     """
 
-    lookback_days: int = 6
+    # ``lookback_days`` remains as a compatibility/max-retention field.  The effective
+    # dated selector uses the horizons below and never looks beyond their maximum.
+    lookback_days: int = 365
+    horizon_days: tuple[int, ...] = (30, 120, 365)
+    horizon_weights: tuple[float, ...] = (0.20, 0.35, 0.45)
+    worst_horizon_weight: float = 0.30
+    min_supporting_horizons: int = 2
+    max_horizon_deficit_ratio: float = 0.99
     prior_races: float = 250.0
     neutral_return_multiple: float = 0.80
     return_cap_multiple: float = 10.0
-    switch_margin: float = 1.01
-    payout_ev_min_advantage_vs_ev: float = 1.02
+    switch_margin: float = 1.02
+    payout_ev_min_advantage_vs_ev: float = 1.03
     avoid_consecutive_payout_ev: bool = True
     # D3.15 / v85: when the day-level regime stays on guarded policy, allow a tiny
     # race-level override only when both independent EV views agree on the same horse
@@ -867,18 +874,21 @@ def choose_regime_main(
     return int(current)
 
 def select_regime_action(
-    history_action_returns: Iterable[dict[str, float]],
+    history_action_returns: Iterable[dict],
     regime: D3RegimePolicy | None = None,
     *,
     allow_repeat_payout_ev: bool = True,
+    target_date: str | date | None = None,
 ) -> tuple[str, dict[str, float]]:
-    """Select a single-win action from strictly older, already-realized race returns.
+    """Select a year-agnostic action from strictly older realized returns.
 
-    Each history item is a mapping from every configured action to its realized return
-    multiple for one past race (0 for a miss, 2.5 for a 250-yen payout, etc.).  Callers
-    are responsible for the date barrier; the optimizer supplies only dates older than
-    the target day.  Returns are capped *for regime detection only*; actual ROI reporting
-    remains uncapped.
+    Dated callers (Live/Rebuild) are evaluated over 30/120/365-day windows.  Returns are
+    capped only for regime detection, heavily shrunk toward the neutral 0.80 return, and
+    combined with a penalty for the weakest horizon.  A challenger must also show support
+    in multiple horizons and may not materially underperform policy in any horizon.
+
+    Undated input is retained as a compatibility path for old unit tests/tools and uses
+    the former pooled shrinkage formula.  Production callers always pass ``target_date``.
     """
     regime = regime or D3RegimePolicy()
     history = list(history_action_returns)
@@ -888,22 +898,76 @@ def select_regime_action(
     neutral = max(0.0, float(regime.neutral_return_multiple))
     cap = max(0.0, float(regime.return_cap_multiple))
 
-    scores: dict[str, float] = {}
-    for action in actions:
+    def pooled_score(items: list[dict], action: str) -> float:
         vals = []
-        for item in history:
+        for item in items:
             v = max(0.0, _float(item.get(action), 0.0))
             vals.append(min(v, cap) if cap > 0.0 else v)
-        scores[action] = (sum(vals) + prior_n * neutral) / max(len(vals) + prior_n, 1e-12)
+        return (sum(vals) + prior_n * neutral) / max(len(vals) + prior_n, 1e-12)
+
+    target = _parse_date(str(target_date)) if target_date is not None else None
+    if target_date is not None and target is None:
+        raise ValueError(f"invalid target_date for regime selection: {target_date!r}")
+    dated_history: list[tuple[date, dict]] = []
+    if target is not None:
+        max_horizon = max((int(x) for x in regime.horizon_days if int(x) > 0), default=max(1, int(regime.lookback_days)))
+        earliest = target - timedelta(days=max_horizon)
+        for item in history:
+            d = _parse_date(str(item.get("date") or ""))
+            if d is None or not (earliest <= d < target):
+                continue
+            dated_history.append((d, item))
+
+    # Backward-compatible pooled mode exists only when no target date was supplied.
+    # Production with a target date always uses the strict date barrier; an empty eligible
+    # history therefore produces neutral scores rather than re-admitting same-day/future rows.
+    if target is None:
+        scores = {action: pooled_score(history, action) for action in actions}
+        horizon_scores = None
+    else:
+        horizons = tuple(int(x) for x in regime.horizon_days if int(x) > 0)
+        weights = tuple(float(x) for x in regime.horizon_weights)
+        if not horizons:
+            horizons = (max(1, int(regime.lookback_days)),)
+        if len(weights) != len(horizons) or sum(max(0.0, x) for x in weights) <= 0:
+            weights = tuple(1.0 for _ in horizons)
+        wsum = sum(max(0.0, x) for x in weights)
+        weights = tuple(max(0.0, x) / wsum for x in weights)
+
+        horizon_scores: dict[str, list[float]] = {action: [] for action in actions}
+        for horizon in horizons:
+            cutoff = target - timedelta(days=horizon)
+            window = [item for d, item in dated_history if cutoff <= d < target]
+            for action in actions:
+                horizon_scores[action].append(pooled_score(window, action))
+
+        worst_weight = min(max(float(regime.worst_horizon_weight), 0.0), 1.0)
+        scores: dict[str, float] = {}
+        for action in actions:
+            hs = horizon_scores[action]
+            weighted = sum(w * v for w, v in zip(weights, hs))
+            worst = min(hs) if hs else neutral
+            scores[action] = (1.0 - worst_weight) * weighted + worst_weight * worst
 
     best = max(actions, key=lambda a: (scores[a], -actions.index(a)))
-    if best != baseline and scores[best] < scores[baseline] * float(regime.switch_margin):
-        best = baseline
+    if best != baseline:
+        if scores[best] < scores[baseline] * float(regime.switch_margin):
+            best = baseline
+        elif horizon_scores is not None:
+            b = horizon_scores[baseline]
+            c = horizon_scores[best]
+            support = sum(
+                1 for cv, bv in zip(c, b)
+                if cv >= bv * float(regime.switch_margin)
+            )
+            no_material_deficit = all(
+                cv + 1e-12 >= bv * float(regime.max_horizon_deficit_ratio)
+                for cv, bv in zip(c, b)
+            )
+            if support < max(1, int(regime.min_supporting_horizons)) or not no_material_deficit:
+                best = baseline
 
-    # D3.14 anti-chase: payout-prior EV is deliberately noisier than pure D3 EV.
-    # If its shrunk regime score is only marginally better, prefer pure EV provided
-    # pure EV at least matches the guarded policy.  This avoids treating tiny payout
-    # score differences as evidence of a different market regime.
+    # payout_ev is noisier than d3_ev.  Demand a material advantage, not a near tie.
     if best == REGIME_ACTION_PAYOUT_EV and REGIME_ACTION_EV in scores:
         min_adv = max(1.0, float(regime.payout_ev_min_advantage_vs_ev))
         if (
@@ -912,10 +976,6 @@ def select_regime_action(
         ):
             best = REGIME_ACTION_EV
 
-    # A payout-EV win can be dominated by one day's longshot return.  When callers
-    # identify an immediately consecutive race day after payout-EV was already used,
-    # do not chase the same payout regime again.  Fall back to pure EV if it at least
-    # matches policy; otherwise return to the guarded policy.
     if (
         best == REGIME_ACTION_PAYOUT_EV
         and bool(regime.avoid_consecutive_payout_ev)

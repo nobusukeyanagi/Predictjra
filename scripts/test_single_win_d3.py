@@ -391,16 +391,20 @@ def main() -> None:
     asymmetric[1]["_expected_popularity"] = 8
     assert choose_main(asymmetric, [1, 2], D3Policy(**asym_base)) == 1
 
-    # D3.19 responsive-regime defaults: keep the six-day/250-race shrinkage but
-    # preserve legitimate mid-price returns up to 10x and require only a 1% shrunk
-    # advantage before an EV action may replace guarded policy.
+    # v106 cross-year robust regime: 30/120/365-day strictly older windows replace
+    # the former six-day detector.  A challenger needs multi-horizon support.
     regime = D3RegimePolicy()
-    assert regime.lookback_days == 6
+    assert regime.lookback_days == 365
+    assert regime.horizon_days == (30, 120, 365)
+    assert regime.horizon_weights == (0.20, 0.35, 0.45)
+    assert abs(regime.worst_horizon_weight - 0.30) < 1e-12
+    assert regime.min_supporting_horizons == 2
+    assert abs(regime.max_horizon_deficit_ratio - 0.99) < 1e-12
     assert abs(regime.prior_races - 250.0) < 1e-12
     assert abs(regime.neutral_return_multiple - 0.80) < 1e-12
     assert abs(regime.return_cap_multiple - 10.0) < 1e-12
-    assert abs(regime.switch_margin - 1.01) < 1e-12
-    assert abs(regime.payout_ev_min_advantage_vs_ev - 1.02) < 1e-12
+    assert abs(regime.switch_margin - 1.02) < 1e-12
+    assert abs(regime.payout_ev_min_advantage_vs_ev - 1.03) < 1e-12
     assert regime.avoid_consecutive_payout_ev is True
     assert regime.enable_policy_dual_ev_override is True
     assert abs(regime.min_policy_override_run_advantage - 0.10) < 1e-12
@@ -461,6 +465,51 @@ def main() -> None:
         repeat_history, regime, allow_repeat_payout_ev=False
     )
     assert repeat_action == REGIME_ACTION_EV
+
+    # v106 date barrier: same-day/future jackpots are ignored completely.
+    target = date(2026, 1, 1)
+    dated = []
+    for age in range(1, 181):
+        dated.append({
+            "date": (target - timedelta(days=age)).isoformat(),
+            REGIME_ACTION_POLICY: 0.80,
+            REGIME_ACTION_EV: 1.10,
+            REGIME_ACTION_PAYOUT_EV: 0.70,
+        })
+    safe_action, safe_scores = select_regime_action(dated, regime, target_date=target)
+    leaked = dated + [
+        {"date": target.isoformat(), REGIME_ACTION_POLICY: 0.0, REGIME_ACTION_EV: 0.0, REGIME_ACTION_PAYOUT_EV: 1000.0},
+        {"date": (target + timedelta(days=1)).isoformat(), REGIME_ACTION_POLICY: 0.0, REGIME_ACTION_EV: 0.0, REGIME_ACTION_PAYOUT_EV: 1000.0},
+    ]
+    leak_action, leak_scores = select_regime_action(leaked, regime, target_date=target)
+    assert leak_action == safe_action
+    assert leak_scores == safe_scores
+
+    # A short hot streak alone is insufficient when the long horizon materially disagrees.
+    mixed = []
+    for age in range(1, 366):
+        ev_return = 3.0 if age <= 30 else 0.45
+        mixed.append({
+            "date": (target - timedelta(days=age)).isoformat(),
+            REGIME_ACTION_POLICY: 0.85,
+            REGIME_ACTION_EV: ev_return,
+            REGIME_ACTION_PAYOUT_EV: 0.60,
+        })
+    mixed_action, _ = select_regime_action(mixed, regime, target_date=target)
+    assert mixed_action == REGIME_ACTION_POLICY
+
+    # Consistent superiority across all horizons may legitimately replace policy.
+    stable = []
+    for age in range(1, 366):
+        stable.append({
+            "date": (target - timedelta(days=age)).isoformat(),
+            REGIME_ACTION_POLICY: 0.75,
+            REGIME_ACTION_EV: 1.05,
+            REGIME_ACTION_PAYOUT_EV: 0.70,
+        })
+    stable_action, stable_scores = select_regime_action(stable, regime, target_date=target)
+    assert stable_action == REGIME_ACTION_EV
+    assert stable_scores[REGIME_ACTION_EV] > stable_scores[REGIME_ACTION_POLICY]
 
     # D3.15 policy-day dual-EV currentRun consensus override.  Guarded policy keeps
     # horse 1 because horse 2 sits outside its 9-point total-gap safe pool, while both
@@ -636,7 +685,7 @@ def main() -> None:
         secondary_recent_boundary, [1, 2], D3Policy(), v87_only, REGIME_ACTION_POLICY
     ) == 2
 
-    print("OK: single-win D3.19 synthetic contract tests passed")
+    print("OK: single-win D3 v106 cross-year robust contract tests passed")
 
 
 if __name__ == "__main__":

@@ -36,7 +36,7 @@ from single_win_d3 import (
     select_regime_action,
 )
 
-BRIDGE_VERSION = "predictjra-single-win-runtime-v104-d3ev-r3-second-axis-guard"
+BRIDGE_VERSION = "predictjra-single-win-runtime-v106-crossyear-robust"
 MIN_TRAIN_RACES = 180
 REFIT_EVERY_DATES = 4
 
@@ -501,83 +501,62 @@ def _decision_payload(
     training_races: int,
     race: dict,
 ) -> dict:
+    """Build v106's final single-win decision without period-specific manual guards.
+
+    v94-v104 helper functions are retained in this module for backward-compatible tests
+    and audit of old runs, but they are intentionally *not* part of the live v106 path.
+    The final horse comes only from the generic D3 action/policy machinery, so race number
+    itself cannot change the 100-yen single-win selection.
+    """
     action_mains = _action_mains(scored, selected, policy, regime)
     raw_main = int(choose_regime_main(scored, selected, policy, regime, action))
     policy_action_main = int(action_mains.get(REGIME_ACTION_POLICY) or 0)
     policy_main = (
-        int(choose_regime_main(
-            scored, selected, policy, regime, REGIME_ACTION_POLICY
-        ))
+        int(choose_regime_main(scored, selected, policy, regime, REGIME_ACTION_POLICY))
         if str(action) == REGIME_ACTION_EV
         else None
     )
-    pre_v97_main, pre_v97_guard = apply_d3_pre_v97_guard(
-        action, raw_main, race, policy_main=policy_main
-    )
-    pre_v98_main, pre_v98_guard = apply_d3_final_guard(
-        action,
-        raw_main,
-        race,
-        policy_main=policy_main,
-        policy_action_main=policy_action_main,
-    )
-    v98_main, v98_guard = apply_d3_v98_action_guard(
-        action, pre_v98_main, race, scored, action_mains
-    )
-    v99_main, v99_guard = apply_d3_v99_full_period_guard(
-        v98_main, scored, action_mains
-    )
-    v100_main, v100_guard = apply_d3_v100_policy_r12_guard(
-        action, v99_main, race
-    )
-    v101_main, v101_guard = apply_d3_v101_policy_r7_second_axis_guard(
-        action, v100_main, race
-    )
-    v102_main, v102_guard = apply_d3_v102_policy_r2_second_axis_guard(
-        action, v101_main, race
-    )
-    v103_main, v103_guard = apply_d3_v103_d3ev_r7_second_axis_guard(
-        action, v102_main, race
-    )
-    v104_main, v104_guard = apply_d3_v104_d3ev_r3_second_axis_guard(
-        action, v103_main, race
-    )
-    win_main = int(v104_main)
-    guard = v104_guard or v103_guard or v102_guard or v101_guard or v100_guard or v99_guard or v98_guard or pre_v98_guard
+    win_main = raw_main
+
+    # Retain historical metadata keys so existing UI/audits keep parsing old/new runs.
+    # All retired manual guards are explicitly null in v106.
     return {
         "version": BRIDGE_VERSION,
         "d3Version": D3_MODEL_VERSION,
+        "selectionMode": "crossyear_robust_regime",
         "main": win_main,
         "mainBeforeFinalGuard": raw_main,
-        "mainBeforeV97Guard": pre_v97_main,
-        "preV97Guard": pre_v97_guard,
-        "mainBeforeV98Guard": pre_v98_main,
-        "preV98Guard": pre_v98_guard,
-        "v98Guard": v98_guard,
-        "mainBeforeV99Guard": int(v98_main),
-        "v99Guard": v99_guard,
-        "mainBeforeV100Guard": int(v99_main),
-        "v100Guard": v100_guard,
-        "mainBeforeV101Guard": int(v100_main),
-        "v101Guard": v101_guard,
-        "mainBeforeV102Guard": int(v101_main),
-        "v102Guard": v102_guard,
-        "mainBeforeV103Guard": int(v102_main),
-        "v103Guard": v103_guard,
-        "mainBeforeV104Guard": int(v103_main),
-        "v104Guard": v104_guard,
-        # Backward-compatible key retained for existing consumers/tests.
+        "mainBeforeV97Guard": raw_main,
+        "preV97Guard": None,
+        "mainBeforeV98Guard": raw_main,
+        "preV98Guard": None,
+        "v98Guard": None,
+        "mainBeforeV99Guard": raw_main,
+        "v99Guard": None,
+        "mainBeforeV100Guard": raw_main,
+        "v100Guard": None,
+        "mainBeforeV101Guard": raw_main,
+        "v101Guard": None,
+        "mainBeforeV102Guard": raw_main,
+        "v102Guard": None,
+        "mainBeforeV103Guard": raw_main,
+        "v103Guard": None,
+        "mainBeforeV104Guard": raw_main,
+        "v104Guard": None,
         "mainBeforeFieldGuard": raw_main,
-        "fieldSizeGuard": guard if guard == "d3_ev_field_size_guard" else None,
-        "finalGuard": guard,
+        "fieldSizeGuard": None,
+        "finalGuard": None,
         "policyFallbackMain": policy_main,
         "policyActionMain": policy_action_main,
         "action": str(action),
         "actionScores": {str(k): round(float(v), 6) for k, v in scores.items()},
         "actionMains": action_mains,
+        "regimeHorizonDays": [int(x) for x in regime.horizon_days],
+        "regimeWorstHorizonWeight": round(float(regime.worst_horizon_weight), 6),
         "modelMode": model_mode,
         "trainingRaces": int(training_races),
     }
+
 
 
 @dataclass
@@ -610,9 +589,10 @@ class RollingRebuildSingleWin:
             self.model = D3Model().fit(list(self.training_rows))
             self.dates_since_fit = 0
 
-        cutoff = target - timedelta(days=max(1, int(self.regime.lookback_days)))
+        max_horizon = max((int(x) for x in self.regime.horizon_days), default=max(1, int(self.regime.lookback_days)))
+        cutoff = target - timedelta(days=max_horizon)
         trailing = [
-            h["returns"]
+            {"date": h["date"], **h["returns"]}
             for h in self.history
             if cutoff <= _date(h["date"]) < target
         ]
@@ -625,6 +605,7 @@ class RollingRebuildSingleWin:
             trailing,
             self.regime,
             allow_repeat_payout_ev=not consecutive_after_payout,
+            target_date=str(date_s),
         )
         self.current_date = str(date_s)
         return self.current_action, dict(self.current_scores)
@@ -668,10 +649,11 @@ class RollingRebuildSingleWin:
         self.dates_since_fit += 1
 
 
-def _history_action_state(data: dict, target_date: str, regime: D3RegimePolicy) -> tuple[list[dict[str, float]], str, date | None]:
+def _history_action_state(data: dict, target_date: str, regime: D3RegimePolicy) -> tuple[list[dict], str, date | None]:
     target = _date(target_date)
-    cutoff = target - timedelta(days=max(1, int(regime.lookback_days)))
-    returns: list[dict[str, float]] = []
+    max_horizon = max((int(x) for x in regime.horizon_days), default=max(1, int(regime.lookback_days)))
+    cutoff = target - timedelta(days=max_horizon)
+    returns: list[dict] = []
     previous_action = REGIME_ACTION_POLICY
     previous_action_date: date | None = None
 
@@ -690,7 +672,7 @@ def _history_action_state(data: dict, target_date: str, regime: D3RegimePolicy) 
                 day_actions.append(str(action))
             vals = meta.get("actionReturns") or {}
             if cutoff <= d < target and vals:
-                returns.append({str(k): float(v) for k, v in vals.items()})
+                returns.append({"date": date_s, **{str(k): float(v) for k, v in vals.items()}})
         if day_actions:
             previous_action = day_actions[-1]
             previous_action_date = d
@@ -724,6 +706,7 @@ def build_live_context(data: dict, target_date: str) -> dict:
         trailing,
         regime,
         allow_repeat_payout_ev=not consecutive_after_payout,
+        target_date=str(target_date),
     )
     return {
         "model": model,
