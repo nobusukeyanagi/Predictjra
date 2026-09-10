@@ -35,7 +35,7 @@ import requests
 from bs4 import BeautifulSoup
 
 JST = ZoneInfo("Asia/Tokyo")
-CACHE_VERSION = "predictjra-historical-facts-v10-2024-backfill"
+CACHE_VERSION = "predictjra-historical-facts-v11-2022-backfill"
 SOURCE_REPO = "sugaimo15/keibayosoku"
 SOURCE_REF = "claude/horse-racing-predictor-ak6crm"
 
@@ -186,8 +186,8 @@ RESULT_CARD_COLUMNS = [
 RESULT_REQUIRED_COLUMNS = set(RESULT_CARD_COLUMNS) | {
     "date", "finish_position", "popularity", "win_odds", "time",
 }
-BACKFILL_START = date(2024, 1, 1)
-EXPECTED_FIRST_JRA_DATE = date(2024, 1, 6)
+BACKFILL_START = date(2022, 1, 1)
+EXPECTED_FIRST_JRA_DATE = date(2022, 1, 5)
 
 
 def _one_value(df: pd.DataFrame, column: str, race_id: str) -> str:
@@ -372,23 +372,42 @@ def is_central_jra_race_id(race_id: str) -> bool:
     return 1 <= venue <= 10 and 1 <= race_no <= 12
 
 
+def _year_has_central_results(source_root: Path, year: int) -> bool:
+    result_root = source_root / "data" / "race_results" / str(year)
+    if not result_root.is_dir():
+        return False
+    return any(is_central_jra_race_id(path.stem) for path in result_root.glob("*.csv"))
+
+
 def _observed_meeting_slots(
     source_root: Path,
     *,
     start: date,
     end: date,
+    allow_missing_years: bool = False,
 ) -> tuple[dict[str, dict], list[str]]:
-    """Return observed meeting-day prefixes without inventing missing race numbers."""
+    """Return observed meeting-day prefixes without inventing missing race numbers.
+
+    v109 can bootstrap an entirely missing historical year from independent date lists.
+    In that web-enabled path, a missing year directory is recorded and skipped here rather
+    than treated as a fatal archive error. Offline/source-only callers remain fail-closed.
+    """
     result_base = source_root / "data" / "race_results"
     result_roots: list[Path] = []
+    warnings: list[str] = []
     for year in range(start.year, end.year + 1):
         result_root = result_base / str(year)
-        if not result_root.is_dir():
-            raise FileNotFoundError(result_root)
+        if not _year_has_central_results(source_root, year):
+            if not allow_missing_years:
+                raise FileNotFoundError(result_root)
+            warnings.append(
+                f"{year}: source result archive is absent; exact race IDs will be "
+                "bootstrapped from independent historical date lists"
+            )
+            continue
         result_roots.append(result_root)
 
     slots: dict[str, dict] = {}
-    warnings: list[str] = []
     for result_root in result_roots:
         for path in sorted(result_root.glob("*.csv")):
             rid = path.stem
@@ -415,7 +434,7 @@ def _observed_meeting_slots(
                 )
                 continue
             slot["observed"].add(rid)
-    if not slots:
+    if not slots and not allow_missing_years:
         raise RuntimeError("No central-JRA meeting slots were discovered from the result archive")
     return slots, warnings
 
@@ -592,6 +611,63 @@ def _authoritative_list_covers_observed(
     return bool(actual) and observed.issubset(actual)
 
 
+def discover_missing_source_year_race_ids(
+    source_root: Path,
+    *,
+    start: date,
+    end: date,
+) -> tuple[dict[str, list[str]], list[str]]:
+    """Enumerate complete JRA race IDs for years absent from the source archive.
+
+    The upstream historical clone currently starts at 2023. For a missing year (2022 in
+    v109), scan netkeiba's completed-race date list once per calendar day. This is only an
+    enumeration step: final result/payout pairs are still fetched and cross-validated by
+    ``repair_result_archive_from_web``. Any date-list request that cannot be resolved after
+    retries aborts the refresh instead of silently assuming that day had no races.
+    """
+    missing_years = [
+        year for year in range(start.year, end.year + 1)
+        if not _year_has_central_results(source_root, year)
+    ]
+    expected: dict[str, list[str]] = {}
+    warnings: list[str] = []
+    failed_dates: list[str] = []
+
+    for year in missing_years:
+        first = max(start, date(year, 1, 1))
+        last = min(end, date(year, 12, 31))
+        cursor = first
+        race_count = 0
+        race_dates = 0
+        while cursor <= last:
+            try:
+                ids = [rid for rid in discover_db_race_ids(cursor) if is_central_jra_race_id(rid)]
+            except Exception as exc:  # noqa: BLE001
+                failed_dates.append(
+                    f"{cursor.isoformat()}: {type(exc).__name__}: {exc}"
+                )
+                cursor += timedelta(days=1)
+                continue
+            if ids:
+                date_s = cursor.isoformat()
+                expected[date_s] = sorted(set(ids))
+                race_dates += 1
+                race_count += len(expected[date_s])
+            cursor += timedelta(days=1)
+        warnings.append(
+            f"{year}: bootstrapped {race_count} exact JRA race IDs across "
+            f"{race_dates} dates from netkeiba completed-race date lists"
+        )
+
+    if failed_dates:
+        raise RuntimeError(
+            "Cannot safely enumerate missing historical source year(s); date-list "
+            "requests failed, so no-race days cannot be distinguished from retrieval "
+            "errors: " + " | ".join(failed_dates[:40])
+        )
+    return expected, warnings
+
+
 def discover_expected_race_ids_resilient(
     source_root: Path,
     *,
@@ -609,7 +685,9 @@ def discover_expected_race_ids_resilient(
     An authoritative list is accepted only when it contains every race already observed in
     the source archive. This avoids replacing real source facts with a partially rendered page.
     """
-    slots, warnings = _observed_meeting_slots(source_root, start=start, end=end)
+    slots, warnings = _observed_meeting_slots(
+        source_root, start=start, end=end, allow_missing_years=verify_static_lists
+    )
     if not verify_static_lists:
         expected: dict[str, set[str]] = {}
         for slot in slots.values():
@@ -649,6 +727,17 @@ def discover_expected_race_ids_resilient(
     db_by_date: dict[str, list[str] | None] = {}
     expected_by_date: dict[str, set[str]] = {}
     unverified_prefixes: list[str] = []
+
+    # The upstream archive begins at 2023. v109 bootstraps any entirely absent year
+    # (2022) from independent completed-race date lists, then lets the normal repair
+    # path fetch and validate every result/payout pair. Existing years keep the faster
+    # source-observed enumeration path.
+    bootstrapped, bootstrap_warnings = discover_missing_source_year_race_ids(
+        source_root, start=start, end=end
+    )
+    warnings.extend(bootstrap_warnings)
+    for date_s, ids in bootstrapped.items():
+        expected_by_date.setdefault(date_s, set()).update(ids)
 
     for prefix, slot in sorted(slots.items(), key=lambda kv: (kv[1]["date"], kv[0])):
         date_s = slot["date"]

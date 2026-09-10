@@ -224,13 +224,45 @@ def test_one_fetch_failure_does_not_disable_later_repairs() -> None:
             assert (payout_dir / f"{rid}.csv").is_file()
 
 
-def test_v108_backfill_starts_from_2024() -> None:
-    assert bhc.BACKFILL_START == pd.Timestamp("2024-01-01").date()
-    assert bhc.EXPECTED_FIRST_JRA_DATE == pd.Timestamp("2024-01-06").date()
-    assert bhc.CACHE_VERSION == "predictjra-historical-facts-v10-2024-backfill"
+def test_v109_backfill_starts_from_2022() -> None:
+    assert bhc.BACKFILL_START == pd.Timestamp("2022-01-01").date()
+    assert bhc.EXPECTED_FIRST_JRA_DATE == pd.Timestamp("2022-01-05").date()
+    assert bhc.CACHE_VERSION == "predictjra-historical-facts-v11-2022-backfill"
 
 
-def test_full_cache_build_accepts_multiyear_2024_2026_history() -> None:
+def test_missing_2022_source_year_is_bootstrapped_from_exact_date_lists() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        result_2023 = root / "data" / "race_results" / "2023"
+        result_2023.mkdir(parents=True)
+        rid_2023 = "202306010101"
+        sample_result(rid_2023, "2023-01-05").to_csv(
+            result_2023 / f"{rid_2023}.csv", index=False, encoding="utf-8-sig"
+        )
+
+        old = bhc.discover_db_race_ids
+        calls = []
+        try:
+            def fake_discover(target):
+                calls.append(target)
+                if target == pd.Timestamp("2022-01-05").date():
+                    return ["202206010101", "202206010102"]
+                return []
+            bhc.discover_db_race_ids = fake_discover
+            expected, warnings = bhc.discover_missing_source_year_race_ids(
+                root,
+                start=pd.Timestamp("2022-01-01").date(),
+                end=pd.Timestamp("2023-01-05").date(),
+            )
+        finally:
+            bhc.discover_db_race_ids = old
+
+        assert expected == {"2022-01-05": ["202206010101", "202206010102"]}
+        assert len(calls) == 365
+        assert any("2022: bootstrapped 2 exact JRA race IDs" in row for row in warnings)
+
+
+def test_full_cache_build_accepts_multiyear_2022_2026_history() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp) / "source"
         cache = Path(tmp) / "cache"
@@ -239,6 +271,8 @@ def test_full_cache_build_accepts_multiyear_2024_2026_history() -> None:
         payout_dir.mkdir(parents=True)
 
         fixtures = [
+            ("2022-01-05", "2022060101", "2022"),
+            ("2023-01-05", "2023060101", "2023"),
             ("2024-01-06", "2024060101", "2024"),
             ("2025-01-05", "2025060101", "2025"),
             ("2026-01-04", "2026060101", "2026"),
@@ -257,14 +291,17 @@ def test_full_cache_build_accepts_multiyear_2024_2026_history() -> None:
 
         manifest = bhc.build_cache(root, cache, web_discovery=False)
         assert manifest["cacheVersion"] == bhc.CACHE_VERSION
-        assert manifest["safeDates"] == ["2024-01-06", "2025-01-05", "2026-01-04"]
+        assert manifest["safeDates"] == [
+            "2022-01-05", "2023-01-05", "2024-01-06", "2025-01-05", "2026-01-04"
+        ]
         assert manifest["skippedDates"] == []
-        assert manifest["dateRaceCounts"]["2024-01-06"] == 7
-        assert manifest["dateRaceCounts"]["2025-01-05"] == 7
-        assert manifest["dateRaceCounts"]["2026-01-04"] == 7
+        for race_date, _, _ in fixtures:
+            assert manifest["dateRaceCounts"][race_date] == 7
 
         with tarfile.open(cache / "history-source.tar.gz", "r:gz") as tf:
             for year, date_s, rid in [
+                ("2022", "20220105", "202206010101"),
+                ("2023", "20230105", "202306010101"),
                 ("2024", "20240106", "202406010101"),
                 ("2025", "20250105", "202506010101"),
                 ("2026", "20260104", "202606010101"),
@@ -364,7 +401,7 @@ def main() -> int:
     tests = [v for k, v in globals().items() if k.startswith("test_") and callable(v)]
     for test in sorted(tests, key=lambda f: f.__name__):
         test()
-    print(f"OK: {len(tests)} historical backfill v10 tests passed")
+    print(f"OK: {len(tests)} historical backfill v11 tests passed")
     return 0
 
 
