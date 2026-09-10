@@ -36,7 +36,7 @@ from single_win_d3 import (
     select_regime_action,
 )
 
-BRIDGE_VERSION = "predictjra-single-win-runtime-v106-crossyear-robust"
+BRIDGE_VERSION = "predictjra-single-win-runtime-v107-paired-confidence"
 MIN_TRAIN_RACES = 180
 REFIT_EVERY_DATES = 4
 
@@ -501,12 +501,11 @@ def _decision_payload(
     training_races: int,
     race: dict,
 ) -> dict:
-    """Build v106's final single-win decision without period-specific manual guards.
+    """Build v107's final single-win decision without period-specific manual guards.
 
-    v94-v104 helper functions are retained in this module for backward-compatible tests
-    and audit of old runs, but they are intentionally *not* part of the live v106 path.
-    The final horse comes only from the generic D3 action/policy machinery, so race number
-    itself cannot change the 100-yen single-win selection.
+    v94-v104 helper functions are retained only for backward-compatible tests/audit.
+    The active path is v106's cross-year selector plus v107's paired-disagreement
+    confidence gate; race number itself cannot change the 100-yen single-win selection.
     """
     action_mains = _action_mains(scored, selected, policy, regime)
     raw_main = int(choose_regime_main(scored, selected, policy, regime, action))
@@ -523,7 +522,7 @@ def _decision_payload(
     return {
         "version": BRIDGE_VERSION,
         "d3Version": D3_MODEL_VERSION,
-        "selectionMode": "crossyear_robust_regime",
+        "selectionMode": "crossyear_paired_confidence_regime",
         "main": win_main,
         "mainBeforeFinalGuard": raw_main,
         "mainBeforeV97Guard": raw_main,
@@ -553,6 +552,12 @@ def _decision_payload(
         "actionMains": action_mains,
         "regimeHorizonDays": [int(x) for x in regime.horizon_days],
         "regimeWorstHorizonWeight": round(float(regime.worst_horizon_weight), 6),
+        "pairedConfidenceEnabled": bool(regime.paired_confidence_enabled),
+        "pairedMinDisagreements": int(regime.paired_min_disagreements),
+        "pairedPriorDisagreements": round(float(regime.paired_prior_disagreements), 6),
+        "pairedStderrPenalty": round(float(regime.paired_stderr_penalty), 6),
+        "pairedMinSupportingHorizons": int(regime.paired_min_supporting_horizons),
+        "pairedLongHorizonFloor": round(float(regime.paired_long_horizon_floor), 6),
         "modelMode": model_mode,
         "trainingRaces": int(training_races),
     }
@@ -592,7 +597,7 @@ class RollingRebuildSingleWin:
         max_horizon = max((int(x) for x in self.regime.horizon_days), default=max(1, int(self.regime.lookback_days)))
         cutoff = target - timedelta(days=max_horizon)
         trailing = [
-            {"date": h["date"], **h["returns"]}
+            {"date": h["date"], **h["returns"], "_mains": dict(h.get("mains") or {})}
             for h in self.history
             if cutoff <= _date(h["date"]) < target
         ]
@@ -637,7 +642,11 @@ class RollingRebuildSingleWin:
         for race, payload, _feature_rows in pending:
             returns = _action_returns(payload["actionMains"], race)
             payload["actionReturns"] = {k: round(float(v), 6) for k, v in returns.items()}
-            self.history.append({"date": str(date_s), "returns": returns})
+            self.history.append({
+                "date": str(date_s),
+                "returns": returns,
+                "mains": dict(payload.get("actionMains") or {}),
+            })
             # Rebuild the rows only after the official result is attached.  The rows
             # produced during decide() are strictly pre-race and therefore have zero
             # labels; training on those would silently destroy the D3 learner.
@@ -671,8 +680,13 @@ def _history_action_state(data: dict, target_date: str, regime: D3RegimePolicy) 
             if action:
                 day_actions.append(str(action))
             vals = meta.get("actionReturns") or {}
+            mains = meta.get("actionMains") or {}
             if cutoff <= d < target and vals:
-                returns.append({"date": date_s, **{str(k): float(v) for k, v in vals.items()}})
+                returns.append({
+                    "date": date_s,
+                    **{str(k): float(v) for k, v in vals.items()},
+                    "_mains": {str(k): int(v) for k, v in mains.items() if v is not None},
+                })
         if day_actions:
             previous_action = day_actions[-1]
             previous_action_date = d

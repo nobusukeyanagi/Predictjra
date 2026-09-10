@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""v106 bridge tests: cross-year winMain is leakage-safe and race-number agnostic."""
+"""v107 bridge tests: paired-confidence winMain is leakage-safe and race-number agnostic."""
 from __future__ import annotations
 
 from single_win_runtime import (
@@ -83,7 +83,7 @@ def test_finish_day_adds_result_labels() -> None:
     assert "mainBeforeV103Guard" in meta
     assert "v103Guard" in meta
     assert "v104Guard" in meta
-    assert meta["selectionMode"] == "crossyear_robust_regime"
+    assert meta["selectionMode"] == "crossyear_paired_confidence_regime"
     assert meta["finalGuard"] is None
 
 
@@ -96,7 +96,7 @@ def test_trifecta_axes_are_not_mutated() -> None:
     assert race["prediction"]["axes"] == before
     assert main in [1, 2, 3, 4, 5]
 
-def test_v106_effective_path_is_race_number_agnostic() -> None:
+def test_v107_effective_path_is_race_number_agnostic() -> None:
     selector = RollingRebuildSingleWin()
     selector.begin_day("2026-01-04")
     low = sample_race(False)
@@ -107,12 +107,18 @@ def test_v106_effective_path_is_race_number_agnostic() -> None:
     low_main, low_meta, _ = selector.decide("2026-01-04", low)
     high_main, high_meta, _ = selector.decide("2026-01-04", high)
     assert low_main == high_main
-    assert low_meta["selectionMode"] == "crossyear_robust_regime"
-    assert high_meta["selectionMode"] == "crossyear_robust_regime"
+    assert low_meta["selectionMode"] == "crossyear_paired_confidence_regime"
+    assert high_meta["selectionMode"] == "crossyear_paired_confidence_regime"
     assert low_meta["finalGuard"] is None and high_meta["finalGuard"] is None
     for key in ("v98Guard", "v99Guard", "v100Guard", "v101Guard", "v102Guard", "v103Guard", "v104Guard"):
         assert low_meta[key] is None and high_meta[key] is None
     assert low_meta["regimeHorizonDays"] == [30, 120, 365]
+    assert low_meta["pairedConfidenceEnabled"] is True
+    assert low_meta["pairedMinDisagreements"] == 12
+    assert abs(low_meta["pairedPriorDisagreements"] - 24.0) < 1e-12
+    assert abs(low_meta["pairedStderrPenalty"] - 0.50) < 1e-12
+    assert low_meta["pairedMinSupportingHorizons"] == 2
+    assert abs(low_meta["pairedLongHorizonFloor"] - 0.0) < 1e-12
 
 
 def test_d3_field_size_guard_boundaries() -> None:
@@ -420,7 +426,7 @@ if __name__ == "__main__":
     tests = [
         test_finish_day_adds_result_labels,
         test_trifecta_axes_are_not_mutated,
-        test_v106_effective_path_is_race_number_agnostic,
+        test_v107_effective_path_is_race_number_agnostic,
         test_d3_field_size_guard_boundaries,
         test_d3_midcard_policy_guard_boundaries,
         test_v97_field_policy_guard_boundaries,
@@ -436,4 +442,4 @@ if __name__ == "__main__":
     for test in tests:
         test()
         print(f"PASS {test.__name__}")
-    print(f"OK: {len(tests)} v106 single-win runtime tests passed")
+    print(f"OK: {len(tests)} v107 single-win runtime tests passed")

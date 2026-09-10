@@ -33,7 +33,7 @@ from single_win_d2 import (
     legacy_fallback_scores as d2_legacy_fallback_scores,
 )
 
-MODEL_VERSION = "predictjra-single-win-d3-v3.0-crossyear-robust-regime"
+MODEL_VERSION = "predictjra-single-win-d3-v3.1-paired-confidence-regime"
 
 # Critical: expected popularity and legacy singleEV are intentionally excluded here.
 # This model estimates horse ability/win chance independently of the market proxy.
@@ -116,6 +116,16 @@ class D3RegimePolicy:
     worst_horizon_weight: float = 0.30
     min_supporting_horizons: int = 2
     max_horizon_deficit_ratio: float = 0.99
+    # v107: compare only races where the candidate and guarded policy actually
+    # selected different horses.  This prevents agreement races from inflating the
+    # apparent sample size and requires the excess return to survive a conservative
+    # uncertainty penalty in multiple chronological windows.
+    paired_confidence_enabled: bool = True
+    paired_min_disagreements: int = 12
+    paired_prior_disagreements: float = 24.0
+    paired_stderr_penalty: float = 0.50
+    paired_min_supporting_horizons: int = 2
+    paired_long_horizon_floor: float = 0.0
     prior_races: float = 250.0
     neutral_return_multiple: float = 0.80
     return_cap_multiple: float = 10.0
@@ -882,13 +892,19 @@ def select_regime_action(
 ) -> tuple[str, dict[str, float]]:
     """Select a year-agnostic action from strictly older realized returns.
 
-    Dated callers (Live/Rebuild) are evaluated over 30/120/365-day windows.  Returns are
-    capped only for regime detection, heavily shrunk toward the neutral 0.80 return, and
-    combined with a penalty for the weakest horizon.  A challenger must also show support
-    in multiple horizons and may not materially underperform policy in any horizon.
+    v107 keeps v106's 30/120/365-day cross-year selector, then adds a paired-confidence
+    layer for production (dated) calls.  The paired layer looks only at historical races
+    where a challenger and guarded policy selected *different horses*.  Their capped
+    returns are compared race-by-race, shrunk toward zero, and penalized by sampling
+    uncertainty.  A challenger must retain positive conservative excess return in
+    multiple horizons, including a non-negative long-horizon view.
 
-    Undated input is retained as a compatibility path for old unit tests/tools and uses
-    the former pooled shrinkage formula.  Production callers always pass ``target_date``.
+    This avoids two common sources of backtest overstatement: counting agreement races
+    as evidence for a switch, and letting a handful of jackpot outcomes dominate an
+    action's apparent advantage.  Same-day/future rows remain excluded by construction.
+
+    Undated input is retained only as a compatibility path for old tests/tools and uses
+    the v106 pooled selector.  Live/Rebuild callers always pass ``target_date``.
     """
     regime = regime or D3RegimePolicy()
     history = list(history_action_returns)
@@ -898,19 +914,24 @@ def select_regime_action(
     neutral = max(0.0, float(regime.neutral_return_multiple))
     cap = max(0.0, float(regime.return_cap_multiple))
 
+    def capped_return(item: dict, action: str) -> float:
+        value = max(0.0, _float(item.get(action), 0.0))
+        return min(value, cap) if cap > 0.0 else value
+
     def pooled_score(items: list[dict], action: str) -> float:
-        vals = []
-        for item in items:
-            v = max(0.0, _float(item.get(action), 0.0))
-            vals.append(min(v, cap) if cap > 0.0 else v)
+        vals = [capped_return(item, action) for item in items]
         return (sum(vals) + prior_n * neutral) / max(len(vals) + prior_n, 1e-12)
 
     target = _parse_date(str(target_date)) if target_date is not None else None
     if target_date is not None and target is None:
         raise ValueError(f"invalid target_date for regime selection: {target_date!r}")
+
     dated_history: list[tuple[date, dict]] = []
     if target is not None:
-        max_horizon = max((int(x) for x in regime.horizon_days if int(x) > 0), default=max(1, int(regime.lookback_days)))
+        max_horizon = max(
+            (int(x) for x in regime.horizon_days if int(x) > 0),
+            default=max(1, int(regime.lookback_days)),
+        )
         earliest = target - timedelta(days=max_horizon)
         for item in history:
             d = _parse_date(str(item.get("date") or ""))
@@ -919,61 +940,166 @@ def select_regime_action(
             dated_history.append((d, item))
 
     # Backward-compatible pooled mode exists only when no target date was supplied.
-    # Production with a target date always uses the strict date barrier; an empty eligible
-    # history therefore produces neutral scores rather than re-admitting same-day/future rows.
     if target is None:
         scores = {action: pooled_score(history, action) for action in actions}
-        horizon_scores = None
-    else:
-        horizons = tuple(int(x) for x in regime.horizon_days if int(x) > 0)
-        weights = tuple(float(x) for x in regime.horizon_weights)
-        if not horizons:
-            horizons = (max(1, int(regime.lookback_days)),)
-        if len(weights) != len(horizons) or sum(max(0.0, x) for x in weights) <= 0:
-            weights = tuple(1.0 for _ in horizons)
-        wsum = sum(max(0.0, x) for x in weights)
-        weights = tuple(max(0.0, x) / wsum for x in weights)
-
-        horizon_scores: dict[str, list[float]] = {action: [] for action in actions}
-        for horizon in horizons:
-            cutoff = target - timedelta(days=horizon)
-            window = [item for d, item in dated_history if cutoff <= d < target]
-            for action in actions:
-                horizon_scores[action].append(pooled_score(window, action))
-
-        worst_weight = min(max(float(regime.worst_horizon_weight), 0.0), 1.0)
-        scores: dict[str, float] = {}
-        for action in actions:
-            hs = horizon_scores[action]
-            weighted = sum(w * v for w, v in zip(weights, hs))
-            worst = min(hs) if hs else neutral
-            scores[action] = (1.0 - worst_weight) * weighted + worst_weight * worst
-
-    best = max(actions, key=lambda a: (scores[a], -actions.index(a)))
-    if best != baseline:
-        if scores[best] < scores[baseline] * float(regime.switch_margin):
+        best = max(actions, key=lambda a: (scores[a], -actions.index(a)))
+        if best != baseline and scores[best] < scores[baseline] * float(regime.switch_margin):
             best = baseline
-        elif horizon_scores is not None:
-            b = horizon_scores[baseline]
-            c = horizon_scores[best]
-            support = sum(
-                1 for cv, bv in zip(c, b)
-                if cv >= bv * float(regime.switch_margin)
-            )
-            no_material_deficit = all(
-                cv + 1e-12 >= bv * float(regime.max_horizon_deficit_ratio)
-                for cv, bv in zip(c, b)
-            )
-            if support < max(1, int(regime.min_supporting_horizons)) or not no_material_deficit:
-                best = baseline
 
-    # payout_ev is noisier than d3_ev.  Demand a material advantage, not a near tie.
-    if best == REGIME_ACTION_PAYOUT_EV and REGIME_ACTION_EV in scores:
-        min_adv = max(1.0, float(regime.payout_ev_min_advantage_vs_ev))
+        if best == REGIME_ACTION_PAYOUT_EV and REGIME_ACTION_EV in scores:
+            min_adv = max(1.0, float(regime.payout_ev_min_advantage_vs_ev))
+            if (
+                scores[REGIME_ACTION_PAYOUT_EV] < scores[REGIME_ACTION_EV] * min_adv
+                and scores[REGIME_ACTION_EV] >= scores[baseline]
+            ):
+                best = REGIME_ACTION_EV
+
         if (
-            scores[REGIME_ACTION_PAYOUT_EV] < scores[REGIME_ACTION_EV] * min_adv
-            and scores[REGIME_ACTION_EV] >= scores[baseline]
+            best == REGIME_ACTION_PAYOUT_EV
+            and bool(regime.avoid_consecutive_payout_ev)
+            and not allow_repeat_payout_ev
         ):
+            if REGIME_ACTION_EV in scores and scores[REGIME_ACTION_EV] >= scores[baseline]:
+                best = REGIME_ACTION_EV
+            else:
+                best = baseline
+        return best, scores
+
+    horizons = tuple(int(x) for x in regime.horizon_days if int(x) > 0)
+    weights = tuple(float(x) for x in regime.horizon_weights)
+    if not horizons:
+        horizons = (max(1, int(regime.lookback_days)),)
+    if len(weights) != len(horizons) or sum(max(0.0, x) for x in weights) <= 0:
+        weights = tuple(1.0 for _ in horizons)
+    wsum = sum(max(0.0, x) for x in weights)
+    weights = tuple(max(0.0, x) / wsum for x in weights)
+
+    horizon_windows: list[list[dict]] = []
+    horizon_scores: dict[str, list[float]] = {action: [] for action in actions}
+    for horizon in horizons:
+        cutoff = target - timedelta(days=horizon)
+        window = [item for d, item in dated_history if cutoff <= d < target]
+        horizon_windows.append(window)
+        for action in actions:
+            horizon_scores[action].append(pooled_score(window, action))
+
+    worst_weight = min(max(float(regime.worst_horizon_weight), 0.0), 1.0)
+    scores: dict[str, float] = {}
+    for action in actions:
+        hs = horizon_scores[action]
+        weighted = sum(w * v for w, v in zip(weights, hs))
+        worst = min(hs) if hs else neutral
+        scores[action] = (1.0 - worst_weight) * weighted + worst_weight * worst
+
+    def raw_generalization_ok(action: str) -> bool:
+        if action == baseline:
+            return True
+        if scores[action] + 1e-12 < scores[baseline] * float(regime.switch_margin):
+            return False
+        base_h = horizon_scores[baseline]
+        cand_h = horizon_scores[action]
+        support = sum(
+            1
+            for cv, bv in zip(cand_h, base_h)
+            if cv + 1e-12 >= bv * float(regime.switch_margin)
+        )
+        no_material_deficit = all(
+            cv + 1e-12 >= bv * float(regime.max_horizon_deficit_ratio)
+            for cv, bv in zip(cand_h, base_h)
+        )
+        return (
+            support >= max(1, int(regime.min_supporting_horizons))
+            and no_material_deficit
+        )
+
+    def paired_horizon_stat(window: list[dict], action: str) -> tuple[int, float] | None:
+        deltas: list[float] = []
+        for item in window:
+            mains = item.get("_mains") or item.get("mains") or {}
+            if not isinstance(mains, dict):
+                continue
+            try:
+                base_main = int(mains.get(baseline) or 0)
+                cand_main = int(mains.get(action) or 0)
+            except (TypeError, ValueError):
+                continue
+            # Agreement races contain no information about which action is superior.
+            if base_main <= 0 or cand_main <= 0 or base_main == cand_main:
+                continue
+            if baseline not in item or action not in item:
+                continue
+            deltas.append(capped_return(item, action) - capped_return(item, baseline))
+
+        n = len(deltas)
+        if n < max(1, int(regime.paired_min_disagreements)):
+            return None
+        mean_delta = float(np.mean(deltas))
+        stderr = (
+            float(np.std(np.asarray(deltas, dtype=float), ddof=1)) / math.sqrt(n)
+            if n > 1
+            else 0.0
+        )
+        prior = max(0.0, float(regime.paired_prior_disagreements))
+        shrunk = (n / max(n + prior, 1e-12)) * mean_delta
+        conservative = shrunk - max(0.0, float(regime.paired_stderr_penalty)) * stderr
+        return n, float(conservative)
+
+    def paired_candidate_score(action: str) -> float | None:
+        if not bool(regime.paired_confidence_enabled):
+            return scores[action] - scores[baseline]
+
+        stats: list[tuple[int, float, float, int]] = []
+        for idx, (horizon, weight, window) in enumerate(zip(horizons, weights, horizon_windows)):
+            stat = paired_horizon_stat(window, action)
+            if stat is None:
+                continue
+            count, conservative = stat
+            stats.append((horizon, weight, conservative, count))
+
+        min_support = max(1, int(regime.paired_min_supporting_horizons))
+        if len(stats) < min_support:
+            return None
+        if sum(1 for _, _, value, _ in stats if value > 0.0) < min_support:
+            return None
+
+        # The longest available horizon is the anti-overfit anchor.  A switch may not
+        # rely solely on a recent hot patch when its conservative long-run excess is red.
+        longest = max(stats, key=lambda x: x[0])
+        if longest[2] + 1e-12 < float(regime.paired_long_horizon_floor):
+            return None
+
+        usable_weight = sum(weight for _, weight, _, _ in stats)
+        if usable_weight <= 0.0:
+            return None
+        weighted = sum(weight * value for _, weight, value, _ in stats) / usable_weight
+        worst = min(value for _, _, value, _ in stats)
+        confidence_score = (1.0 - worst_weight) * weighted + worst_weight * worst
+        return float(confidence_score) if confidence_score > 0.0 else None
+
+    candidate_confidence: dict[str, float] = {}
+    for action in actions[1:]:
+        if not raw_generalization_ok(action):
+            continue
+        confidence = paired_candidate_score(action)
+        if confidence is not None:
+            candidate_confidence[action] = confidence
+
+    # v107 ranks only challengers that clear both v106's cross-horizon ROI gate and the
+    # new paired-disagreement confidence gate.  Conservative excess return is the primary
+    # ranking signal; the v106 smoothed score breaks near ties.
+    if candidate_confidence:
+        best = max(
+            candidate_confidence,
+            key=lambda a: (candidate_confidence[a], scores[a], -actions.index(a)),
+        )
+    else:
+        best = baseline
+
+    # payout_ev is intentionally harder to select because its tail is noisier.  Demote
+    # it to d3_ev only when d3_ev itself passed the same paired-confidence gate.
+    if best == REGIME_ACTION_PAYOUT_EV and REGIME_ACTION_EV in candidate_confidence:
+        min_adv = max(1.0, float(regime.payout_ev_min_advantage_vs_ev))
+        if scores[REGIME_ACTION_PAYOUT_EV] < scores[REGIME_ACTION_EV] * min_adv:
             best = REGIME_ACTION_EV
 
     if (
@@ -981,9 +1107,8 @@ def select_regime_action(
         and bool(regime.avoid_consecutive_payout_ev)
         and not allow_repeat_payout_ev
     ):
-        if REGIME_ACTION_EV in scores and scores[REGIME_ACTION_EV] >= scores[baseline]:
+        if REGIME_ACTION_EV in candidate_confidence:
             best = REGIME_ACTION_EV
         else:
             best = baseline
     return best, scores
-

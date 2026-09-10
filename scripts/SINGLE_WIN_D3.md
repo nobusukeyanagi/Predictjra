@@ -1,6 +1,6 @@
-# Predictjra 単勝 D3.19 / Runtime v104
+# Predictjra 単勝 D3.19 / Runtime v107
 
-D3.17（v87）までの累積ロジックを維持し、通常D3への **reclaim（復帰）のタイミングだけを再調整**した累積版です。新しい選択方式や入力特徴は追加していません。
+D3本体の能力推定を維持しながら、Runtime v106で2026固有の固定最終ガードを退役し、v107で年跨ぎaction selectorへ **paired-disagreement confidence** を追加した累積版です。
 
 
 ## Runtime v104 — 単勝回収率110%目標
@@ -986,3 +986,33 @@ v99はユーザー指定どおり全期間100%を最優先した版であり、�
 - payout_ev vs d3_ev additional margin: 1.03
 
 この変更は2025/2026の結果を見て固定条件を足すのではなく、未来の各日でその日より前の実績だけから自動適応することを目的とする。最終評価は全履歴のGitHub Actions walk-forward validateを正とする。
+
+
+## v107: paired-disagreement confidence（action差分だけを学習）
+
+v106の30/120/365日cross-year selectorを第二段で補強する。
+
+### 問題
+
+従来のaction別回収率は、`policy` と `d3_ev/payout_ev` が同じ馬を選んだレースも母数に含む。同じ馬なら払戻は同じなので、actionの優劣を判断する情報はゼロだが、見かけのサンプル数だけが増え、少数のdisagreementで起きた高配当を安定した優位と誤認しやすい。
+
+### v107判定
+
+1. 対象日より前の30/120/365日だけを使用する。
+2. candidate actionとpolicyの `actionMains` が異なるレースだけをpaired sampleとする。
+3. paired sampleごとに、10x cap後の `candidate return - policy return` を求める。
+4. 1期間あたり最低12 disagreementを要求する。
+5. 平均差を24 disagreement相当のzero priorへshrinkする。
+6. `shrunk mean - 0.50 * standard error` を保守的超過払戻とする。
+7. 最低2期間で保守的超過払戻が正、かつ利用可能な最長期間が0以上であることを要求する。
+8. さらにv106のraw cross-horizon ROI gateも通過したcandidateだけを採用する。
+9. 複数candidateが通過した場合はpaired confidenceを第一順位、v106 scoreをtie-breakerとする。
+10. `payout_ev` は従来どおりより厳しい扱いとし、連続採用抑制も維持する。
+
+selector用10x capは高配当1件への過適合を抑えるためだけに使用し、実際の単勝払戻・回収率には適用しない。raceNo、年、現在オッズ、確定人気、馬体重、同日結果、未来結果は入力しない。
+
+### 監査
+
+`modelMeta.singleWin` にはv107 version、paired minimum disagreements、prior、stderr penalty、supporting horizons、long-horizon floorを保存する。Historical Rebuildでは各日を決定した後にだけ当日 `actionReturns/actionMains` を履歴へ追加するため、同日リークはない。
+
+正確な2025/2026回収率は、v106が未適用であることから既存v105 Artifactを後段変換して推定せず、v107コードを通した `scope=all / mode=validate` のwalk-forward結果を正とする。

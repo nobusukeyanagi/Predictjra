@@ -400,6 +400,12 @@ def main() -> None:
     assert abs(regime.worst_horizon_weight - 0.30) < 1e-12
     assert regime.min_supporting_horizons == 2
     assert abs(regime.max_horizon_deficit_ratio - 0.99) < 1e-12
+    assert regime.paired_confidence_enabled is True
+    assert regime.paired_min_disagreements == 12
+    assert abs(regime.paired_prior_disagreements - 24.0) < 1e-12
+    assert abs(regime.paired_stderr_penalty - 0.50) < 1e-12
+    assert regime.paired_min_supporting_horizons == 2
+    assert abs(regime.paired_long_horizon_floor - 0.0) < 1e-12
     assert abs(regime.prior_races - 250.0) < 1e-12
     assert abs(regime.neutral_return_multiple - 0.80) < 1e-12
     assert abs(regime.return_cap_multiple - 10.0) < 1e-12
@@ -506,10 +512,43 @@ def main() -> None:
             REGIME_ACTION_POLICY: 0.75,
             REGIME_ACTION_EV: 1.05,
             REGIME_ACTION_PAYOUT_EV: 0.70,
+            "_mains": {REGIME_ACTION_POLICY: 1, REGIME_ACTION_EV: 2, REGIME_ACTION_PAYOUT_EV: 3},
         })
     stable_action, stable_scores = select_regime_action(stable, regime, target_date=target)
     assert stable_action == REGIME_ACTION_EV
     assert stable_scores[REGIME_ACTION_EV] > stable_scores[REGIME_ACTION_POLICY]
+
+    # v107 paired-disagreement confidence: agreement races are not evidence for a
+    # switch, even if synthetic return fields differ.  Production actionReturns for
+    # the same horse are identical; this fixture deliberately makes them inconsistent
+    # to prove that actionMains, not the inflated row count, controls support.
+    agreement_only = []
+    for age in range(1, 121):
+        agreement_only.append({
+            "date": (target - timedelta(days=age)).isoformat(),
+            REGIME_ACTION_POLICY: 0.80,
+            REGIME_ACTION_EV: 2.00,
+            REGIME_ACTION_PAYOUT_EV: 0.60,
+            "_mains": {REGIME_ACTION_POLICY: 1, REGIME_ACTION_EV: 1, REGIME_ACTION_PAYOUT_EV: 3},
+        })
+    agreement_action, _ = select_regime_action(agreement_only, regime, target_date=target)
+    assert agreement_action == REGIME_ACTION_POLICY
+
+    # A small, jackpot-driven disagreement sample may clear the raw v106 smoothed ROI
+    # margin, but its uncertainty-adjusted excess return is negative and must not switch.
+    noisy = []
+    for age in range(1, 21):
+        ev_return = 10.0 if age <= 2 else 0.50
+        noisy.append({
+            "date": (target - timedelta(days=age)).isoformat(),
+            REGIME_ACTION_POLICY: 0.80,
+            REGIME_ACTION_EV: ev_return,
+            REGIME_ACTION_PAYOUT_EV: 0.60,
+            "_mains": {REGIME_ACTION_POLICY: 1, REGIME_ACTION_EV: 2, REGIME_ACTION_PAYOUT_EV: 3},
+        })
+    noisy_action, noisy_scores = select_regime_action(noisy, regime, target_date=target)
+    assert noisy_scores[REGIME_ACTION_EV] > noisy_scores[REGIME_ACTION_POLICY] * regime.switch_margin
+    assert noisy_action == REGIME_ACTION_POLICY
 
     # D3.15 policy-day dual-EV currentRun consensus override.  Guarded policy keeps
     # horse 1 because horse 2 sits outside its 9-point total-gap safe pool, while both
@@ -685,7 +724,7 @@ def main() -> None:
         secondary_recent_boundary, [1, 2], D3Policy(), v87_only, REGIME_ACTION_POLICY
     ) == 2
 
-    print("OK: single-win D3 v106 cross-year robust contract tests passed")
+    print("OK: single-win D3 v107 paired-confidence contract tests passed")
 
 
 if __name__ == "__main__":
