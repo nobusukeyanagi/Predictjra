@@ -147,26 +147,27 @@ Rebuildでは新馬戦も結果表示専用行として復元し、`predictionDi
 
 採用するときだけ `mode = apply` を実行します。`apply` では、候補版を本番版へ昇格させ、同じロジックで過去データを再計算してcommitします。本番データが変わった場合はGitHub Pagesも再公開されます。Rebuildによる公開ではDiscord通知を送りません。
 
-## Historical facts cache — v9
+## Historical facts cache — v10
 
 過去の出走情報・結果などの事実データは `data/history_cache/` に保存します。
 
-現在のキャッシュ形式は **`predictjra-historical-facts-v9-2025-backfill`** です。
+現在のキャッシュ形式は **`predictjra-historical-facts-v10-2024-backfill`** です。
 
 ### 対象期間
 
-- 2025年・2026年の確定result/payoutを実際の日付で列挙し、**2025-01-05（2025年JRA最初の開催日）以降**を対象にします。
+- 2024年・2025年・2026年の確定result/payoutを実際の日付で列挙し、**2024-01-06（2024年JRA最初の開催日）以降**を対象にします。
 - 保存済みの正規race cardがある日はそのrace cardを優先します。
 - race cardが保存されていない過去日は、確定resultから **レース前に確定していた固定項目だけ** を抽出してrace cardを再構成します。
 
-### 2025年データの初回追加手順
+### 2024年データの初回追加手順
 
-v105反映後、GitHub Actions の `Rebuild historical predictions` を次の順に実行します。
+v108反映後、GitHub Actions の `Rebuild historical predictions` を次の順に実行します。
 
-1. まず検証: `scope=range` / `start_date=2025-01-01` / `end_date=2025-12-31` / `mode=validate` / `cache_policy=refresh`
-2. 成功後に本番反映: `scope=all` / `mode=apply` / `cache_policy=auto`
+1. まず2024年取得確認: `scope=range` / `start_date=2024-01-01` / `end_date=2024-12-31` / `mode=validate` / `cache_policy=refresh`
+2. 成功後に長期評価: `scope=all` / `mode=validate` / `cache_policy=auto`
+3. 長期評価を確認して採用するときだけ: `scope=all` / `mode=apply` / `cache_policy=auto`
 
-`v9` へのキャッシュVersion更新でも旧v8キャッシュは自動的にrefresh対象になります。`all` は2025-01-05以降の完全検証済み開催日を対象にします。
+`v10` へのキャッシュVersion更新により旧v9以前のキャッシュは自動的にrefresh対象になります。`all` は2024-01-06以降の完全検証済み開催日を対象にします。
 
 再構成時に使用できる主な固定項目:
 
@@ -512,3 +513,17 @@ v106の「年を跨いだ30/120/365日selector」を維持しつつ、単勝acti
 - v106未適用環境からそのまま導入できるよう、v106の2025年対応・cross-year selector・旧固定Rガード退役をすべて含む累積差分です。
 
 2026年だけを見て固定閾値を追加する最適化は行っていません。2025+2026の最新v105 Historical Rebuildでは単勝回収率75.3%（2025年76.94%、2026年72.97%）で、actionは全5,437予想レースがpolicyでした。v107の正確な回収率は、v106/v107 selector自身を各日より前の履歴だけで更新する必要があるため、**次回 `scope=all / mode=validate` のwalk-forward Artifactを正式評価**とします。
+
+
+## v108 2024年履歴追加
+
+v106/v107の長期汎化selectorは変更せず、Historical facts cacheの開始年を2024年へ拡張します。
+
+- `BACKFILL_START`: 2025-01-01 → **2024-01-01**
+- `EXPECTED_FIRST_JRA_DATE`: 2025-01-05 → **2024-01-06**
+- cache version: `predictjra-historical-facts-v10-2024-backfill`
+- Actionの`scope=all`説明・summaryも2024年以降へ更新
+- cache refresh時はrace_id先頭4桁の年別result pathをそのまま利用するため、2024/2025/2026を同一archiveに安全に格納
+- 2024年を含む3年fixtureで、各年のresult/cardが正しい年ディレクトリへ保存されることを回帰テストで固定
+
+v108は2024年の結果を見て単勝selectorの閾値を調整しません。まず2024〜2026を完全walk-forwardで再計算し、そのArtifactをv109以降の正式な長期評価基準にします。

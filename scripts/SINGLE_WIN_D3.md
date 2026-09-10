@@ -1016,3 +1016,8 @@ selector用10x capは高配当1件への過適合を抑えるためだけに使�
 `modelMeta.singleWin` にはv107 version、paired minimum disagreements、prior、stderr penalty、supporting horizons、long-horizon floorを保存する。Historical Rebuildでは各日を決定した後にだけ当日 `actionReturns/actionMains` を履歴へ追加するため、同日リークはない。
 
 正確な2025/2026回収率は、v106が未適用であることから既存v105 Artifactを後段変換して推定せず、v107コードを通した `scope=all / mode=validate` のwalk-forward結果を正とする。
+
+
+## v108: 2024 history expansion
+
+v107のpaired-disagreement confidence selector自体は変更せず、学習・walk-forward検証に利用できるHistorical facts cacheを2024-01-06まで拡張する。cache versionをv10へ上げ、旧v9以前はrefresh対象とする。2024年データを見てselector閾値の後付け最適化は行わず、2024→2025→2026の厳密な時系列再計算結果を次の改善基準とする。

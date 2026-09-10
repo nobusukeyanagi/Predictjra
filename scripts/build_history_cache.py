@@ -35,7 +35,7 @@ import requests
 from bs4 import BeautifulSoup
 
 JST = ZoneInfo("Asia/Tokyo")
-CACHE_VERSION = "predictjra-historical-facts-v9-2025-backfill"
+CACHE_VERSION = "predictjra-historical-facts-v10-2024-backfill"
 SOURCE_REPO = "sugaimo15/keibayosoku"
 SOURCE_REF = "claude/horse-racing-predictor-ak6crm"
 
@@ -186,8 +186,8 @@ RESULT_CARD_COLUMNS = [
 RESULT_REQUIRED_COLUMNS = set(RESULT_CARD_COLUMNS) | {
     "date", "finish_position", "popularity", "win_odds", "time",
 }
-BACKFILL_START = date(2025, 1, 1)
-EXPECTED_FIRST_JRA_DATE = date(2025, 1, 5)
+BACKFILL_START = date(2024, 1, 1)
+EXPECTED_FIRST_JRA_DATE = date(2024, 1, 6)
 
 
 def _one_value(df: pd.DataFrame, column: str, race_id: str) -> str:
