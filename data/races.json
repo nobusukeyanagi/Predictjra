@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-17T19:30:35+09:00",
+  "updatedAt": "2026-10-17T22:35:20+09:00",
   "bet": {
     "type": "3連単2頭軸マルチ",
     "axes": 2,
@@ -39590,13 +39590,136 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                9
+              ],
+              [
+                2
+              ],
+              [
+                7
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  9
+                ],
+                "payout": 580
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  9,
+                  2,
+                  7
+                ],
+                "payout": 27920
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 67.6,
+                "popularity": 67,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 8.0,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 34.2,
+                "popularity": 34,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 6.8,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 179.4,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 3.3,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 4.5,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 42.8,
+                "popularity": 42,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 5.8,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 6.0,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 38.1,
+                "popularity": 38,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 41.3,
+                "popularity": 41,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            27920
+          ],
           "stake": 2400,
           "winMain": 10,
           "winReturn": 0,
@@ -39605,7 +39728,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -40624,13 +40748,136 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                7
+              ],
+              [
+                11
+              ],
+              [
+                1
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  7
+                ],
+                "payout": 1410
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  7,
+                  11,
+                  1
+                ],
+                "payout": 59230
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 42.6,
+                "popularity": 42,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 314.0,
+                "popularity": 0,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 23.5,
+                "popularity": 23,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 8.4,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 139.7,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 113.1,
+                "popularity": 1,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 14.1,
+                "popularity": 14,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 2.7,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 250.9,
+                "popularity": 9,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 5.6,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 2.5,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 21.0,
+                "popularity": 21,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            59230
+          ],
           "stake": 2400,
           "winMain": 11,
           "winReturn": 0,
@@ -40639,7 +40886,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -41882,22 +42130,167 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 3.7,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                2
+              ],
+              [
+                5
+              ],
+              [
+                1
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  2
+                ],
+                "payout": 370
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  2,
+                  5,
+                  1
+                ],
+                "payout": 24450
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 19.6,
+                "popularity": 19,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 3.7,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 21.2,
+                "popularity": 21,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 46.3,
+                "popularity": 46,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 7.7,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 61.9,
+                "popularity": 61,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 15.6,
+                "popularity": 15,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 61.5,
+                "popularity": 61,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 4.9,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 162.0,
+                "popularity": 0,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 29.9,
+                "popularity": 29,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 3.2,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 13,
+                "odds": 49.2,
+                "popularity": 49,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 14,
+                "odds": 27.0,
+                "popularity": 27,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 15,
+                "odds": 38.2,
+                "popularity": 38,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            24450
+          ],
           "stake": 3000,
           "winMain": 2,
-          "winReturn": 0,
+          "winReturn": 370,
           "winStake": 100,
           "dataSources": {
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -43214,13 +43607,164 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                7
+              ],
+              [
+                11
+              ],
+              [
+                10
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  7
+                ],
+                "payout": 800
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  7,
+                  11,
+                  10
+                ],
+                "payout": 15630
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 28.5,
+                "popularity": 28,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 163.9,
+                "popularity": 9,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 149.5,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 19.1,
+                "popularity": 19,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 49.9,
+                "popularity": 49,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 481.0,
+                "popularity": 0,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 8.0,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 45.1,
+                "popularity": 45,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 8.9,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 3.2,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 2.9,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 10.6,
+                "popularity": 10,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 13,
+                "odds": 171.9,
+                "popularity": 9,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 14,
+                "odds": 20.3,
+                "popularity": 20,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 15,
+                "odds": 29.5,
+                "popularity": 29,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 16,
+                "odds": 28.7,
+                "popularity": 28,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            15630
+          ],
           "stake": 3000,
           "winMain": 10,
           "winReturn": 0,
@@ -43229,7 +43773,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -44472,13 +45017,157 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                11
+              ],
+              [
+                3
+              ],
+              [
+                15
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  11
+                ],
+                "payout": 3250
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  11,
+                  3,
+                  15
+                ],
+                "payout": 113900
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 9.2,
+                "popularity": 9,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 17.9,
+                "popularity": 17,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 2.0,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 181.9,
+                "popularity": 9,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 12.8,
+                "popularity": 12,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 229.3,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 65.4,
+                "popularity": 65,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 7.1,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 45.8,
+                "popularity": 45,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 5.7,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 32.5,
+                "popularity": 32,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 127.2,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 13,
+                "odds": 57.5,
+                "popularity": 57,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 14,
+                "odds": 14.2,
+                "popularity": 14,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 15,
+                "odds": 23.7,
+                "popularity": 23,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            113900
+          ],
           "stake": 3000,
           "winMain": 1,
           "winReturn": 0,
@@ -44487,7 +45176,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -45730,22 +46420,167 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 6.2,
+                "payout_ev": 6.2
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                11
+              ],
+              [
+                15
+              ],
+              [
+                2
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  11
+                ],
+                "payout": 620
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  11,
+                  15,
+                  2
+                ],
+                "payout": 55840
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 324.6,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 12.5,
+                "popularity": 12,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 2.5,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 7.5,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 32.3,
+                "popularity": 32,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 6.6,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 148.7,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 17.8,
+                "popularity": 17,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 61.1,
+                "popularity": 61,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 20.9,
+                "popularity": 20,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 6.2,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 88.7,
+                "popularity": 88,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 13,
+                "odds": 33.9,
+                "popularity": 33,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 14,
+                "odds": 27.0,
+                "popularity": 27,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 15,
+                "odds": 10.4,
+                "popularity": 10,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            55840
+          ],
           "stake": 3000,
           "winMain": 11,
-          "winReturn": 0,
+          "winReturn": 620,
           "winStake": 100,
           "dataSources": {
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -46988,13 +47823,157 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                6
+              ],
+              [
+                4
+              ],
+              [
+                7
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  6
+                ],
+                "payout": 370
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  6,
+                  4,
+                  7
+                ],
+                "payout": 223590
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 4.3,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 23.8,
+                "popularity": 23,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 15.3,
+                "popularity": 15,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 124.1,
+                "popularity": 1,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 86.9,
+                "popularity": 86,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 3.7,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 23.3,
+                "popularity": 23,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 11.0,
+                "popularity": 11,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 27.1,
+                "popularity": 27,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 44.2,
+                "popularity": 44,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 179.2,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 421.5,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 13,
+                "odds": 38.2,
+                "popularity": 38,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 14,
+                "odds": 2.5,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 15,
+                "odds": 93.0,
+                "popularity": 93,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            223590
+          ],
           "stake": 3000,
           "winMain": 8,
           "winReturn": 0,
@@ -47003,7 +47982,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -48468,13 +49448,178 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                2
+              ],
+              [
+                4
+              ],
+              [
+                13
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  2
+                ],
+                "payout": 12590
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  2,
+                  4,
+                  13
+                ],
+                "payout": 642070
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 40.2,
+                "popularity": 40,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 125.9,
+                "popularity": 9,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 12.4,
+                "popularity": 12,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 7.5,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 6.1,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 30.1,
+                "popularity": 30,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 6.3,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 15.1,
+                "popularity": 15,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 51.6,
+                "popularity": 51,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 31.6,
+                "popularity": 31,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 77.2,
+                "popularity": 77,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 17.8,
+                "popularity": 17,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 13,
+                "odds": 4.9,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 14,
+                "odds": 5.8,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 15,
+                "odds": 82.9,
+                "popularity": 82,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 16,
+                "odds": 43.8,
+                "popularity": 43,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 17,
+                "odds": 73.2,
+                "popularity": 73,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 18,
+                "odds": 21.4,
+                "popularity": 21,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            642070
+          ],
           "stake": 3000,
           "winMain": 5,
           "winReturn": 0,
@@ -48483,7 +49628,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -49652,13 +50798,150 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                3
+              ],
+              [
+                9
+              ],
+              [
+                1
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  3
+                ],
+                "payout": 380
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  3,
+                  9,
+                  1
+                ],
+                "payout": 9520
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 3.6,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 113.5,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 3.8,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 8.0,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 8.6,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 249.3,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 58.0,
+                "popularity": 58,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 25.9,
+                "popularity": 25,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 5.4,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 28.8,
+                "popularity": 28,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 22.7,
+                "popularity": 22,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 19.3,
+                "popularity": 19,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 13,
+                "odds": 41.4,
+                "popularity": 41,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 14,
+                "odds": 15.1,
+                "popularity": 15,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            9520
+          ],
           "stake": 3000,
           "winMain": 2,
           "winReturn": 0,
@@ -49667,7 +50950,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -50910,13 +52194,157 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                10
+              ],
+              [
+                6
+              ],
+              [
+                3
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  10
+                ],
+                "payout": 6610
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  10,
+                  6,
+                  3
+                ],
+                "payout": 1024240
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 96.5,
+                "popularity": 96,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 15.2,
+                "popularity": 15,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 5.5,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 4.6,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 5.7,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 32.4,
+                "popularity": 32,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 31.8,
+                "popularity": 31,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 12.0,
+                "popularity": 12,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 17.1,
+                "popularity": 17,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 66.1,
+                "popularity": 66,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 8.3,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 10.3,
+                "popularity": 10,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 13,
+                "odds": 47.1,
+                "popularity": 47,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 14,
+                "odds": 8.3,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 15,
+                "odds": 33.9,
+                "popularity": 33,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            1024240
+          ],
           "stake": 3000,
           "winMain": 11,
           "winReturn": 0,
@@ -50925,7 +52353,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -52390,13 +53819,178 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                6
+              ],
+              [
+                12
+              ],
+              [
+                15
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  6
+                ],
+                "payout": 700
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  6,
+                  12,
+                  15
+                ],
+                "payout": 42990
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 38.3,
+                "popularity": 38,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 23.1,
+                "popularity": 23,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 16.2,
+                "popularity": 16,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 36.6,
+                "popularity": 36,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 29.4,
+                "popularity": 29,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 7.0,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 96.1,
+                "popularity": 96,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 4.6,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 70.4,
+                "popularity": 70,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 24.4,
+                "popularity": 24,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 147.8,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 11.4,
+                "popularity": 11,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 13,
+                "odds": 8.6,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 14,
+                "odds": 31.1,
+                "popularity": 31,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 15,
+                "odds": 4.2,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 16,
+                "odds": 49.7,
+                "popularity": 49,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 17,
+                "odds": 8.7,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 18,
+                "odds": 43.9,
+                "popularity": 43,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            42990
+          ],
           "stake": 3000,
           "winMain": 3,
           "winReturn": 0,
@@ -52405,7 +53999,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -53870,13 +55465,178 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                16
+              ],
+              [
+                14
+              ],
+              [
+                8
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  16
+                ],
+                "payout": 320
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  16,
+                  14,
+                  8
+                ],
+                "payout": 38330
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 30.5,
+                "popularity": 30,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 13.5,
+                "popularity": 13,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 47.2,
+                "popularity": 47,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 83.8,
+                "popularity": 83,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 255.5,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 190.2,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 258.4,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 6.1,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 208.7,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 9.0,
+                "popularity": 9,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 47.9,
+                "popularity": 47,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 14.1,
+                "popularity": 14,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 13,
+                "odds": 30.0,
+                "popularity": 30,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 14,
+                "odds": 30.1,
+                "popularity": 30,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 15,
+                "odds": 11.2,
+                "popularity": 11,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 16,
+                "odds": 3.2,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 17,
+                "odds": 5.4,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 18,
+                "odds": 12.3,
+                "popularity": 12,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            38330
+          ],
           "stake": 3000,
           "winMain": 11,
           "winReturn": 0,
@@ -53885,7 +55645,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -54904,13 +56665,136 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                4
+              ],
+              [
+                2
+              ],
+              [
+                6
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  4
+                ],
+                "payout": 470
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  4,
+                  2,
+                  6
+                ],
+                "payout": 8590
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 61.3,
+                "popularity": 61,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 1.3,
+                "popularity": 1,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 9.7,
+                "popularity": 9,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 4.7,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 129.9,
+                "popularity": 9,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 45.3,
+                "popularity": 45,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 49.7,
+                "popularity": 49,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 28.7,
+                "popularity": 28,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 371.7,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 17.5,
+                "popularity": 17,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 155.7,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 192.1,
+                "popularity": 1,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            8590
+          ],
           "stake": 2400,
           "winMain": 2,
           "winReturn": 0,
@@ -54919,7 +56803,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -55788,13 +57673,122 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                4
+              ],
+              [
+                9
+              ],
+              [
+                8
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  4
+                ],
+                "payout": 240
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  4,
+                  9,
+                  8
+                ],
+                "payout": 14350
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 78.0,
+                "popularity": 78,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 60.2,
+                "popularity": 60,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 16.4,
+                "popularity": 16,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 2.4,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 228.3,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 5.7,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 336.7,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 170.8,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 1.9,
+                "popularity": 1,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 24.8,
+                "popularity": 24,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            14350
+          ],
           "stake": 1800,
           "winMain": 3,
           "winReturn": 0,
@@ -55803,7 +57797,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -56822,13 +58817,136 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                11
+              ],
+              [
+                8
+              ],
+              [
+                6
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  11
+                ],
+                "payout": 610
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  11,
+                  8,
+                  6
+                ],
+                "payout": 3060
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 67.4,
+                "popularity": 67,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 284.1,
+                "popularity": 1,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 10.3,
+                "popularity": 10,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 339.2,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 136.8,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 2.9,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 567.2,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 1.8,
+                "popularity": 1,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 409.4,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 29.1,
+                "popularity": 29,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 6.1,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 18.8,
+                "popularity": 18,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            3060
+          ],
           "stake": 2400,
           "winMain": 10,
           "winReturn": 0,
@@ -56837,7 +58955,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -58302,13 +60421,178 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                5
+              ],
+              [
+                17
+              ],
+              [
+                15
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  5
+                ],
+                "payout": 180
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  5,
+                  17,
+                  15
+                ],
+                "payout": 58530
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 238.8,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 61.6,
+                "popularity": 61,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 345.4,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 174.6,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 1.8,
+                "popularity": 1,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 73.6,
+                "popularity": 73,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 465.5,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 67.6,
+                "popularity": 67,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 9.6,
+                "popularity": 9,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 3.9,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 21.3,
+                "popularity": 21,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 114.6,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 13,
+                "odds": 7.5,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 14,
+                "odds": 53.2,
+                "popularity": 53,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 15,
+                "odds": 20.8,
+                "popularity": 20,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 16,
+                "odds": 281.7,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 17,
+                "odds": 64.2,
+                "popularity": 64,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 18,
+                "odds": 74.1,
+                "popularity": 74,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            58530
+          ],
           "stake": 3000,
           "winMain": 2,
           "winReturn": 0,
@@ -58317,7 +60601,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -59112,13 +61397,108 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                9
+              ],
+              [
+                7
+              ],
+              [
+                3
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  9
+                ],
+                "payout": 160
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  9,
+                  7,
+                  3
+                ],
+                "payout": 1340
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 7.2,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 141.6,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 4.7,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 59.2,
+                "popularity": 59,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 14.9,
+                "popularity": 14,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 5.3,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 35.3,
+                "popularity": 35,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 1.6,
+                "popularity": 1,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            1340
+          ],
           "stake": 1800,
           "winMain": 1,
           "winReturn": 0,
@@ -59127,7 +61507,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -60592,13 +62973,178 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                13
+              ],
+              [
+                17
+              ],
+              [
+                7
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  13
+                ],
+                "payout": 1200
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  13,
+                  17,
+                  7
+                ],
+                "payout": 21730
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 200.4,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 4.3,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 64.1,
+                "popularity": 64,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 10.5,
+                "popularity": 10,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 177.7,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 368.2,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 4.7,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 39.8,
+                "popularity": 39,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 6.5,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 71.5,
+                "popularity": 71,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 10.0,
+                "popularity": 10,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 72.1,
+                "popularity": 72,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 13,
+                "odds": 12.0,
+                "popularity": 12,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 14,
+                "odds": 50.4,
+                "popularity": 50,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 15,
+                "odds": 17.1,
+                "popularity": 17,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 16,
+                "odds": 211.1,
+                "popularity": 1,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 17,
+                "odds": 4.6,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 18,
+                "odds": 477.3,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            21730
+          ],
           "stake": 3000,
           "winMain": 17,
           "winReturn": 0,
@@ -60607,7 +63153,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -61552,13 +64099,129 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                5
+              ],
+              [
+                11
+              ],
+              [
+                4
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  5
+                ],
+                "payout": 470
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  5,
+                  11,
+                  4
+                ],
+                "payout": 13260
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 176.3,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 292.5,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 12.0,
+                "popularity": 12,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 12.4,
+                "popularity": 12,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 4.7,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 47.5,
+                "popularity": 47,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 29.9,
+                "popularity": 29,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 130.5,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 10.2,
+                "popularity": 10,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 3.3,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 2.4,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            13260
+          ],
           "stake": 2400,
           "winMain": 10,
           "winReturn": 0,
@@ -61567,7 +64230,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -62362,22 +65026,125 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 14.8,
+                "d3_ev": 14.8,
+                "payout_ev": 14.8
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                6
+              ],
+              [
+                4
+              ],
+              [
+                3
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  6
+                ],
+                "payout": 1480
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  6,
+                  4,
+                  3
+                ],
+                "payout": 18220
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 23.4,
+                "popularity": 23,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 6.4,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 2.4,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 4.1,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 6.6,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 14.8,
+                "popularity": 14,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 25.9,
+                "popularity": 25,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 39.8,
+                "popularity": 39,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 8.2,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            18220
+          ],
           "stake": 1800,
           "winMain": 6,
-          "winReturn": 0,
+          "winReturn": 1480,
           "winStake": 100,
           "dataSources": {
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -63396,13 +66163,136 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                7
+              ],
+              [
+                12
+              ],
+              [
+                5
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  7
+                ],
+                "payout": 4380
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  7,
+                  12,
+                  5
+                ],
+                "payout": 162400
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 12.8,
+                "popularity": 12,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 7.6,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 5.3,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 16.2,
+                "popularity": 16,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 34.1,
+                "popularity": 34,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 28.6,
+                "popularity": 28,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 43.8,
+                "popularity": 43,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 93.1,
+                "popularity": 93,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 34.0,
+                "popularity": 34,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 20.3,
+                "popularity": 20,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 9.4,
+                "popularity": 9,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 1.9,
+                "popularity": 1,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            162400
+          ],
           "stake": 2400,
           "winMain": 11,
           "winReturn": 0,
@@ -63411,7 +66301,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -64580,22 +67471,160 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 7.6,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                4
+              ],
+              [
+                10
+              ],
+              [
+                14
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  4
+                ],
+                "payout": 760
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  4,
+                  10,
+                  14
+                ],
+                "payout": 33230
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 17.9,
+                "popularity": 17,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 107.6,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 2.4,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 7.6,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 6.6,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 56.4,
+                "popularity": 56,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 21.5,
+                "popularity": 21,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 39.6,
+                "popularity": 39,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 152.3,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 4.5,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 95.9,
+                "popularity": 95,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 31.4,
+                "popularity": 31,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 13,
+                "odds": 31.0,
+                "popularity": 31,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 14,
+                "odds": 9.3,
+                "popularity": 9,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            33230
+          ],
           "stake": 3000,
           "winMain": 4,
-          "winReturn": 0,
+          "winReturn": 760,
           "winStake": 100,
           "dataSources": {
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -65764,13 +68793,150 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                13
+              ],
+              [
+                10
+              ],
+              [
+                14
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  13
+                ],
+                "payout": 4160
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  13,
+                  10,
+                  14
+                ],
+                "payout": 233300
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 18.1,
+                "popularity": 18,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 89.4,
+                "popularity": 89,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 236.4,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 3.2,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 5.9,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 29.0,
+                "popularity": 29,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 19.7,
+                "popularity": 19,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 11.6,
+                "popularity": 11,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 23.5,
+                "popularity": 23,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 3.6,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 21.6,
+                "popularity": 21,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 39.1,
+                "popularity": 39,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 13,
+                "odds": 41.6,
+                "popularity": 41,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 14,
+                "odds": 8.4,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            233300
+          ],
           "stake": 3000,
           "winMain": 5,
           "winReturn": 0,
@@ -65779,7 +68945,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -66948,13 +70115,150 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                2
+              ],
+              [
+                7
+              ],
+              [
+                5
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  2
+                ],
+                "payout": 320
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  2,
+                  7,
+                  5
+                ],
+                "payout": 5910
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 104.6,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 3.2,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 105.7,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 31.6,
+                "popularity": 31,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 4.5,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 14.2,
+                "popularity": 14,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 6.0,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 55.3,
+                "popularity": 55,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 15.8,
+                "popularity": 15,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 84.3,
+                "popularity": 84,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 23.5,
+                "popularity": 23,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 4.0,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 13,
+                "odds": 83.8,
+                "popularity": 83,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 14,
+                "odds": 20.9,
+                "popularity": 20,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            5910
+          ],
           "stake": 3000,
           "winMain": 6,
           "winReturn": 0,
@@ -66963,7 +70267,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -67832,13 +71137,122 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 2.4,
+                "payout_ev": 2.4
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                2
+              ],
+              [
+                9
+              ],
+              [
+                3
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  2
+                ],
+                "payout": 240
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  2,
+                  9,
+                  3
+                ],
+                "payout": 5580
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 25.7,
+                "popularity": 25,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 2.4,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 3.4,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 26.5,
+                "popularity": 26,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 110.1,
+                "popularity": 1,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 6.5,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 5.2,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 202.0,
+                "popularity": 0,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 8.3,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 100.2,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            5580
+          ],
           "stake": 1800,
           "winMain": 3,
           "winReturn": 0,
@@ -67847,7 +71261,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -68792,13 +72207,129 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                7
+              ],
+              [
+                6
+              ],
+              [
+                1
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  7
+                ],
+                "payout": 1820
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  7,
+                  6,
+                  1
+                ],
+                "payout": 14260
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 1.6,
+                "popularity": 1,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 233.1,
+                "popularity": 1,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 428.1,
+                "popularity": 1,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 27.5,
+                "popularity": 27,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 26.5,
+                "popularity": 26,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 3.5,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 18.2,
+                "popularity": 18,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 180.8,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 5.1,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 130.2,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 64.2,
+                "popularity": 64,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            14260
+          ],
           "stake": 2400,
           "winMain": 2,
           "winReturn": 0,
@@ -68807,7 +72338,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -69526,13 +73058,108 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                4
+              ],
+              [
+                5
+              ],
+              [
+                8
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  4
+                ],
+                "payout": 1320
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  4,
+                  5,
+                  8
+                ],
+                "payout": 21500
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 120.5,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 2.7,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 66.7,
+                "popularity": 66,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 13.2,
+                "popularity": 13,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 4.0,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 19.2,
+                "popularity": 19,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 9.4,
+                "popularity": 9,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 2.6,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            21500
+          ],
           "stake": 1200,
           "winMain": 7,
           "winReturn": 0,
@@ -69541,7 +73168,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -70260,13 +73888,108 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                5
+              ],
+              [
+                2
+              ],
+              [
+                1
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  5
+                ],
+                "payout": 400
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  5,
+                  2,
+                  1
+                ],
+                "payout": 3770
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 2.2,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 5.0,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 58.2,
+                "popularity": 58,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 23.8,
+                "popularity": 23,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 4.0,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 11.9,
+                "popularity": 11,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 5.0,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 67.4,
+                "popularity": 67,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            3770
+          ],
           "stake": 1200,
           "winMain": 4,
           "winReturn": 0,
@@ -70275,7 +73998,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -70994,22 +74718,118 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 13.2,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
-          "payout": 0,
-          "trifectaPayouts": [],
+          "result": {
+            "places": [
+              [
+                1
+              ],
+              [
+                2
+              ],
+              [
+                4
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  1
+                ],
+                "payout": 1320
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  1,
+                  2,
+                  4
+                ],
+                "payout": 11870
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 13.2,
+                "popularity": 13,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 2.9,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 6.8,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 1.9,
+                "popularity": 1,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 69.4,
+                "popularity": 69,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 37.9,
+                "popularity": 37,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 94.9,
+                "popularity": 94,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 8.0,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "hit",
+          "payout": 11870,
+          "trifectaPayouts": [
+            11870
+          ],
           "stake": 1200,
           "winMain": 1,
-          "winReturn": 0,
+          "winReturn": 1320,
           "winStake": 100,
           "dataSources": {
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -72326,13 +76146,164 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                4
+              ],
+              [
+                10
+              ],
+              [
+                8
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  4
+                ],
+                "payout": 340
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  4,
+                  10,
+                  8
+                ],
+                "payout": 111770
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 55.2,
+                "popularity": 55,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 26.2,
+                "popularity": 26,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 59.2,
+                "popularity": 59,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 3.4,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 181.2,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 5.4,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 57.0,
+                "popularity": 57,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 63.5,
+                "popularity": 63,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 64.4,
+                "popularity": 64,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 5.0,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 19.8,
+                "popularity": 19,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 12.6,
+                "popularity": 12,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 13,
+                "odds": 7.1,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 14,
+                "odds": 34.8,
+                "popularity": 34,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 15,
+                "odds": 6.7,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 16,
+                "odds": 224.5,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            111770
+          ],
           "stake": 3000,
           "winMain": 1,
           "winReturn": 0,
@@ -72341,7 +76312,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -73210,13 +77182,122 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                7
+              ],
+              [
+                4
+              ],
+              [
+                8
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  7
+                ],
+                "payout": 520
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  7,
+                  4,
+                  8
+                ],
+                "payout": 5920
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 6.1,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 5.5,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 97.1,
+                "popularity": 97,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 2.0,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 60.0,
+                "popularity": 60,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 117.4,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 5.2,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 6.9,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 20.8,
+                "popularity": 20,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 287.2,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            5920
+          ],
           "stake": 1800,
           "winMain": 2,
           "winReturn": 0,
@@ -73225,7 +77306,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -73870,13 +77952,101 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                7
+              ],
+              [
+                3
+              ],
+              [
+                6
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  7
+                ],
+                "payout": 200
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  7,
+                  3,
+                  6
+                ],
+                "payout": 1510
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 5.0,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 12.1,
+                "popularity": 12,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 4.3,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 64.9,
+                "popularity": 64,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 35.5,
+                "popularity": 35,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 4.8,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 2.0,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            1510
+          ],
           "stake": 1200,
           "winMain": 1,
           "winReturn": 0,
@@ -73885,7 +78055,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -75202,13 +79373,164 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                7
+              ],
+              [
+                11
+              ],
+              [
+                14
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  7
+                ],
+                "payout": 470
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  7,
+                  11,
+                  14
+                ],
+                "payout": 9180
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 166.7,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 311.6,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 17.2,
+                "popularity": 17,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 141.6,
+                "popularity": 6,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 5.0,
+                "popularity": 5,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 90.0,
+                "popularity": 90,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 4.7,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 42.2,
+                "popularity": 42,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 8.0,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 52.7,
+                "popularity": 52,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 2.7,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 108.2,
+                "popularity": 2,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 13,
+                "odds": 32.6,
+                "popularity": 32,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 14,
+                "odds": 8.5,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 15,
+                "odds": 128.8,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 16,
+                "odds": 15.1,
+                "popularity": 15,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            9180
+          ],
           "stake": 3000,
           "winMain": 9,
           "winReturn": 0,
@@ -75217,7 +79539,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -76012,13 +80335,115 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                6
+              ],
+              [
+                2
+              ],
+              [
+                7
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  6
+                ],
+                "payout": 140
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  6,
+                  2,
+                  7
+                ],
+                "payout": 2110
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 90.3,
+                "popularity": 90,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 11.0,
+                "popularity": 11,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 7.2,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 208.0,
+                "popularity": 0,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 58.7,
+                "popularity": 58,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 1.4,
+                "popularity": 1,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 4.6,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 38.8,
+                "popularity": 38,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 14.4,
+                "popularity": 14,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            2110
+          ],
           "stake": 1800,
           "winMain": 7,
           "winReturn": 0,
@@ -76027,7 +80452,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -77270,13 +81696,157 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                10
+              ],
+              [
+                5
+              ],
+              [
+                9
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  10
+                ],
+                "payout": 810
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  10,
+                  5,
+                  9
+                ],
+                "payout": 61650
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 34.3,
+                "popularity": 34,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 22.8,
+                "popularity": 22,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 60.4,
+                "popularity": 60,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 270.9,
+                "popularity": 9,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 11.1,
+                "popularity": 11,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 4.8,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 11.1,
+                "popularity": 11,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 32.4,
+                "popularity": 32,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 7.6,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 8.1,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 76.9,
+                "popularity": 76,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 7.8,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 13,
+                "odds": 60.6,
+                "popularity": 60,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 14,
+                "odds": 3.0,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 15,
+                "odds": 162.3,
+                "popularity": 3,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            61650
+          ],
           "stake": 3000,
           "winMain": 9,
           "winReturn": 0,
@@ -77285,7 +81855,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         },
         {
@@ -78750,13 +83321,176 @@
               "pairedMinSupportingHorizons": 2,
               "pairedLongHorizonFloor": 0.0,
               "modelMode": "live-prior-history",
-              "trainingRaces": 2442
+              "trainingRaces": 2442,
+              "actionReturns": {
+                "policy": 0.0,
+                "d3_ev": 0.0,
+                "payout_ev": 0.0
+              }
             }
           },
-          "result": null,
-          "status": "pending",
+          "result": {
+            "places": [
+              [
+                5
+              ],
+              [
+                7,
+                10
+              ]
+            ],
+            "winPayouts": [
+              {
+                "horses": [
+                  5
+                ],
+                "payout": 1580
+              }
+            ],
+            "trifectas": [
+              {
+                "horses": [
+                  5,
+                  10,
+                  7
+                ],
+                "payout": 35460
+              }
+            ],
+            "runnerMarket": [
+              {
+                "horse": 1,
+                "odds": 7.1,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 2,
+                "odds": 22.2,
+                "popularity": 22,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 3,
+                "odds": 28.6,
+                "popularity": 28,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 4,
+                "odds": 7.4,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 5,
+                "odds": 15.8,
+                "popularity": 15,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 6,
+                "odds": 13.2,
+                "popularity": 13,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 7,
+                "odds": 8.7,
+                "popularity": 8,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 8,
+                "odds": 35.1,
+                "popularity": 35,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 9,
+                "odds": 276.0,
+                "popularity": 0,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 10,
+                "odds": 4.7,
+                "popularity": 4,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 11,
+                "odds": 72.5,
+                "popularity": 72,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 12,
+                "odds": 29.3,
+                "popularity": 29,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 13,
+                "odds": 17.4,
+                "popularity": 17,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 14,
+                "odds": 7.0,
+                "popularity": 7,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 15,
+                "odds": 10.5,
+                "popularity": 10,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 16,
+                "odds": 41.3,
+                "popularity": 41,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 17,
+                "odds": 137.0,
+                "popularity": 0,
+                "surface": "",
+                "distance": null
+              },
+              {
+                "horse": 18,
+                "odds": 34.6,
+                "popularity": 34,
+                "surface": "",
+                "distance": null
+              }
+            ]
+          },
+          "status": "miss",
           "payout": 0,
-          "trifectaPayouts": [],
+          "trifectaPayouts": [
+            35460
+          ],
           "stake": 3000,
           "winMain": 13,
           "winReturn": 0,
@@ -78765,7 +83499,8 @@
             "discovery": "netkeiba",
             "entries": "sportsnavi",
             "frames": "jra-deterministic",
-            "indexDetail": "netkeiba-past5"
+            "indexDetail": "netkeiba-past5",
+            "result": "sportsnavi"
           }
         }
       ]
